@@ -1,10 +1,22 @@
 import { useState } from 'react';
 import { Plus, Trash2, Copy, Check, Download } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { REFERENCE_RANGES } from '../../constants/referenceRanges';
 
@@ -17,12 +29,15 @@ export function ReportImporter({ onClose }) {
   const [showPreview, setShowPreview] = useState(false);
 
   const addMetric = () => {
-    setMetrics([...metrics, {
-      key: '',
-      value: '',
-      reference: '',
-      unit: ''
-    }]);
+    setMetrics([
+      ...metrics,
+      {
+        key: '',
+        value: '',
+        reference: '',
+        unit: '',
+      },
+    ]);
   };
 
   const removeMetric = (index) => {
@@ -36,13 +51,14 @@ export function ReportImporter({ onClose }) {
     // Auto-populate reference and unit from constants if key is selected
     if (field === 'key' && value && REFERENCE_RANGES[value]) {
       const ref = REFERENCE_RANGES[value];
-      const refString = ref.min !== null && ref.max !== null
-        ? `${ref.min}-${ref.max}`
-        : ref.min !== null
-        ? `>${ref.min}`
-        : ref.max !== null
-        ? `<${ref.max}`
-        : '';
+      const refString =
+        ref.min !== null && ref.max !== null
+          ? `${ref.min}-${ref.max}`
+          : ref.min !== null
+            ? `>${ref.min}`
+            : ref.max !== null
+              ? `<${ref.max}`
+              : '';
       updated[index].reference = refString;
       updated[index].unit = ref.unit || '';
     }
@@ -62,7 +78,7 @@ export function ReportImporter({ onClose }) {
     md += `|--------|-------|-----------|------|\n`;
 
     // Add table rows
-    metrics.forEach(metric => {
+    metrics.forEach((metric) => {
       if (metric.key && metric.value) {
         md += `| ${metric.key} | ${metric.value} | ${metric.reference} | ${metric.unit} |\n`;
       }
@@ -98,10 +114,10 @@ export function ReportImporter({ onClose }) {
   const availableMetrics = Object.entries(REFERENCE_RANGES).map(([key, ref]) => ({
     key,
     name: ref.name,
-    category: ref.category
+    category: ref.category,
   }));
 
-  const canGenerate = reportDate && metrics.some(m => m.key && m.value);
+  const canGenerate = reportDate && metrics.some((m) => m.key && m.value);
 
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
@@ -160,7 +176,9 @@ export function ReportImporter({ onClose }) {
 
               {metrics.length === 0 ? (
                 <div className="bg-muted rounded-lg p-8 text-center">
-                  <p className="text-muted-foreground">No metrics added yet. Click "Add Metric" to start.</p>
+                  <p className="text-muted-foreground">
+                    No metrics added yet. Click &quot;Add Metric&quot; to start.
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -177,7 +195,7 @@ export function ReportImporter({ onClose }) {
                               <SelectValue placeholder="Select metric..." />
                             </SelectTrigger>
                             <SelectContent>
-                              {availableMetrics.map(m => (
+                              {availableMetrics.map((m) => (
                                 <SelectItem key={m.key} value={m.key}>
                                   {m.name} ({m.category})
                                 </SelectItem>
@@ -253,18 +271,14 @@ export function ReportImporter({ onClose }) {
             {showPreview ? 'Hide' : 'Preview'}
           </Button>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={downloadMarkdown}
-              disabled={!canGenerate}
-            >
+            <Button variant="outline" onClick={downloadMarkdown} disabled={!canGenerate}>
               <Download size={16} />
               <span className="hidden sm:inline">Download</span>
             </Button>
             <Button
               onClick={copyToClipboard}
               disabled={!canGenerate}
-              className={copied ? "bg-green-600 hover:bg-green-700" : ""}
+              className={copied ? 'bg-green-600 hover:bg-green-700' : ''}
             >
               {copied ? <Check size={16} /> : <Copy size={16} />}
               {copied ? 'Copied!' : 'Copy Markdown'}

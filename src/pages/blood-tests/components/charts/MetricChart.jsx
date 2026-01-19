@@ -1,4 +1,14 @@
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine, ReferenceArea, ComposedChart } from 'recharts';
+import {
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  ReferenceLine,
+  ReferenceArea,
+  ComposedChart,
+} from 'recharts';
 import { Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { REFERENCE_RANGES } from '../../constants/referenceRanges';
@@ -9,8 +19,9 @@ import { TrendIndicator } from '../ui/TrendIndicator';
 
 export function MetricChart({ metricKey, reports }) {
   const ref = REFERENCE_RANGES[metricKey];
-  const data = reports.sort((a, b) => new Date(a.date) - new Date(b.date))
-    .map(r => {
+  const data = reports
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .map((r) => {
       if (!r.metrics[metricKey]) return null;
       const m = r.metrics[metricKey];
       return {
@@ -18,7 +29,7 @@ export function MetricChart({ metricKey, reports }) {
         value: m.value,
         min: m.min,
         max: m.max,
-        fullDate: r.date
+        fullDate: r.date,
       };
     })
     .filter(Boolean);
@@ -26,16 +37,18 @@ export function MetricChart({ metricKey, reports }) {
   if (data.length === 0 || !ref) return null;
 
   const sortedReports = [...reports].sort((a, b) => new Date(b.date) - new Date(a.date));
-  const latestReport = sortedReports.find(r => r.metrics[metricKey]);
+  const latestReport = sortedReports.find((r) => r.metrics[metricKey]);
   const metric = latestReport?.metrics[metricKey];
   if (!metric) return null;
 
-  const allValues = data.map(d => d.value);
-  const minVal = Math.min(...allValues), maxVal = Math.max(...allValues);
+  const allValues = data.map((d) => d.value);
+  const minVal = Math.min(...allValues),
+    maxVal = Math.max(...allValues);
   const range = maxVal - minVal || maxVal * 0.2;
   const padding = range * 0.4;
 
-  let yMin = minVal - padding, yMax = maxVal + padding;
+  let yMin = minVal - padding,
+    yMax = maxVal + padding;
   if (metric.min !== null) yMin = Math.min(yMin, metric.min - padding * 0.5);
   if (metric.max !== null) yMax = Math.max(yMax, metric.max + padding * 0.5);
   if (metric.optimalMin !== null || metric.optimalMax !== null) {
@@ -44,17 +57,24 @@ export function MetricChart({ metricKey, reports }) {
   }
 
   const status = getStatus(metric.value, metric.min, metric.max);
-  const hasHistoricalAbnormal = data.some(d => getStatus(d.value, d.min, d.max) !== 'normal');
+  const hasHistoricalAbnormal = data.some((d) => getStatus(d.value, d.min, d.max) !== 'normal');
 
   return (
-    <div className={`bg-card rounded-xl border-2 p-3 sm:p-4 transition-all ${
-      status !== 'normal' ? 'border-amber-300 dark:border-amber-700 bg-gradient-to-br from-amber-50/50 to-transparent dark:from-amber-950/20' :
-      hasHistoricalAbnormal ? 'border-blue-200 dark:border-blue-800' : 'border-border'
-    }`}>
+    <div
+      className={`bg-card rounded-xl border-2 p-3 sm:p-4 transition-all ${
+        status !== 'normal'
+          ? 'border-amber-300 dark:border-amber-700 bg-gradient-to-br from-amber-50/50 to-transparent dark:from-amber-950/20'
+          : hasHistoricalAbnormal
+            ? 'border-blue-200 dark:border-blue-800'
+            : 'border-border'
+      }`}
+    >
       <div className="flex justify-between items-start mb-1 gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1 sm:gap-2">
-            <h4 className="font-semibold text-foreground text-sm sm:text-base truncate">{ref.name}</h4>
+            <h4 className="font-semibold text-foreground text-sm sm:text-base truncate">
+              {ref.name}
+            </h4>
             {ref.clinicalNotes && (
               <TooltipProvider>
                 <Tooltip>
@@ -92,10 +112,16 @@ export function MetricChart({ metricKey, reports }) {
           <TrendIndicator data={data} />
         </div>
         <div className="text-xs text-muted-foreground">
-          {metric.min !== null && metric.max !== null ? `Ref: ${metric.min}–${metric.max}` :
-           metric.min !== null ? `Ref: ≥${metric.min}` :
-           metric.max !== null ? `Ref: ≤${metric.max}` : ''}
-          {metric.optimalMin !== null && metric.optimalMax !== null && ` · Optimal: ${metric.optimalMin}–${metric.optimalMax}`}
+          {metric.min !== null && metric.max !== null
+            ? `Ref: ${metric.min}–${metric.max}`
+            : metric.min !== null
+              ? `Ref: ≥${metric.min}`
+              : metric.max !== null
+                ? `Ref: ≤${metric.max}`
+                : ''}
+          {metric.optimalMin !== null &&
+            metric.optimalMax !== null &&
+            ` · Optimal: ${metric.optimalMin}–${metric.optimalMax}`}
         </div>
       </div>
 
@@ -105,11 +131,23 @@ export function MetricChart({ metricKey, reports }) {
             <ComposedChart data={data} margin={{ top: 10, right: 10, bottom: 5, left: 0 }}>
               {/* Low zone (below min) */}
               {metric.min !== null && (
-                <ReferenceArea y1={yMin} y2={metric.min} fill="#fef3c7" fillOpacity={0.8} className="dark:opacity-30" />
+                <ReferenceArea
+                  y1={yMin}
+                  y2={metric.min}
+                  fill="#fef3c7"
+                  fillOpacity={0.8}
+                  className="dark:opacity-30"
+                />
               )}
               {/* Normal zone */}
               {metric.min !== null && metric.max !== null && (
-                <ReferenceArea y1={metric.min} y2={metric.max} fill="#dcfce7" fillOpacity={0.8} className="dark:opacity-30" />
+                <ReferenceArea
+                  y1={metric.min}
+                  y2={metric.max}
+                  fill="#dcfce7"
+                  fillOpacity={0.8}
+                  className="dark:opacity-30"
+                />
               )}
               {/* Optimal zone highlight */}
               {metric.optimalMin !== null && metric.optimalMax !== null && (
@@ -122,18 +160,29 @@ export function MetricChart({ metricKey, reports }) {
               )}
               {/* High zone (above max) */}
               {metric.max !== null && (
-                <ReferenceArea y1={metric.max} y2={yMax} fill="#fef3c7" fillOpacity={0.8} className="dark:opacity-30" />
+                <ReferenceArea
+                  y1={metric.max}
+                  y2={yMax}
+                  fill="#fef3c7"
+                  fillOpacity={0.8}
+                  className="dark:opacity-30"
+                />
               )}
 
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--muted-foreground))" axisLine={false} />
+              <XAxis
+                dataKey="date"
+                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                stroke="hsl(var(--muted-foreground))"
+                axisLine={false}
+              />
               <YAxis
                 domain={[yMin, yMax]}
                 tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
                 stroke="hsl(var(--muted-foreground))"
                 width={45}
                 axisLine={false}
-                tickFormatter={(v) => v.toFixed(metric.unit === 'L/L' ? 2 : (v < 10 ? 1 : 0))}
+                tickFormatter={(v) => v.toFixed(metric.unit === 'L/L' ? 2 : v < 10 ? 1 : 0)}
               />
               <RechartsTooltip
                 contentStyle={{
@@ -142,7 +191,7 @@ export function MetricChart({ metricKey, reports }) {
                   border: 'none',
                   boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
                   backgroundColor: 'hsl(var(--card))',
-                  color: 'hsl(var(--foreground))'
+                  color: 'hsl(var(--foreground))',
                 }}
                 formatter={(value) => [`${value} ${metric.unit}`, metric.name]}
                 labelStyle={{ fontWeight: 'bold', marginBottom: 4 }}
@@ -150,10 +199,22 @@ export function MetricChart({ metricKey, reports }) {
 
               {/* Reference lines */}
               {metric.min !== null && (
-                <ReferenceLine y={metric.min} stroke="#f59e0b" strokeWidth={2} strokeDasharray="4 4" label={{ value: 'Min', fontSize: 9, fill: '#f59e0b', position: 'left' }} />
+                <ReferenceLine
+                  y={metric.min}
+                  stroke="#f59e0b"
+                  strokeWidth={2}
+                  strokeDasharray="4 4"
+                  label={{ value: 'Min', fontSize: 9, fill: '#f59e0b', position: 'left' }}
+                />
               )}
               {metric.max !== null && (
-                <ReferenceLine y={metric.max} stroke="#f59e0b" strokeWidth={2} strokeDasharray="4 4" label={{ value: 'Max', fontSize: 9, fill: '#f59e0b', position: 'left' }} />
+                <ReferenceLine
+                  y={metric.max}
+                  stroke="#f59e0b"
+                  strokeWidth={2}
+                  strokeDasharray="4 4"
+                  label={{ value: 'Max', fontSize: 9, fill: '#f59e0b', position: 'left' }}
+                />
               )}
 
               <Line
@@ -164,12 +225,25 @@ export function MetricChart({ metricKey, reports }) {
                 dot={(props) => {
                   const { cx, cy, payload } = props;
                   const pointStatus = getStatus(payload.value, payload.min, payload.max);
-                  const color = pointStatus === 'normal' ? '#22c55e' : pointStatus === 'high' ? '#ef4444' : '#f59e0b';
+                  const color =
+                    pointStatus === 'normal'
+                      ? '#22c55e'
+                      : pointStatus === 'high'
+                        ? '#ef4444'
+                        : '#f59e0b';
                   return (
                     <g>
                       <circle cx={cx} cy={cy} r={6} fill={color} stroke="#fff" strokeWidth={2} />
                       {pointStatus !== 'normal' && (
-                        <circle cx={cx} cy={cy} r={10} fill="none" stroke={color} strokeWidth={2} opacity={0.3} />
+                        <circle
+                          cx={cx}
+                          cy={cy}
+                          r={10}
+                          fill="none"
+                          stroke={color}
+                          strokeWidth={2}
+                          opacity={0.3}
+                        />
                       )}
                     </g>
                   );
@@ -188,8 +262,7 @@ export function MetricChart({ metricKey, reports }) {
       <div className="mt-2 text-xs text-muted-foreground text-center">
         {data.length === 1
           ? `1 reading · ${data[0].date}`
-          : `${data.length} readings · ${data[0].date} → ${data[data.length-1].date}`
-        }
+          : `${data.length} readings · ${data[0].date} → ${data[data.length - 1].date}`}
       </div>
     </div>
   );

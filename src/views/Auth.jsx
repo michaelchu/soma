@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { isFirstTimeSetup, setupPasscode, verifyPasscode, createSession } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,16 +7,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function Auth({ onAuthenticated }) {
-  const [isSetup, setIsSetup] = useState(false);
+  const [isSetup] = useState(() => isFirstTimeSetup());
   const [passcode, setPasscode] = useState('');
   const [confirmPasscode, setConfirmPasscode] = useState('');
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    setIsSetup(isFirstTimeSetup());
-  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -71,21 +67,17 @@ export default function Auth({ onAuthenticated }) {
         {/* Auth Card */}
         <Card>
           <CardHeader className="pb-4">
-            <CardTitle className="text-lg">
-              {isSetup ? 'Set up passcode' : 'Sign in'}
-            </CardTitle>
+            <CardTitle className="text-lg">{isSetup ? 'Set up passcode' : 'Sign in'}</CardTitle>
             <CardDescription>
-              {isSetup 
-                ? 'Choose a passcode to protect your portal' 
+              {isSetup
+                ? 'Choose a passcode to protect your portal'
                 : 'Enter your passcode to continue'}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="passcode">
-                  {isSetup ? 'New Passcode' : 'Passcode'}
-                </Label>
+                <Label htmlFor="passcode">{isSetup ? 'New Passcode' : 'Passcode'}</Label>
                 <Input
                   id="passcode"
                   type="password"
@@ -112,11 +104,7 @@ export default function Auth({ onAuthenticated }) {
               )}
 
               <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="remember" 
-                  checked={remember}
-                  onCheckedChange={setRemember}
-                />
+                <Checkbox id="remember" checked={remember} onCheckedChange={setRemember} />
                 <Label htmlFor="remember" className="text-sm font-normal cursor-pointer">
                   Remember me
                 </Label>
@@ -129,15 +117,13 @@ export default function Auth({ onAuthenticated }) {
               )}
 
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Please wait...' : (isSetup ? 'Create Passcode' : 'Sign In')}
+                {loading ? 'Please wait...' : isSetup ? 'Create Passcode' : 'Sign In'}
               </Button>
             </form>
           </CardContent>
         </Card>
 
-        <p className="text-center text-muted-foreground text-xs mt-6">
-          Your personal app portal
-        </p>
+        <p className="text-center text-muted-foreground text-xs mt-6">Your personal app portal</p>
       </div>
     </div>
   );

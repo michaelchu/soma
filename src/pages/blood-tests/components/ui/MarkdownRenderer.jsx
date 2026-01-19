@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Simple markdown renderer for AI responses
  * Supports headers, bold text, italic text, bullet lists, and numbered lists
@@ -17,7 +15,11 @@ export function MarkdownRenderer({ content }) {
       if (currentList.length > 0) {
         elements.push(
           <ul key={`list-${elements.length}`} className="list-disc list-inside space-y-1 my-2">
-            {currentList.map((item, i) => <li key={i} className="text-sm text-muted-foreground">{processInlineMarkdown(item)}</li>)}
+            {currentList.map((item, i) => (
+              <li key={i} className="text-sm text-muted-foreground">
+                {processInlineMarkdown(item)}
+              </li>
+            ))}
           </ul>
         );
         currentList = [];
@@ -40,13 +42,21 @@ export function MarkdownRenderer({ content }) {
           if (boldMatch.index > 0) {
             parts.push(<span key={key++}>{remaining.slice(0, boldMatch.index)}</span>);
           }
-          parts.push(<strong key={key++} className="font-semibold text-foreground">{boldMatch[1]}</strong>);
+          parts.push(
+            <strong key={key++} className="font-semibold text-foreground">
+              {boldMatch[1]}
+            </strong>
+          );
           remaining = remaining.slice(boldMatch.index + boldMatch[0].length);
         } else if (italicMatch) {
           if (italicMatch.index > 0) {
             parts.push(<span key={key++}>{remaining.slice(0, italicMatch.index)}</span>);
           }
-          parts.push(<em key={key++} className="italic">{italicMatch[1]}</em>);
+          parts.push(
+            <em key={key++} className="italic">
+              {italicMatch[1]}
+            </em>
+          );
           remaining = remaining.slice(italicMatch.index + italicMatch[0].length);
         } else {
           parts.push(<span key={key++}>{remaining}</span>);
@@ -63,13 +73,25 @@ export function MarkdownRenderer({ content }) {
       // Headers
       if (trimmed.startsWith('### ')) {
         flushList();
-        elements.push(<h4 key={index} className="font-semibold text-foreground mt-3 mb-1">{processInlineMarkdown(trimmed.slice(4))}</h4>);
+        elements.push(
+          <h4 key={index} className="font-semibold text-foreground mt-3 mb-1">
+            {processInlineMarkdown(trimmed.slice(4))}
+          </h4>
+        );
       } else if (trimmed.startsWith('## ')) {
         flushList();
-        elements.push(<h3 key={index} className="font-bold text-foreground mt-3 mb-2">{processInlineMarkdown(trimmed.slice(3))}</h3>);
+        elements.push(
+          <h3 key={index} className="font-bold text-foreground mt-3 mb-2">
+            {processInlineMarkdown(trimmed.slice(3))}
+          </h3>
+        );
       } else if (trimmed.startsWith('# ')) {
         flushList();
-        elements.push(<h2 key={index} className="font-bold text-foreground text-lg mt-3 mb-2">{processInlineMarkdown(trimmed.slice(2))}</h2>);
+        elements.push(
+          <h2 key={index} className="font-bold text-foreground text-lg mt-3 mb-2">
+            {processInlineMarkdown(trimmed.slice(2))}
+          </h2>
+        );
       }
       // Bullet lists
       else if (trimmed.startsWith('- ') || trimmed.startsWith('• ') || trimmed.startsWith('* ')) {
@@ -87,7 +109,11 @@ export function MarkdownRenderer({ content }) {
       // Regular paragraph
       else {
         flushList();
-        elements.push(<p key={index} className="text-sm text-muted-foreground leading-relaxed">{processInlineMarkdown(trimmed)}</p>);
+        elements.push(
+          <p key={index} className="text-sm text-muted-foreground leading-relaxed">
+            {processInlineMarkdown(trimmed)}
+          </p>
+        );
       }
     });
 

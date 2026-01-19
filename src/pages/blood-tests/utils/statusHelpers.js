@@ -11,9 +11,9 @@
  * @returns {string} "low", "normal", or "high"
  */
 export function getStatus(value, min, max) {
-  if (min !== null && value < min) return "low";
-  if (max !== null && value > max) return "high";
-  return "normal";
+  if (min !== null && value < min) return 'low';
+  if (max !== null && value > max) return 'high';
+  return 'normal';
 }
 
 /**
@@ -27,7 +27,8 @@ export function getPositionInRange(value, min, max) {
   if (min === null && max === null) return 50;
   if (min === null) return value <= max ? (value / max) * 50 : 50 + ((value - max) / max) * 50;
   if (max === null) return value >= min ? 50 + ((value - min) / min) * 25 : (value / min) * 50;
-  if (value < min) return Math.max(0, ((value - (min - (max - min) * 0.3)) / ((max - min) * 0.3)) * 15);
+  if (value < min)
+    return Math.max(0, ((value - (min - (max - min) * 0.3)) / ((max - min) * 0.3)) * 15);
   if (value > max) return Math.min(100, 85 + ((value - max) / ((max - min) * 0.3)) * 15);
   return 15 + ((value - min) / (max - min)) * 70;
 }

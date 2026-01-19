@@ -13,7 +13,7 @@ export function RangeBar({ value, min, max, optimalMin, optimalMax, unit }) {
             className="absolute h-full bg-green-400/40 dark:bg-green-500/30"
             style={{
               left: `${15 + ((optimalMin - min) / (max - min)) * 70}%`,
-              width: `${((optimalMax - optimalMin) / (max - min)) * 70}%`
+              width: `${((optimalMax - optimalMin) / (max - min)) * 70}%`,
             }}
           />
         )}
@@ -27,7 +27,9 @@ export function RangeBar({ value, min, max, optimalMin, optimalMax, unit }) {
       </div>
       <div className="flex justify-between mt-1 text-xs text-muted-foreground">
         <span>{min !== null ? min : '—'}</span>
-        <span className="text-foreground font-medium">{value} {unit}</span>
+        <span className="text-foreground font-medium">
+          {value} {unit}
+        </span>
         <span>{max !== null ? max : '—'}</span>
       </div>
     </div>

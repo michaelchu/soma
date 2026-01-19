@@ -1,10 +1,22 @@
 import { useState } from 'react';
 import { ChevronRight, BookOpen } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from '@/components/ui/table';
 import { REFERENCE_RANGES } from '../../constants/referenceRanges';
 import { CATEGORY_INFO } from '../../constants/categories';
 
@@ -13,8 +25,8 @@ export function ReferenceRangePanel({ onClose }) {
   const [expandedMetric, setExpandedMetric] = useState(null);
 
   const categories = Object.entries(CATEGORY_INFO);
-  const metrics = Object.entries(REFERENCE_RANGES).filter(([key, ref]) =>
-    selectedCategory === 'all' || ref.category === selectedCategory
+  const metrics = Object.entries(REFERENCE_RANGES).filter(
+    ([_key, ref]) => selectedCategory === 'all' || ref.category === selectedCategory
   );
 
   return (
@@ -24,7 +36,9 @@ export function ReferenceRangePanel({ onClose }) {
           <DialogTitle className="flex items-center gap-2">
             <BookOpen size={18} className="text-blue-600 dark:text-blue-400" />
             Reference Ranges
-            <span className="text-xs font-normal text-muted-foreground">({metrics.length} metrics)</span>
+            <span className="text-xs font-normal text-muted-foreground">
+              ({metrics.length} metrics)
+            </span>
           </DialogTitle>
           <DialogDescription className="sr-only">
             Reference ranges for blood test metrics
@@ -79,8 +93,11 @@ export function ReferenceRangePanel({ onClose }) {
                     <TableCell className="font-medium">{ref.name}</TableCell>
                     <TableCell className="text-center">
                       <span className="font-mono text-blue-600 dark:text-blue-400 font-medium">
-                        {ref.min !== null && ref.max !== null ? `${ref.min}–${ref.max}` :
-                         ref.min !== null ? `≥${ref.min}` : `≤${ref.max}`}
+                        {ref.min !== null && ref.max !== null
+                          ? `${ref.min}–${ref.max}`
+                          : ref.min !== null
+                            ? `≥${ref.min}`
+                            : `≤${ref.max}`}
                       </span>
                     </TableCell>
                     <TableCell className="text-center">
@@ -103,8 +120,14 @@ export function ReferenceRangePanel({ onClose }) {
                     </TableCell>
                   </TableRow>
                   {expandedMetric === key && (
-                    <TableRow key={`${key}-expanded`} className="bg-blue-50/50 dark:bg-blue-950/20 hover:bg-blue-50/50 dark:hover:bg-blue-950/20">
-                      <TableCell colSpan={5} className="border-t border-blue-200 dark:border-blue-900">
+                    <TableRow
+                      key={`${key}-expanded`}
+                      className="bg-blue-50/50 dark:bg-blue-950/20 hover:bg-blue-50/50 dark:hover:bg-blue-950/20"
+                    >
+                      <TableCell
+                        colSpan={5}
+                        className="border-t border-blue-200 dark:border-blue-900"
+                      >
                         <div className="text-xs text-muted-foreground mb-1">{ref.description}</div>
                         <div className="text-xs text-muted-foreground bg-card p-2 rounded border-l-2 border-blue-300 dark:border-blue-700">
                           💡 {ref.clinicalNotes}

@@ -7,7 +7,7 @@ async function hashPasscode(passcode) {
   const data = encoder.encode(passcode + 'soma_salt_2024');
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 export function isFirstTimeSetup() {
@@ -35,7 +35,7 @@ export function createSession(remember = false) {
     authenticated: true,
     timestamp: Date.now(),
   };
-  
+
   if (remember) {
     localStorage.setItem(SESSION_KEY, JSON.stringify(session));
     localStorage.setItem(REMEMBER_KEY, 'true');
@@ -59,7 +59,7 @@ export function isAuthenticated() {
       }
     }
   }
-  
+
   const session = sessionStorage.getItem(SESSION_KEY);
   if (session) {
     try {
@@ -69,7 +69,7 @@ export function isAuthenticated() {
       return false;
     }
   }
-  
+
   return false;
 }
 

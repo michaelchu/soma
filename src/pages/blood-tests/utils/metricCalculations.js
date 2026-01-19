@@ -8,7 +8,7 @@ import { REFERENCE_RANGES } from '../constants/referenceRanges';
  * @returns {Array} Enriched reports with full metric data
  */
 export function enrichReportMetrics(reports) {
-  return reports.map(report => ({
+  return reports.map((report) => ({
     ...report,
     metrics: Object.fromEntries(
       Object.entries(report.metrics).map(([key, data]) => {
@@ -19,23 +19,26 @@ export function enrichReportMetrics(reports) {
         const max = data.reference?.max ?? ref?.max ?? null;
         const unit = data.unit ?? ref?.unit ?? '';
 
-        return [key, {
-          ...data,
-          // Keep the parsed reference object for future use
-          reference: data.reference,
-          // Add individual min/max for easy access
-          min,
-          max,
-          unit,
-          // Add metadata from constants
-          category: ref?.category || 'other',
-          name: ref?.name || key,
-          description: ref?.description || '',
-          clinicalNotes: ref?.clinicalNotes || '',
-          optimalMin: ref?.optimalRange?.min ?? null,
-          optimalMax: ref?.optimalRange?.max ?? null,
-        }];
+        return [
+          key,
+          {
+            ...data,
+            // Keep the parsed reference object for future use
+            reference: data.reference,
+            // Add individual min/max for easy access
+            min,
+            max,
+            unit,
+            // Add metadata from constants
+            category: ref?.category || 'other',
+            name: ref?.name || key,
+            description: ref?.description || '',
+            clinicalNotes: ref?.clinicalNotes || '',
+            optimalMin: ref?.optimalRange?.min ?? null,
+            optimalMax: ref?.optimalRange?.max ?? null,
+          },
+        ];
       })
-    )
+    ),
   }));
 }

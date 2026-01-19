@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import { FileText, Copy, Check } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import markdownContent from '../../data/reports.md?raw';
@@ -35,13 +41,11 @@ export function ExportModal({ onClose }) {
         </ScrollArea>
 
         <DialogFooter className="p-3 border-t bg-muted flex-row justify-between sm:justify-between">
-          <span className="text-[11px] text-muted-foreground self-center">
-            Markdown format
-          </span>
+          <span className="text-[11px] text-muted-foreground self-center">Markdown format</span>
           <Button
             onClick={handleCopy}
-            variant={copied ? "default" : "default"}
-            className={copied ? "bg-green-600 hover:bg-green-700" : ""}
+            variant={copied ? 'default' : 'default'}
+            className={copied ? 'bg-green-600 hover:bg-green-700' : ''}
           >
             {copied ? (
               <>

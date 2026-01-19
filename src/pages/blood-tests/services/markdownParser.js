@@ -36,7 +36,7 @@ export function parseReports(markdownContent) {
  * @returns {Object|null} Report object or null if invalid
  */
 function parseReportSection(section) {
-  const lines = section.split('\n').map(line => line.trim());
+  const lines = section.split('\n').map((line) => line.trim());
 
   // Extract date from first line (should be the date after "## Report: ")
   const dateMatch = lines[0].match(/^(\d{4}-\d{2}-\d{2})/);
@@ -75,7 +75,10 @@ function parseReportSection(section) {
       }
 
       // Parse data row: | metric_key | value | reference | unit |
-      const cells = line.split('|').map(cell => cell.trim()).filter(cell => cell);
+      const cells = line
+        .split('|')
+        .map((cell) => cell.trim())
+        .filter((cell) => cell);
 
       if (cells.length >= 3) {
         const metricKey = cells[0];
@@ -89,7 +92,7 @@ function parseReportSection(section) {
           metrics[metricKey] = {
             value: numValue,
             reference: parseReference(referenceStr),
-            unit: unit || ''
+            unit: unit || '',
           };
         }
       }
@@ -107,7 +110,7 @@ function parseReportSection(section) {
       date,
       orderNumber,
       orderedBy,
-      metrics
+      metrics,
     };
   }
 

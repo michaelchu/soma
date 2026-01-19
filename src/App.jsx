@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Auth from '@/views/Auth';
 import Launcher from '@/views/Launcher';
@@ -6,13 +6,8 @@ import BloodTests from '@/pages/BloodTests';
 import { isAuthenticated } from '@/lib/auth';
 
 export default function App() {
-  const [authenticated, setAuthenticated] = useState(false);
-  const [checking, setChecking] = useState(true);
-
-  useEffect(() => {
-    setAuthenticated(isAuthenticated());
-    setChecking(false);
-  }, []);
+  const [authenticated, setAuthenticated] = useState(() => isAuthenticated());
+  const [checking] = useState(false);
 
   const handleAuthenticated = () => {
     setAuthenticated(true);

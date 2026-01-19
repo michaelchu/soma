@@ -18,7 +18,11 @@
       "Bash(npx shadcn@latest add tabs tooltip scroll-area separator --yes)",
       "Bash(cd /Users/michaelchu/Documents/Personal\\\\ Projects/soma && npx shadcn@latest add dialog --overwrite:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(cd /Users/michaelchu/Documents/Personal\\\\ Projects/soma && npm run format:*)",
+      "Bash(cd /Users/michaelchu/Documents/Personal\\\\ Projects/soma && npm run lint:*)",
+      "Bash(npm run format:*)"
     ]
   }
 }

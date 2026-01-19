@@ -31,7 +31,7 @@ export default function Launcher({ onLogout }) {
           <HeartPulse className="h-5 w-5 text-red-500" />
           <span className="font-medium">Soma</span>
         </div>
-        
+
         <div className="flex items-center gap-1">
           <Button
             variant="ghost"
@@ -43,8 +43,8 @@ export default function Launcher({ onLogout }) {
             {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
           <Button
-            variant="ghost" 
-            size="icon" 
+            variant="ghost"
+            size="icon"
             className="h-8 w-8"
             onClick={handleLogout}
             title="Sign out"
@@ -59,11 +59,7 @@ export default function Launcher({ onLogout }) {
         <div className="animate-fade-in">
           <div className="flex flex-wrap justify-center gap-6 sm:gap-8">
             {apps.apps.map((app) => (
-              <AppIcon 
-                key={app.id} 
-                app={app} 
-                onClick={handleAppClick}
-              />
+              <AppIcon key={app.id} app={app} onClick={handleAppClick} />
             ))}
           </div>
 
