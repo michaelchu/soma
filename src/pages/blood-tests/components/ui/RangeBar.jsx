@@ -1,6 +1,6 @@
 import { getPositionInRange, getStatus } from '../../utils/statusHelpers';
 
-export function RangeBar({ value, min, max, optimalMin, optimalMax, unit }) {
+export function RangeBar({ value, min, max, optimalMin, optimalMax, unit: _unit }) {
   const position = getPositionInRange(value, min, max);
   const status = getStatus(value, min, max);
 

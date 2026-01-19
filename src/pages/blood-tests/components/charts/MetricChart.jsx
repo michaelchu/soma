@@ -18,8 +18,8 @@ import { StatusBadge } from '../ui/StatusBadge';
 import { RangeBar } from '../ui/RangeBar';
 import { TrendIndicator } from '../ui/TrendIndicator';
 
-export function MetricChart({ metricKey, reports }) {
-  const [isCollapsed, setIsCollapsed] = useState(true);
+export function MetricChart({ metricKey, reports, defaultCollapsed = true }) {
+  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   const ref = REFERENCE_RANGES[metricKey];
   const data = reports
     .sort((a, b) => new Date(a.date) - new Date(b.date))
@@ -251,7 +251,14 @@ export function MetricChart({ metricKey, reports }) {
                             : '#f59e0b';
                       return (
                         <g>
-                          <circle cx={cx} cy={cy} r={6} fill={color} stroke="#fff" strokeWidth={2} />
+                          <circle
+                            cx={cx}
+                            cy={cy}
+                            r={6}
+                            fill={color}
+                            stroke="#fff"
+                            strokeWidth={2}
+                          />
                           {pointStatus !== 'normal' && (
                             <circle
                               cx={cx}

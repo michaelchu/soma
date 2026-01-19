@@ -85,9 +85,7 @@ export function ReferenceRangePanel({ onClose }) {
                 <>
                   <TableRow
                     key={key}
-                    className={`cursor-pointer ${
-                      expandedMetric === key ? 'bg-accent' : ''
-                    }`}
+                    className={`cursor-pointer ${expandedMetric === key ? 'bg-accent' : ''}`}
                     onClick={() => setExpandedMetric(expandedMetric === key ? null : key)}
                   >
                     <TableCell className="font-medium">{ref.name}</TableCell>
@@ -120,10 +118,7 @@ export function ReferenceRangePanel({ onClose }) {
                     </TableCell>
                   </TableRow>
                   {expandedMetric === key && (
-                    <TableRow
-                      key={`${key}-expanded`}
-                      className="bg-muted/50 hover:bg-muted/50"
-                    >
+                    <TableRow key={`${key}-expanded`} className="bg-muted/50 hover:bg-muted/50">
                       <TableCell colSpan={5} className="border-t border-border">
                         <div className="text-xs text-muted-foreground mb-1">{ref.description}</div>
                         <div className="text-xs text-muted-foreground bg-card p-2 rounded border-l-2 border-primary/50">

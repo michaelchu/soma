@@ -4,21 +4,25 @@ import {
   Activity,
   BookOpen,
   AlertTriangle,
-  FileText,
+  Calendar,
   Plus,
   Download,
   ArrowLeft,
-  ArrowUpDown,
   ChevronDown,
+  ChevronsDownUp,
+  ChevronsUpDown,
+  Menu,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
 import { useReports } from './blood-tests/hooks/useReports';
 import { REFERENCE_RANGES } from './blood-tests/constants/referenceRanges';
 import { CATEGORY_INFO } from './blood-tests/constants/categories';
@@ -37,9 +41,16 @@ export default function BloodTests() {
   const [showImporter, setShowImporter] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [filter, setFilter] = useState('all');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [sortBy, setSortBy] = useState('priority');
-  const [collapsedCategories, setCollapsedCategories] = useState({});
+  // Initialize all categories collapsed except 'cbc' (Complete Blood Count)
+  const [collapsedCategories, setCollapsedCategories] = useState(() => {
+    const initial = {};
+    Object.keys(CATEGORY_INFO).forEach((key) => {
+      initial[key] = key !== 'cbc';
+    });
+    return initial;
+  });
+  const [selectedReportIds, setSelectedReportIds] = useState(null); // null = all selected
+  const [allExpanded, setAllExpanded] = useState(false);
 
   if (loading) {
     return (
@@ -71,14 +82,48 @@ export default function BloodTests() {
   reports.forEach((r) => Object.keys(r.metrics).forEach((k) => allMetrics.add(k)));
 
   const sortedReports = [...reports].sort((a, b) => new Date(b.date) - new Date(a.date));
-  const latestReport = sortedReports[0];
+
+  // Filter reports based on checkbox selection
+  const filteredReports =
+    selectedReportIds === null ? reports : reports.filter((r) => selectedReportIds.has(r.id));
+
+  const isReportSelected = (reportId) =>
+    selectedReportIds === null || selectedReportIds.has(reportId);
+
+  const toggleReportSelection = (reportId) => {
+    setSelectedReportIds((prev) => {
+      if (prev === null) {
+        // First uncheck: create Set with all IDs except this one
+        const allIds = new Set(reports.map((r) => r.id));
+        allIds.delete(reportId);
+        return allIds;
+      }
+      const next = new Set(prev);
+      if (next.has(reportId)) {
+        // Don't allow unchecking the last report
+        if (next.size === 1) {
+          return prev;
+        }
+        next.delete(reportId);
+      } else {
+        next.add(reportId);
+      }
+      // If all are selected again, return to null state
+      if (next.size === reports.length) {
+        return null;
+      }
+      return next;
+    });
+  };
+
+  const selectAllReports = () => setSelectedReportIds(null);
+  const selectedCount = selectedReportIds === null ? reports.length : selectedReportIds.size;
 
   const filteredMetrics = Array.from(allMetrics).filter((key) => {
     const ref = REFERENCE_RANGES[key];
     if (!ref) return false;
-    const reportsWithMetric = reports.filter((r) => r.metrics[key]);
+    const reportsWithMetric = filteredReports.filter((r) => r.metrics[key]);
     if (reportsWithMetric.length === 0) return false;
-    if (selectedCategory !== 'all' && ref.category !== selectedCategory) return false;
     if (filter === 'abnormal')
       return reportsWithMetric.some((r) => {
         const metric = r.metrics[key];
@@ -87,48 +132,14 @@ export default function BloodTests() {
     return true;
   });
 
+  // Always sort by category, then by name within category
   const sortedMetrics = filteredMetrics.sort((a, b) => {
     const refA = REFERENCE_RANGES[a],
       refB = REFERENCE_RANGES[b];
-    const aLatestReport = [...reports.filter((r) => r.metrics[a])].sort(
-      (x, y) => new Date(y.date) - new Date(x.date)
-    )[0];
-    const bLatestReport = [...reports.filter((r) => r.metrics[b])].sort(
-      (x, y) => new Date(y.date) - new Date(x.date)
-    )[0];
-    const aLatest = aLatestReport?.metrics[a];
-    const bLatest = bLatestReport?.metrics[b];
-    const aStatus = aLatest ? getStatus(aLatest.value, aLatest.min, aLatest.max) : 'normal';
-    const bStatus = bLatest ? getStatus(bLatest.value, bLatest.min, bLatest.max) : 'normal';
-    const aDate = aLatestReport ? new Date(aLatestReport.date) : new Date(0);
-    const bDate = bLatestReport ? new Date(bLatestReport.date) : new Date(0);
-
-    switch (sortBy) {
-      case 'priority':
-        // Abnormal first, then by date, then by category
-        if (aStatus !== 'normal' && bStatus === 'normal') return -1;
-        if (aStatus === 'normal' && bStatus !== 'normal') return 1;
-        if (aDate.getTime() !== bDate.getTime()) return bDate - aDate;
-        return (refA?.category || '').localeCompare(refB?.category || '');
-      case 'category':
-        // Group by category, then by name
-        const catCompare = (refA?.category || '').localeCompare(refB?.category || '');
-        if (catCompare !== 0) return catCompare;
-        return (refA?.name || '').localeCompare(refB?.name || '');
-      case 'name':
-        // Alphabetical by metric name
-        return (refA?.name || '').localeCompare(refB?.name || '');
-      default:
-        return 0;
-    }
+    const catCompare = (refA?.category || '').localeCompare(refB?.category || '');
+    if (catCompare !== 0) return catCompare;
+    return (refA?.name || '').localeCompare(refB?.name || '');
   });
-
-  const currentAbnormalCount = latestReport
-    ? Object.entries(latestReport.metrics).filter(([key, m]) => {
-        const ref = REFERENCE_RANGES[key];
-        return ref && getStatus(m.value, m.min, m.max) !== 'normal';
-      }).length
-    : 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -152,262 +163,212 @@ export default function BloodTests() {
               </h1>
             </div>
             <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+              {/* Desktop: Show all buttons */}
               <Button
                 size="sm"
                 onClick={() => setShowImporter(true)}
-                className="flex items-center gap-1 sm:gap-2"
+                className="hidden sm:flex items-center gap-2"
                 title="Add New Report"
               >
                 <Plus size={16} />
-                <span className="hidden sm:inline">Add Report</span>
+                Add Report
               </Button>
               <Button
                 size="sm"
                 onClick={() => setShowExportModal(true)}
-                className="flex items-center gap-1 sm:gap-2"
+                className="hidden sm:flex items-center gap-2"
                 title="Export Data"
               >
                 <Download size={16} />
-                <span className="hidden sm:inline">Export</span>
+                Export
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowRefPanel(true)}
-                className="flex items-center gap-1 sm:gap-2"
+                className="hidden sm:flex items-center gap-2"
                 title="Reference Ranges"
               >
                 <BookOpen size={16} />
-                <span className="hidden sm:inline">Ranges</span>
+                Ranges
               </Button>
+
+              {/* Reports dropdown - visible on all sizes */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-1 sm:gap-2"
+                    title="Select Reports"
+                  >
+                    <Calendar size={16} />
+                    <span className="hidden sm:inline">Reports</span>
+                    <span className="text-xs text-muted-foreground">
+                      ({selectedCount}/{reports.length})
+                    </span>
+                    <ChevronDown size={14} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel className="flex items-center justify-between">
+                    <span>Select Reports</span>
+                    <button
+                      onClick={selectAllReports}
+                      className="text-xs text-primary hover:underline"
+                    >
+                      Select All
+                    </button>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {sortedReports.map((report) => {
+                    const abnormalCount = Object.entries(report.metrics).filter(([key, m]) => {
+                      const ref = REFERENCE_RANGES[key];
+                      return ref && getStatus(m.value, m.min, m.max) !== 'normal';
+                    }).length;
+                    return (
+                      <DropdownMenuCheckboxItem
+                        key={report.id}
+                        checked={isReportSelected(report.id)}
+                        onCheckedChange={() => toggleReportSelection(report.id)}
+                      >
+                        <div className="flex items-center justify-between w-full">
+                          <span>
+                            {new Date(report.date).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })}
+                          </span>
+                          {abnormalCount > 0 && (
+                            <span className="text-xs text-amber-500 ml-2">{abnormalCount} ⚠</span>
+                          )}
+                        </div>
+                      </DropdownMenuCheckboxItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Mobile: Hamburger menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon" className="sm:hidden h-8 w-8">
+                    <Menu size={16} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setShowImporter(true)}>
+                    <Plus size={16} />
+                    Add Report
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowExportModal(true)}>
+                    <Download size={16} />
+                    Export
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowRefPanel(true)}>
+                    <BookOpen size={16} />
+                    Reference Ranges
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
-          {/* Mobile: Overview summary bar */}
-          <div className="lg:hidden bg-card rounded-xl p-3 border">
-            <div className="flex items-center justify-between gap-4 text-sm">
-              <div className="flex items-center gap-4">
-                <div>
-                  <span className="text-muted-foreground">Reports:</span>{' '}
-                  <span className="font-semibold">{reports.length}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Latest:</span>{' '}
-                  <span className="font-semibold">
-                    {latestReport
-                      ? new Date(latestReport.date).toLocaleDateString('en-US', {
-                          month: 'short',
-                          year: 'numeric',
-                        })
-                      : '—'}
-                  </span>
-                </div>
-              </div>
-              <div
-                className={`font-semibold ${currentAbnormalCount > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-green-600 dark:text-green-400'}`}
+        <div>
+          <div className="flex gap-2 mb-4 overflow-x-auto pb-1 -mx-3 px-3 sm:mx-0 sm:px-0 sm:overflow-visible">
+            <div className="flex rounded-lg border bg-card overflow-hidden text-xs sm:text-sm h-8 sm:h-9 flex-shrink-0">
+              <button
+                onClick={() => setFilter('all')}
+                className={`px-2.5 sm:px-4 ${filter === 'all' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-accent'}`}
               >
-                {currentAbnormalCount > 0 ? `${currentAbnormalCount} flagged` : '✓ Normal'}
-              </div>
+                All
+              </button>
+              <button
+                onClick={() => setFilter('abnormal')}
+                className={`px-2.5 sm:px-4 flex items-center gap-1 ${filter === 'abnormal' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' : 'text-muted-foreground hover:bg-accent'}`}
+              >
+                <AlertTriangle size={14} />
+                <span className="hidden sm:inline">Ever </span>Abnormal
+              </button>
             </div>
+            <button
+              onClick={() => setAllExpanded(!allExpanded)}
+              className="flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-lg border bg-card text-muted-foreground hover:bg-accent hover:text-foreground transition-colors flex-shrink-0"
+              title={allExpanded ? 'Collapse all' : 'Expand all'}
+            >
+              {allExpanded ? <ChevronsDownUp size={16} /> : <ChevronsUpDown size={16} />}
+            </button>
+            <span className="hidden sm:inline text-sm text-muted-foreground self-center ml-auto flex-shrink-0">
+              {sortedMetrics.length} of {allMetrics.size} metrics
+            </span>
           </div>
 
-          {/* Desktop sidebar */}
-          <div className="hidden lg:block lg:col-span-1 space-y-4">
-            <div className="bg-card rounded-xl p-4 border">
-              <h3 className="font-semibold text-foreground mb-3">Overview</h3>
-              {latestReport && (
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Latest</span>
-                    <span className="text-sm font-medium">
-                      {new Date(latestReport.date).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Tests</span>
-                    <span className="text-sm font-medium">
-                      {Object.keys(latestReport.metrics).length}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Abnormal</span>
-                    <span
-                      className={`text-sm font-medium ${currentAbnormalCount > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-green-600 dark:text-green-400'}`}
-                    >
-                      {currentAbnormalCount > 0 ? `${currentAbnormalCount} flagged` : 'All normal'}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
+          {/* Historical Abnormals - below filter bar */}
+          <div className="mb-4">
+            <HistoricalAbnormalTable reports={filteredReports} />
+          </div>
 
-            <div className="bg-card rounded-xl p-4 border">
-              <h3 className="font-semibold text-foreground mb-3">Reports ({reports.length})</h3>
-              <div className="space-y-1">
-                {sortedReports.map((report) => {
-                  const abnormalCount = Object.entries(report.metrics).filter(([key, m]) => {
-                    const ref = REFERENCE_RANGES[key];
-                    return ref && getStatus(m.value, m.min, m.max) !== 'normal';
-                  }).length;
-                  return (
-                    <div
-                      key={report.id}
-                      className="flex items-center justify-between p-2 hover:bg-accent rounded-lg group"
+          {sortedMetrics.length > 0 ? (
+            <div className="space-y-4">
+              {Object.entries(
+                sortedMetrics.reduce((acc, key) => {
+                  const category = REFERENCE_RANGES[key]?.category || 'other';
+                  if (!acc[category]) acc[category] = [];
+                  acc[category].push(key);
+                  return acc;
+                }, {})
+              ).map(([category, metrics]) => {
+                const categoryInfo = CATEGORY_INFO[category] || { label: category };
+                const isCollapsed = collapsedCategories[category] ?? true;
+                return (
+                  <div key={category} className="bg-card rounded-xl border overflow-hidden">
+                    <button
+                      onClick={() =>
+                        setCollapsedCategories((prev) => ({
+                          ...prev,
+                          [category]: !prev[category],
+                        }))
+                      }
+                      className="w-full px-4 py-3 bg-muted/50 flex items-center justify-between hover:bg-muted transition-colors"
                     >
-                      <div className="flex items-center gap-2">
-                        <FileText size={14} className="text-muted-foreground" />
-                        <div>
-                          <p className="text-sm font-medium">
-                            {new Date(report.date).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric',
-                            })}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {Object.keys(report.metrics).length} tests{' '}
-                            {abnormalCount > 0 && (
-                              <span className="text-amber-500">· {abnormalCount} ⚠</span>
-                            )}
-                          </p>
+                      <h3 className="font-semibold text-foreground flex items-center gap-2">
+                        {categoryInfo.label}
+                        <span className="text-sm font-normal text-muted-foreground">
+                          ({metrics.length})
+                        </span>
+                      </h3>
+                      <ChevronDown
+                        size={18}
+                        className={`text-muted-foreground transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`}
+                      />
+                    </button>
+                    {!isCollapsed && (
+                      <div className="p-3 sm:p-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                          {metrics.map((key) => (
+                            <MetricChart
+                              key={`${key}-${allExpanded}`}
+                              metricKey={key}
+                              reports={filteredReports}
+                              defaultCollapsed={!allExpanded}
+                            />
+                          ))}
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="mt-3 pt-3 border-t text-xs text-muted-foreground">
-                To add or edit reports, update{' '}
-                <code className="bg-muted px-1 rounded">reports.md</code>
-              </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-
-            {/* <AISummary reports={reports} /> */}
-          </div>
-
-          <div className="lg:col-span-3">
-            {/* Mobile: AI Summary above charts */}
-            {/* <div className="lg:hidden mb-4">
-              <AISummary reports={reports} />
-            </div> */}
-
-            <div className="flex flex-wrap gap-2 sm:gap-3 mb-4">
-              <div className="flex rounded-lg border bg-card overflow-hidden text-xs sm:text-sm">
-                <button
-                  onClick={() => setFilter('all')}
-                  className={`px-3 sm:px-4 py-2 ${filter === 'all' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-accent'}`}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => setFilter('abnormal')}
-                  className={`px-3 sm:px-4 py-2 flex items-center gap-1 ${filter === 'abnormal' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' : 'text-muted-foreground hover:bg-accent'}`}
-                >
-                  <AlertTriangle size={14} />
-                  <span className="hidden xs:inline">Ever </span>Abnormal
-                </button>
-              </div>
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="w-[180px] text-xs sm:text-sm">
-                  <SelectValue placeholder="All Categories" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {Object.entries(CATEGORY_INFO).map(([key, info]) => (
-                    <SelectItem key={key} value={key}>
-                      {info.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-[140px] text-xs sm:text-sm">
-                  <ArrowUpDown size={14} className="mr-1" />
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="priority">Priority</SelectItem>
-                  <SelectItem value="category">Category</SelectItem>
-                  <SelectItem value="name">Name</SelectItem>
-                </SelectContent>
-              </Select>
-              <span className="hidden sm:inline text-sm text-muted-foreground self-center ml-auto">
-                {sortedMetrics.length} of {allMetrics.size} metrics
-              </span>
+          ) : (
+            <div className="bg-card rounded-xl border p-8 text-center">
+              <p className="text-muted-foreground">No metrics match your filters.</p>
             </div>
-
-            {/* Historical Abnormals - below filter bar */}
-            <div className="mb-4">
-              <HistoricalAbnormalTable reports={reports} />
-            </div>
-
-            {sortedMetrics.length > 0 ? (
-              sortBy === 'category' ? (
-                // Group by category with collapsible sections
-                <div className="space-y-4">
-                  {Object.entries(
-                    sortedMetrics.reduce((acc, key) => {
-                      const category = REFERENCE_RANGES[key]?.category || 'other';
-                      if (!acc[category]) acc[category] = [];
-                      acc[category].push(key);
-                      return acc;
-                    }, {})
-                  ).map(([category, metrics]) => {
-                    const categoryInfo = CATEGORY_INFO[category] || { label: category };
-                    const isCollapsed = collapsedCategories[category] ?? false;
-                    return (
-                      <div key={category} className="bg-card rounded-xl border overflow-hidden">
-                        <button
-                          onClick={() =>
-                            setCollapsedCategories((prev) => ({
-                              ...prev,
-                              [category]: !prev[category],
-                            }))
-                          }
-                          className="w-full px-4 py-3 bg-muted/50 flex items-center justify-between hover:bg-muted transition-colors"
-                        >
-                          <h3 className="font-semibold text-foreground flex items-center gap-2">
-                            {categoryInfo.label}
-                            <span className="text-sm font-normal text-muted-foreground">
-                              ({metrics.length})
-                            </span>
-                          </h3>
-                          <ChevronDown
-                            size={18}
-                            className={`text-muted-foreground transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`}
-                          />
-                        </button>
-                        {!isCollapsed && (
-                          <div className="p-3 sm:p-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                              {metrics.map((key) => (
-                                <MetricChart key={key} metricKey={key} reports={reports} />
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                // Regular grid layout
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                  {sortedMetrics.map((key) => (
-                    <MetricChart key={key} metricKey={key} reports={reports} />
-                  ))}
-                </div>
-              )
-            ) : (
-              <div className="bg-card rounded-xl border p-8 text-center">
-                <p className="text-muted-foreground">No metrics match your filters.</p>
-              </div>
-            )}
-          </div>
+          )}
         </div>
       </main>
 
