@@ -34,7 +34,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Launcher onLogout={handleLogout} />} />
-      <Route path="/blood-tests" element={<BloodTests />} />
+      <Route path="/blood-tests" element={<BloodTests onLogout={handleLogout} />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

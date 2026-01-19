@@ -22,6 +22,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
+import Navbar from '@/components/Navbar';
 import { useReports } from './blood-tests/hooks/useReports';
 import { REFERENCE_RANGES } from './blood-tests/constants/referenceRanges';
 import { CATEGORY_INFO } from './blood-tests/constants/categories';
@@ -30,7 +31,7 @@ import { MetricChart } from './blood-tests/components/charts/MetricChart';
 import { ReportImporter } from './blood-tests/components/modals/ReportImporter';
 import { ExportModal } from './blood-tests/components/modals/ExportModal';
 
-export default function BloodTests() {
+export default function BloodTests({ onLogout }) {
   const navigate = useNavigate();
   const { reports, loading, error } = useReports();
   const [showImporter, setShowImporter] = useState(false);
@@ -144,122 +145,118 @@ export default function BloodTests() {
     return (refA?.name || '').localeCompare(refB?.name || '');
   });
 
+  const leftContent = (
+    <>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 flex-shrink-0"
+        onClick={() => navigate('/')}
+      >
+        <ArrowLeft className="h-4 w-4" />
+      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-1 sm:gap-2"
+            title="Select Reports"
+          >
+            <Calendar size={16} />
+            <span className="hidden sm:inline">Reports</span>
+            <span className="text-xs text-muted-foreground">
+              ({selectedCount}/{reports.length})
+            </span>
+            <ChevronDown size={14} />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-56">
+          <DropdownMenuLabel className="flex items-center justify-between">
+            <span>Select Reports</span>
+            <button
+              onClick={selectAllReports}
+              className="text-xs text-primary hover:underline"
+            >
+              Select All
+            </button>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {sortedReports.map((report) => {
+            const abnormalCount = Object.entries(report.metrics).filter(([key, m]) => {
+              const ref = REFERENCE_RANGES[key];
+              return ref && getStatus(m.value, m.min, m.max) !== 'normal';
+            }).length;
+            return (
+              <DropdownMenuCheckboxItem
+                key={report.id}
+                checked={isReportSelected(report.id)}
+                onCheckedChange={() => toggleReportSelection(report.id)}
+              >
+                <div className="flex items-center justify-between w-full">
+                  <span>
+                    {new Date(report.date).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                  </span>
+                  {abnormalCount > 0 && (
+                    <span className="text-xs text-amber-500 ml-2">{abnormalCount} ⚠</span>
+                  )}
+                </div>
+              </DropdownMenuCheckboxItem>
+            );
+          })}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </>
+  );
+
+  const rightContent = (
+    <>
+      <Button
+        size="sm"
+        onClick={() => setShowImporter(true)}
+        className="hidden sm:flex items-center gap-2"
+        title="Add New Report"
+      >
+        <Plus size={16} />
+        Add Report
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setShowExportModal(true)}
+        className="hidden sm:flex items-center gap-2"
+        title="Export Data"
+      >
+        <Download size={16} />
+        Export
+      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="icon" className="sm:hidden h-8 w-8">
+            <Menu size={16} />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => setShowImporter(true)}>
+            <Plus size={16} />
+            Add Report
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setShowExportModal(true)}>
+            <Download size={16} />
+            Export
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </>
+  );
+
   return (
     <div className="min-h-screen bg-background">
-      <header className="bg-card border-b sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2">
-          <div className="flex justify-between items-center gap-2">
-            <div className="flex items-center gap-1 sm:gap-2 min-w-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 flex-shrink-0"
-                onClick={() => navigate('/')}
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-
-              {/* Reports dropdown - visible on all sizes */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-1 sm:gap-2"
-                    title="Select Reports"
-                  >
-                    <Calendar size={16} />
-                    <span className="hidden sm:inline">Reports</span>
-                    <span className="text-xs text-muted-foreground">
-                      ({selectedCount}/{reports.length})
-                    </span>
-                    <ChevronDown size={14} />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-56">
-                  <DropdownMenuLabel className="flex items-center justify-between">
-                    <span>Select Reports</span>
-                    <button
-                      onClick={selectAllReports}
-                      className="text-xs text-primary hover:underline"
-                    >
-                      Select All
-                    </button>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {sortedReports.map((report) => {
-                    const abnormalCount = Object.entries(report.metrics).filter(([key, m]) => {
-                      const ref = REFERENCE_RANGES[key];
-                      return ref && getStatus(m.value, m.min, m.max) !== 'normal';
-                    }).length;
-                    return (
-                      <DropdownMenuCheckboxItem
-                        key={report.id}
-                        checked={isReportSelected(report.id)}
-                        onCheckedChange={() => toggleReportSelection(report.id)}
-                      >
-                        <div className="flex items-center justify-between w-full">
-                          <span>
-                            {new Date(report.date).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric',
-                            })}
-                          </span>
-                          {abnormalCount > 0 && (
-                            <span className="text-xs text-amber-500 ml-2">{abnormalCount} ⚠</span>
-                          )}
-                        </div>
-                      </DropdownMenuCheckboxItem>
-                    );
-                  })}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-              {/* Desktop: Show all buttons */}
-              <Button
-                size="sm"
-                onClick={() => setShowImporter(true)}
-                className="hidden sm:flex items-center gap-2"
-                title="Add New Report"
-              >
-                <Plus size={16} />
-                Add Report
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowExportModal(true)}
-                className="hidden sm:flex items-center gap-2"
-                title="Export Data"
-              >
-                <Download size={16} />
-                Export
-              </Button>
-
-              {/* Mobile: Hamburger menu */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon" className="sm:hidden h-8 w-8">
-                    <Menu size={16} />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setShowImporter(true)}>
-                    <Plus size={16} />
-                    Add Report
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setShowExportModal(true)}>
-                    <Download size={16} />
-                    Export
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Navbar leftContent={leftContent} rightContent={rightContent} onLogout={onLogout} />
 
       <main className="max-w-7xl mx-auto px-3 sm:px-4 pb-3 sm:pb-4">
         <div>
