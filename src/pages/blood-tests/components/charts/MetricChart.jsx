@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Line,
   XAxis,
@@ -9,7 +10,7 @@ import {
   ReferenceArea,
   ComposedChart,
 } from 'recharts';
-import { Info } from 'lucide-react';
+import { Info, ChevronDown } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { REFERENCE_RANGES } from '../../constants/referenceRanges';
 import { getStatus } from '../../utils/statusHelpers';
@@ -18,6 +19,7 @@ import { RangeBar } from '../ui/RangeBar';
 import { TrendIndicator } from '../ui/TrendIndicator';
 
 export function MetricChart({ metricKey, reports }) {
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const ref = REFERENCE_RANGES[metricKey];
   const data = reports
     .sort((a, b) => new Date(a.date) - new Date(b.date))
@@ -88,15 +90,29 @@ export function MetricChart({ metricKey, reports }) {
               </TooltipProvider>
             )}
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{ref.description}</p>
+          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1" title={ref.description}>
+            {ref.description}
+          </p>
         </div>
-        <div className="text-right flex-shrink-0">
-          <p className="text-xl sm:text-2xl font-bold text-foreground">{metric.value}</p>
-          <p className="text-xs text-muted-foreground">{metric.unit}</p>
+        <div className="flex items-start gap-2 flex-shrink-0">
+          <div className="text-right flex items-baseline gap-1">
+            <p className="text-xl sm:text-2xl font-bold text-foreground">{metric.value}</p>
+            <p className="text-xs text-muted-foreground">{metric.unit}</p>
+          </div>
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="p-1 hover:bg-accent rounded-md transition-colors"
+            aria-label={isCollapsed ? 'Expand chart' : 'Collapse chart'}
+          >
+            <ChevronDown
+              size={18}
+              className={`text-muted-foreground transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`}
+            />
+          </button>
         </div>
       </div>
 
-      {/* Range visualization bar */}
+      {/* Range visualization bar - always visible */}
       <RangeBar
         value={metric.value}
         min={metric.min}
@@ -106,164 +122,168 @@ export function MetricChart({ metricKey, reports }) {
         unit={metric.unit}
       />
 
-      <div className="flex items-center justify-between mt-2 mb-3">
-        <div className="flex items-center gap-2">
-          <StatusBadge status={status} />
-          <TrendIndicator data={data} />
-        </div>
-        <div className="text-xs text-muted-foreground">
-          {metric.min !== null && metric.max !== null
-            ? `Ref: ${metric.min}–${metric.max}`
-            : metric.min !== null
-              ? `Ref: ≥${metric.min}`
-              : metric.max !== null
-                ? `Ref: ≤${metric.max}`
-                : ''}
-          {metric.optimalMin !== null &&
-            metric.optimalMax !== null &&
-            ` · Optimal: ${metric.optimalMin}–${metric.optimalMax}`}
-        </div>
-      </div>
+      {!isCollapsed && (
+        <>
+          <div className="flex items-center justify-between mt-2 mb-3">
+            <div className="flex items-center gap-2">
+              <StatusBadge status={status} />
+              <TrendIndicator data={data} min={metric.min} max={metric.max} />
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {metric.min !== null && metric.max !== null
+                ? `Ref: ${metric.min}–${metric.max}`
+                : metric.min !== null
+                  ? `Ref: ≥${metric.min}`
+                  : metric.max !== null
+                    ? `Ref: ≤${metric.max}`
+                    : ''}
+              {metric.optimalMin !== null &&
+                metric.optimalMax !== null &&
+                ` · Optimal: ${metric.optimalMin}–${metric.optimalMax}`}
+            </div>
+          </div>
 
-      {data.length > 1 ? (
-        <div className="bg-muted rounded-lg p-2 -mx-2">
-          <ResponsiveContainer width="100%" height={140}>
-            <ComposedChart data={data} margin={{ top: 10, right: 30, bottom: 5, left: -15 }}>
-              {/* Low zone (below min) */}
-              {metric.min !== null && (
-                <ReferenceArea
-                  y1={yMin}
-                  y2={metric.min}
-                  fill="#fef3c7"
-                  fillOpacity={0.8}
-                  className="dark:opacity-30"
-                />
-              )}
-              {/* Normal zone */}
-              {metric.min !== null && metric.max !== null && (
-                <ReferenceArea
-                  y1={metric.min}
-                  y2={metric.max}
-                  fill="#dcfce7"
-                  fillOpacity={0.8}
-                  className="dark:opacity-30"
-                />
-              )}
-              {/* Optimal zone highlight */}
-              {metric.optimalMin !== null && metric.optimalMax !== null && (
-                <ReferenceArea
-                  y1={metric.optimalMin}
-                  y2={metric.optimalMax}
-                  fill="#22c55e"
-                  fillOpacity={0.2}
-                />
-              )}
-              {/* High zone (above max) */}
-              {metric.max !== null && (
-                <ReferenceArea
-                  y1={metric.max}
-                  y2={yMax}
-                  fill="#fef3c7"
-                  fillOpacity={0.8}
-                  className="dark:opacity-30"
-                />
-              )}
+          {data.length > 1 ? (
+            <div className="bg-muted rounded-lg p-2 -mx-2">
+              <ResponsiveContainer width="100%" height={140}>
+                <ComposedChart data={data} margin={{ top: 10, right: 30, bottom: 5, left: -15 }}>
+                  {/* Low zone (below min) */}
+                  {metric.min !== null && (
+                    <ReferenceArea
+                      y1={yMin}
+                      y2={metric.min}
+                      fill="#fef3c7"
+                      fillOpacity={0.8}
+                      className="dark:opacity-30"
+                    />
+                  )}
+                  {/* Normal zone */}
+                  {metric.min !== null && metric.max !== null && (
+                    <ReferenceArea
+                      y1={metric.min}
+                      y2={metric.max}
+                      fill="#dcfce7"
+                      fillOpacity={0.8}
+                      className="dark:opacity-30"
+                    />
+                  )}
+                  {/* Optimal zone highlight */}
+                  {metric.optimalMin !== null && metric.optimalMax !== null && (
+                    <ReferenceArea
+                      y1={metric.optimalMin}
+                      y2={metric.optimalMax}
+                      fill="#22c55e"
+                      fillOpacity={0.2}
+                    />
+                  )}
+                  {/* High zone (above max) */}
+                  {metric.max !== null && (
+                    <ReferenceArea
+                      y1={metric.max}
+                      y2={yMax}
+                      fill="#fef3c7"
+                      fillOpacity={0.8}
+                      className="dark:opacity-30"
+                    />
+                  )}
 
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis
-                dataKey="date"
-                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                stroke="hsl(var(--muted-foreground))"
-                axisLine={false}
-              />
-              <YAxis
-                domain={[yMin, yMax]}
-                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                stroke="hsl(var(--muted-foreground))"
-                width={45}
-                axisLine={false}
-                tickFormatter={(v) => v.toFixed(metric.unit === 'L/L' ? 2 : v < 10 ? 1 : 0)}
-              />
-              <RechartsTooltip
-                contentStyle={{
-                  fontSize: 12,
-                  borderRadius: 8,
-                  border: 'none',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                  backgroundColor: 'hsl(var(--card))',
-                  color: 'hsl(var(--foreground))',
-                }}
-                formatter={(value) => [`${value} ${metric.unit}`, metric.name]}
-                labelStyle={{ fontWeight: 'bold', marginBottom: 4 }}
-              />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                    stroke="hsl(var(--muted-foreground))"
+                    axisLine={false}
+                  />
+                  <YAxis
+                    domain={[yMin, yMax]}
+                    tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                    stroke="hsl(var(--muted-foreground))"
+                    width={45}
+                    axisLine={false}
+                    tickFormatter={(v) => v.toFixed(metric.unit === 'L/L' ? 2 : v < 10 ? 1 : 0)}
+                  />
+                  <RechartsTooltip
+                    contentStyle={{
+                      fontSize: 12,
+                      borderRadius: 8,
+                      border: 'none',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                      backgroundColor: 'hsl(var(--card))',
+                      color: 'hsl(var(--foreground))',
+                    }}
+                    formatter={(value) => [`${value} ${metric.unit}`, metric.name]}
+                    labelStyle={{ fontWeight: 'bold', marginBottom: 4 }}
+                  />
 
-              {/* Reference lines */}
-              {metric.min !== null && (
-                <ReferenceLine
-                  y={metric.min}
-                  stroke="#f59e0b"
-                  strokeWidth={2}
-                  strokeDasharray="4 4"
-                  label={{ value: 'Min', fontSize: 9, fill: '#f59e0b', position: 'right' }}
-                />
-              )}
-              {metric.max !== null && (
-                <ReferenceLine
-                  y={metric.max}
-                  stroke="#f59e0b"
-                  strokeWidth={2}
-                  strokeDasharray="4 4"
-                  label={{ value: 'Max', fontSize: 9, fill: '#f59e0b', position: 'right' }}
-                />
-              )}
+                  {/* Reference lines */}
+                  {metric.min !== null && (
+                    <ReferenceLine
+                      y={metric.min}
+                      stroke="#f59e0b"
+                      strokeWidth={2}
+                      strokeDasharray="4 4"
+                      label={{ value: 'Min', fontSize: 9, fill: '#f59e0b', position: 'right' }}
+                    />
+                  )}
+                  {metric.max !== null && (
+                    <ReferenceLine
+                      y={metric.max}
+                      stroke="#f59e0b"
+                      strokeWidth={2}
+                      strokeDasharray="4 4"
+                      label={{ value: 'Max', fontSize: 9, fill: '#f59e0b', position: 'right' }}
+                    />
+                  )}
 
-              <Line
-                type="monotone"
-                dataKey="value"
-                stroke="#3b82f6"
-                strokeWidth={3}
-                dot={(props) => {
-                  const { cx, cy, payload } = props;
-                  const pointStatus = getStatus(payload.value, payload.min, payload.max);
-                  const color =
-                    pointStatus === 'normal'
-                      ? '#22c55e'
-                      : pointStatus === 'high'
-                        ? '#ef4444'
-                        : '#f59e0b';
-                  return (
-                    <g>
-                      <circle cx={cx} cy={cy} r={6} fill={color} stroke="#fff" strokeWidth={2} />
-                      {pointStatus !== 'normal' && (
-                        <circle
-                          cx={cx}
-                          cy={cy}
-                          r={10}
-                          fill="none"
-                          stroke={color}
-                          strokeWidth={2}
-                          opacity={0.3}
-                        />
-                      )}
-                    </g>
-                  );
-                }}
-                activeDot={{ r: 8, stroke: '#3b82f6', strokeWidth: 2, fill: '#fff' }}
-              />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
-      ) : (
-        <div className="h-16 flex items-center justify-center text-sm text-muted-foreground bg-muted rounded-lg">
-          Single data point — add more reports to see trends
-        </div>
+                  <Line
+                    type="monotone"
+                    dataKey="value"
+                    stroke="#3b82f6"
+                    strokeWidth={3}
+                    dot={(props) => {
+                      const { cx, cy, payload } = props;
+                      const pointStatus = getStatus(payload.value, payload.min, payload.max);
+                      const color =
+                        pointStatus === 'normal'
+                          ? '#22c55e'
+                          : pointStatus === 'high'
+                            ? '#ef4444'
+                            : '#f59e0b';
+                      return (
+                        <g>
+                          <circle cx={cx} cy={cy} r={6} fill={color} stroke="#fff" strokeWidth={2} />
+                          {pointStatus !== 'normal' && (
+                            <circle
+                              cx={cx}
+                              cy={cy}
+                              r={10}
+                              fill="none"
+                              stroke={color}
+                              strokeWidth={2}
+                              opacity={0.3}
+                            />
+                          )}
+                        </g>
+                      );
+                    }}
+                    activeDot={{ r: 8, stroke: '#3b82f6', strokeWidth: 2, fill: '#fff' }}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="h-16 flex items-center justify-center text-sm text-muted-foreground bg-muted rounded-lg">
+              Single data point — add more reports to see trends
+            </div>
+          )}
+
+          <div className="mt-2 text-xs text-muted-foreground text-center">
+            {data.length === 1
+              ? `1 reading · ${data[0].date}`
+              : `${data.length} readings · ${data[0].date} → ${data[data.length - 1].date}`}
+          </div>
+        </>
       )}
-
-      <div className="mt-2 text-xs text-muted-foreground text-center">
-        {data.length === 1
-          ? `1 reading · ${data[0].date}`
-          : `${data.length} readings · ${data[0].date} → ${data[data.length - 1].date}`}
-      </div>
     </div>
   );
 }

@@ -8,6 +8,8 @@ import {
   Plus,
   Download,
   ArrowLeft,
+  ArrowUpDown,
+  ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -36,6 +38,8 @@ export default function BloodTests() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [filter, setFilter] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [sortBy, setSortBy] = useState('priority');
+  const [collapsedCategories, setCollapsedCategories] = useState({});
 
   if (loading) {
     return (
@@ -86,17 +90,37 @@ export default function BloodTests() {
   const sortedMetrics = filteredMetrics.sort((a, b) => {
     const refA = REFERENCE_RANGES[a],
       refB = REFERENCE_RANGES[b];
-    const aLatest = [...reports.filter((r) => r.metrics[a])].sort(
+    const aLatestReport = [...reports.filter((r) => r.metrics[a])].sort(
       (x, y) => new Date(y.date) - new Date(x.date)
-    )[0]?.metrics[a];
-    const bLatest = [...reports.filter((r) => r.metrics[b])].sort(
+    )[0];
+    const bLatestReport = [...reports.filter((r) => r.metrics[b])].sort(
       (x, y) => new Date(y.date) - new Date(x.date)
-    )[0]?.metrics[b];
+    )[0];
+    const aLatest = aLatestReport?.metrics[a];
+    const bLatest = bLatestReport?.metrics[b];
     const aStatus = aLatest ? getStatus(aLatest.value, aLatest.min, aLatest.max) : 'normal';
     const bStatus = bLatest ? getStatus(bLatest.value, bLatest.min, bLatest.max) : 'normal';
-    if (aStatus !== 'normal' && bStatus === 'normal') return -1;
-    if (aStatus === 'normal' && bStatus !== 'normal') return 1;
-    return (refA?.category || '').localeCompare(refB?.category || '');
+    const aDate = aLatestReport ? new Date(aLatestReport.date) : new Date(0);
+    const bDate = bLatestReport ? new Date(bLatestReport.date) : new Date(0);
+
+    switch (sortBy) {
+      case 'priority':
+        // Abnormal first, then by date, then by category
+        if (aStatus !== 'normal' && bStatus === 'normal') return -1;
+        if (aStatus === 'normal' && bStatus !== 'normal') return 1;
+        if (aDate.getTime() !== bDate.getTime()) return bDate - aDate;
+        return (refA?.category || '').localeCompare(refB?.category || '');
+      case 'category':
+        // Group by category, then by name
+        const catCompare = (refA?.category || '').localeCompare(refB?.category || '');
+        if (catCompare !== 0) return catCompare;
+        return (refA?.name || '').localeCompare(refB?.name || '');
+      case 'name':
+        // Alphabetical by metric name
+        return (refA?.name || '').localeCompare(refB?.name || '');
+      default:
+        return 0;
+    }
   });
 
   const currentAbnormalCount = latestReport
@@ -123,14 +147,9 @@ export default function BloodTests() {
               <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center flex-shrink-0">
                 <Activity className="text-white" size={16} />
               </div>
-              <div className="min-w-0">
-                <h1 className="text-base sm:text-xl font-bold text-foreground truncate">
-                  Blood Tests
-                </h1>
-                <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                  {reports.length} reports · {allMetrics.size} metrics
-                </p>
-              </div>
+              <h1 className="text-base sm:text-xl font-bold text-foreground truncate">
+                Blood Tests
+              </h1>
             </div>
             <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
               <Button
@@ -228,7 +247,7 @@ export default function BloodTests() {
 
             <div className="bg-card rounded-xl p-4 border">
               <h3 className="font-semibold text-foreground mb-3">Reports ({reports.length})</h3>
-              <div className="space-y-1 max-h-40 overflow-y-auto">
+              <div className="space-y-1">
                 {sortedReports.map((report) => {
                   const abnormalCount = Object.entries(report.metrics).filter(([key, m]) => {
                     const ref = REFERENCE_RANGES[key];
@@ -305,6 +324,17 @@ export default function BloodTests() {
                   ))}
                 </SelectContent>
               </Select>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-[140px] text-xs sm:text-sm">
+                  <ArrowUpDown size={14} className="mr-1" />
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="priority">Priority</SelectItem>
+                  <SelectItem value="category">Category</SelectItem>
+                  <SelectItem value="name">Name</SelectItem>
+                </SelectContent>
+              </Select>
               <span className="hidden sm:inline text-sm text-muted-foreground self-center ml-auto">
                 {sortedMetrics.length} of {allMetrics.size} metrics
               </span>
@@ -316,11 +346,62 @@ export default function BloodTests() {
             </div>
 
             {sortedMetrics.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                {sortedMetrics.map((key) => (
-                  <MetricChart key={key} metricKey={key} reports={reports} />
-                ))}
-              </div>
+              sortBy === 'category' ? (
+                // Group by category with collapsible sections
+                <div className="space-y-4">
+                  {Object.entries(
+                    sortedMetrics.reduce((acc, key) => {
+                      const category = REFERENCE_RANGES[key]?.category || 'other';
+                      if (!acc[category]) acc[category] = [];
+                      acc[category].push(key);
+                      return acc;
+                    }, {})
+                  ).map(([category, metrics]) => {
+                    const categoryInfo = CATEGORY_INFO[category] || { label: category };
+                    const isCollapsed = collapsedCategories[category] ?? false;
+                    return (
+                      <div key={category} className="bg-card rounded-xl border overflow-hidden">
+                        <button
+                          onClick={() =>
+                            setCollapsedCategories((prev) => ({
+                              ...prev,
+                              [category]: !prev[category],
+                            }))
+                          }
+                          className="w-full px-4 py-3 bg-muted/50 flex items-center justify-between hover:bg-muted transition-colors"
+                        >
+                          <h3 className="font-semibold text-foreground flex items-center gap-2">
+                            {categoryInfo.label}
+                            <span className="text-sm font-normal text-muted-foreground">
+                              ({metrics.length})
+                            </span>
+                          </h3>
+                          <ChevronDown
+                            size={18}
+                            className={`text-muted-foreground transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`}
+                          />
+                        </button>
+                        {!isCollapsed && (
+                          <div className="p-3 sm:p-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                              {metrics.map((key) => (
+                                <MetricChart key={key} metricKey={key} reports={reports} />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                // Regular grid layout
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                  {sortedMetrics.map((key) => (
+                    <MetricChart key={key} metricKey={key} reports={reports} />
+                  ))}
+                </div>
+              )
             ) : (
               <div className="bg-card rounded-xl border p-8 text-center">
                 <p className="text-muted-foreground">No metrics match your filters.</p>
