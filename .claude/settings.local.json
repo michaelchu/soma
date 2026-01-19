@@ -6,7 +6,11 @@
       "Bash(git -C /Users/michaelchu/Documents/Projects/soma status)",
       "Bash(git -C /Users/michaelchu/Documents/Projects/soma log --oneline -5)",
       "Bash(git -C /Users/michaelchu/Documents/Projects/soma add:*)",
-      "Bash(git -C /Users/michaelchu/Documents/Projects/soma commit -m \"Initial commit: Soma health app portal with theme support\")"
+      "Bash(git -C /Users/michaelchu/Documents/Projects/soma commit -m \"Initial commit: Soma health app portal with theme support\")",
+      "Bash(git -C /Users/michaelchu/Documents/Projects/soma push -u origin main)",
+      "Bash(gh repo edit:*)",
+      "Bash(git -C /Users/michaelchu/Documents/Projects/soma commit -m \"Update README\")",
+      "Bash(git -C /Users/michaelchu/Documents/Projects/soma push)"
     ]
   }
 }

@@ -1,6 +1,6 @@
 # Soma
 
-A personal mini app portal built with React, Tailwind CSS, and shadcn/ui.
+Personal health app portal - a launcher for mini health-related apps.
 
 ## Quick Start
 
@@ -20,8 +20,8 @@ Edit `src/config/apps.json`:
       "id": "my-app",
       "name": "My App",
       "description": "Description",
-      "icon": "🚀",
-      "color": "#3b82f6",
+      "icon": "🩸",
+      "color": "#ef4444",
       "url": "https://my-app.vercel.app"
     }
   ]
@@ -33,36 +33,8 @@ Edit `src/config/apps.json`:
 - React 18
 - React Router
 - Tailwind CSS
-- shadcn/ui components
+- shadcn/ui
 - Lucide icons
-
-## Project Structure
-
-```
-src/
-├── components/
-│   ├── ui/          # shadcn components
-│   ├── AppIcon.jsx
-│   └── SharedHeader.jsx
-├── views/
-│   ├── Auth.jsx
-│   ├── Launcher.jsx
-│   └── AppHost.jsx
-├── lib/
-│   ├── auth.js
-│   └── utils.js
-├── config/
-│   └── apps.json
-├── App.jsx
-├── main.jsx
-└── index.css
-```
-
-## Authentication
-
-- First visit: Create a passcode (min 4 characters)
-- Passcode stored as SHA-256 hash in localStorage
-- "Remember me" keeps session for 30 days
 
 ## Deployment
 
@@ -71,7 +43,3 @@ npm run build
 ```
 
 Deploy the `dist` folder to Vercel, Netlify, or any static host.
-
-For client-side routing, add a redirect rule:
-- Vercel: Automatic
-- Netlify: Add `_redirects` file with `/* /index.html 200`
