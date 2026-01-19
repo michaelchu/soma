@@ -134,7 +134,6 @@ export default function BloodTests() {
             </div>
             <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
               <Button
-                variant="outline"
                 size="sm"
                 onClick={() => setShowImporter(true)}
                 className="flex items-center gap-1 sm:gap-2"
@@ -144,7 +143,6 @@ export default function BloodTests() {
                 <span className="hidden sm:inline">Add Report</span>
               </Button>
               <Button
-                variant="outline"
                 size="sm"
                 onClick={() => setShowExportModal(true)}
                 className="flex items-center gap-1 sm:gap-2"

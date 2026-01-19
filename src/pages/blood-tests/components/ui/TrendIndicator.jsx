@@ -13,7 +13,7 @@ export function TrendIndicator({ data }) {
 
   return (
     <span
-      className={`text-xs flex items-center gap-0.5 ${change > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'}`}
+      className={`text-xs flex items-center gap-0.5 ${change > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-green-600 dark:text-green-400'}`}
     >
       {change > 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />} {Math.abs(change)}%
     </span>

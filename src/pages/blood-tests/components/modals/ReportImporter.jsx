@@ -122,7 +122,7 @@ export function ReportImporter({ onClose }) {
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-3xl h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
-        <DialogHeader className="p-4 border-b bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-t-lg">
+        <DialogHeader className="p-4 border-b">
           <DialogTitle>Import New Report</DialogTitle>
         </DialogHeader>
 

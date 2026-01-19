@@ -32,9 +32,9 @@ export function ReferenceRangePanel({ onClose }) {
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-3xl h-[70vh] flex flex-col p-0 gap-0 overflow-hidden">
-        <DialogHeader className="p-4 border-b bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-t-lg">
+        <DialogHeader className="p-4 border-b">
           <DialogTitle className="flex items-center gap-2">
-            <BookOpen size={18} className="text-blue-600 dark:text-blue-400" />
+            <BookOpen size={18} className="text-muted-foreground" />
             Reference Ranges
             <span className="text-xs font-normal text-muted-foreground">
               ({metrics.length} metrics)
@@ -86,13 +86,13 @@ export function ReferenceRangePanel({ onClose }) {
                   <TableRow
                     key={key}
                     className={`cursor-pointer ${
-                      expandedMetric === key ? 'bg-blue-50 dark:bg-blue-950/30' : ''
+                      expandedMetric === key ? 'bg-accent' : ''
                     }`}
                     onClick={() => setExpandedMetric(expandedMetric === key ? null : key)}
                   >
                     <TableCell className="font-medium">{ref.name}</TableCell>
                     <TableCell className="text-center">
-                      <span className="font-mono text-blue-600 dark:text-blue-400 font-medium">
+                      <span className="font-mono text-primary font-medium">
                         {ref.min !== null && ref.max !== null
                           ? `${ref.min}–${ref.max}`
                           : ref.min !== null
@@ -122,14 +122,11 @@ export function ReferenceRangePanel({ onClose }) {
                   {expandedMetric === key && (
                     <TableRow
                       key={`${key}-expanded`}
-                      className="bg-blue-50/50 dark:bg-blue-950/20 hover:bg-blue-50/50 dark:hover:bg-blue-950/20"
+                      className="bg-muted/50 hover:bg-muted/50"
                     >
-                      <TableCell
-                        colSpan={5}
-                        className="border-t border-blue-200 dark:border-blue-900"
-                      >
+                      <TableCell colSpan={5} className="border-t border-border">
                         <div className="text-xs text-muted-foreground mb-1">{ref.description}</div>
-                        <div className="text-xs text-muted-foreground bg-card p-2 rounded border-l-2 border-blue-300 dark:border-blue-700">
+                        <div className="text-xs text-muted-foreground bg-card p-2 rounded border-l-2 border-primary/50">
                           💡 {ref.clinicalNotes}
                         </div>
                       </TableCell>

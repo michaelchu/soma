@@ -65,7 +65,7 @@ export function MetricChart({ metricKey, reports }) {
         status !== 'normal'
           ? 'border-amber-300 dark:border-amber-700 bg-gradient-to-br from-amber-50/50 to-transparent dark:from-amber-950/20'
           : hasHistoricalAbnormal
-            ? 'border-blue-200 dark:border-blue-800'
+            ? 'border-muted-foreground/30'
             : 'border-border'
       }`}
     >

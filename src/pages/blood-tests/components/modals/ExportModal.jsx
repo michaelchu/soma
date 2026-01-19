@@ -27,9 +27,9 @@ export function ExportModal({ onClose }) {
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-3xl h-[70vh] flex flex-col p-0 gap-0 overflow-hidden">
-        <DialogHeader className="p-4 border-b bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-t-lg">
+        <DialogHeader className="p-4 border-b">
           <DialogTitle className="flex items-center gap-2">
-            <FileText size={18} className="text-blue-600 dark:text-blue-400" />
+            <FileText size={18} className="text-muted-foreground" />
             Export Report Data
           </DialogTitle>
         </DialogHeader>
