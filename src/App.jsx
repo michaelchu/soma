@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Auth from '@/views/Auth';
 import Launcher from '@/views/Launcher';
-import AppHost from '@/views/AppHost';
+import BloodTests from '@/pages/BloodTests';
 import { isAuthenticated } from '@/lib/auth';
 
 export default function App() {
@@ -39,7 +39,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Launcher onLogout={handleLogout} />} />
-      <Route path="/app/:appId" element={<AppHost />} />
+      <Route path="/blood-tests" element={<BloodTests />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

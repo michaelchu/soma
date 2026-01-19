@@ -11,7 +11,11 @@ export default function Launcher({ onLogout }) {
   const { theme, toggleTheme } = useTheme();
 
   const handleAppClick = (app) => {
-    navigate(`/app/${app.id}`);
+    if (app.route) {
+      navigate(app.route);
+    } else if (app.url) {
+      window.open(app.url, '_blank');
+    }
   };
 
   const handleLogout = () => {

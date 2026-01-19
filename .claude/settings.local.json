@@ -10,7 +10,15 @@
       "Bash(git -C /Users/michaelchu/Documents/Projects/soma push -u origin main)",
       "Bash(gh repo edit:*)",
       "Bash(git -C /Users/michaelchu/Documents/Projects/soma commit -m \"Update README\")",
-      "Bash(git -C /Users/michaelchu/Documents/Projects/soma push)"
+      "Bash(git -C /Users/michaelchu/Documents/Projects/soma push)",
+      "Bash(cd:*)",
+      "Bash(npx shadcn@latest add button card checkbox label input --overwrite)",
+      "Bash(npm run build)",
+      "Bash(cd /Users/michaelchu/Documents/Personal\\\\ Projects/soma && npx shadcn@latest add:*)",
+      "Bash(npx shadcn@latest add tabs tooltip scroll-area separator --yes)",
+      "Bash(cd /Users/michaelchu/Documents/Personal\\\\ Projects/soma && npx shadcn@latest add dialog --overwrite:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
