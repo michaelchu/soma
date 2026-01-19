@@ -174,10 +174,7 @@ export default function BloodTests({ onLogout }) {
         <DropdownMenuContent align="start" className="w-56">
           <DropdownMenuLabel className="flex items-center justify-between">
             <span>Select Reports</span>
-            <button
-              onClick={selectAllReports}
-              className="text-xs text-primary hover:underline"
-            >
+            <button onClick={selectAllReports} className="text-xs text-primary hover:underline">
               Select All
             </button>
           </DropdownMenuLabel>
@@ -260,7 +257,9 @@ export default function BloodTests({ onLogout }) {
 
       <main className="max-w-7xl mx-auto px-3 sm:px-4 pb-3 sm:pb-4">
         <div>
-          <div className={`flex gap-2 pb-3 overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0 sm:overflow-visible sticky top-[49px] z-10 bg-background py-2 ${isScrolled ? 'border-b' : ''}`}>
+          <div
+            className={`flex gap-2 pb-3 overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0 sm:overflow-visible sticky top-[49px] z-10 bg-background py-2 ${isScrolled ? 'border-b' : ''}`}
+          >
             <div className="flex rounded-lg border bg-card overflow-hidden text-xs h-8 flex-shrink-0">
               <button
                 onClick={() => setFilter('all')}

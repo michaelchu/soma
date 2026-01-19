@@ -16,9 +16,7 @@ export default function Navbar({ leftContent, rightContent, onLogout }) {
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2">
         <div className="flex justify-between items-center gap-2">
           {/* Left: Page-specific content */}
-          <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1">
-            {leftContent}
-          </div>
+          <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1">{leftContent}</div>
 
           {/* Center: Branding */}
           <div className="flex items-center gap-2 flex-shrink-0">

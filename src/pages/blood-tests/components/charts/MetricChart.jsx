@@ -138,7 +138,12 @@ export function MetricChart({ metricKey, reports, collapsed = false }) {
                   )}
                   {/* Normal zone */}
                   {metric.min !== null && metric.max !== null && (
-                    <ReferenceArea y1={metric.min} y2={metric.max} fill="#22c55e" fillOpacity={0.15} />
+                    <ReferenceArea
+                      y1={metric.min}
+                      y2={metric.max}
+                      fill="#22c55e"
+                      fillOpacity={0.15}
+                    />
                   )}
                   {/* Normal zone for lower-bound only (e.g., eGFR ≥60) */}
                   {metric.min !== null && metric.max === null && (
@@ -248,7 +253,12 @@ export function MetricChart({ metricKey, reports, collapsed = false }) {
                         </g>
                       );
                     }}
-                    activeDot={{ r: 8, stroke: 'hsl(var(--primary))', strokeWidth: 2, fill: 'hsl(var(--background))' }}
+                    activeDot={{
+                      r: 8,
+                      stroke: 'hsl(var(--primary))',
+                      strokeWidth: 2,
+                      fill: 'hsl(var(--background))',
+                    }}
                   />
                 </ComposedChart>
               </ResponsiveContainer>
