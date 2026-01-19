@@ -129,28 +129,16 @@ export function MetricChart({ metricKey, reports, collapsed = false }) {
           </div>
 
           {data.length > 1 ? (
-            <div className="bg-muted rounded-lg p-2 -mx-2">
+            <div className="rounded-lg -mx-2">
               <ResponsiveContainer width="100%" height={140}>
                 <ComposedChart data={data} margin={{ top: 10, right: 30, bottom: 5, left: -15 }}>
                   {/* Low zone (below min) */}
                   {metric.min !== null && (
-                    <ReferenceArea
-                      y1={yMin}
-                      y2={metric.min}
-                      fill="#fef3c7"
-                      fillOpacity={0.8}
-                      className="dark:opacity-30"
-                    />
+                    <ReferenceArea y1={yMin} y2={metric.min} fill="#f59e0b" fillOpacity={0.15} />
                   )}
                   {/* Normal zone */}
                   {metric.min !== null && metric.max !== null && (
-                    <ReferenceArea
-                      y1={metric.min}
-                      y2={metric.max}
-                      fill="#dcfce7"
-                      fillOpacity={0.8}
-                      className="dark:opacity-30"
-                    />
+                    <ReferenceArea y1={metric.min} y2={metric.max} fill="#22c55e" fillOpacity={0.15} />
                   )}
                   {/* Optimal zone highlight */}
                   {metric.optimalMin !== null && metric.optimalMax !== null && (
@@ -158,18 +146,12 @@ export function MetricChart({ metricKey, reports, collapsed = false }) {
                       y1={metric.optimalMin}
                       y2={metric.optimalMax}
                       fill="#22c55e"
-                      fillOpacity={0.2}
+                      fillOpacity={0.1}
                     />
                   )}
                   {/* High zone (above max) */}
                   {metric.max !== null && (
-                    <ReferenceArea
-                      y1={metric.max}
-                      y2={yMax}
-                      fill="#fef3c7"
-                      fillOpacity={0.8}
-                      className="dark:opacity-30"
-                    />
+                    <ReferenceArea y1={metric.max} y2={yMax} fill="#f59e0b" fillOpacity={0.15} />
                   )}
 
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
