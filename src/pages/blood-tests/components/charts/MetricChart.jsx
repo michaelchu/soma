@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
   Line,
   XAxis,
@@ -10,7 +9,7 @@ import {
   ReferenceArea,
   ComposedChart,
 } from 'recharts';
-import { Info, ChevronDown } from 'lucide-react';
+import { Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { REFERENCE_RANGES } from '../../constants/referenceRanges';
 import { getStatus } from '../../utils/statusHelpers';
@@ -18,8 +17,7 @@ import { StatusBadge } from '../ui/StatusBadge';
 import { RangeBar } from '../ui/RangeBar';
 import { TrendIndicator } from '../ui/TrendIndicator';
 
-export function MetricChart({ metricKey, reports, defaultCollapsed = true }) {
-  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
+export function MetricChart({ metricKey, reports, collapsed = false }) {
   const ref = REFERENCE_RANGES[metricKey];
   const data = reports
     .sort((a, b) => new Date(a.date) - new Date(b.date))
@@ -94,21 +92,9 @@ export function MetricChart({ metricKey, reports, defaultCollapsed = true }) {
             {ref.description}
           </p>
         </div>
-        <div className="flex items-start gap-2 flex-shrink-0">
-          <div className="text-right flex items-baseline gap-1">
-            <p className="text-xl sm:text-2xl font-bold text-foreground">{metric.value}</p>
-            <p className="text-xs text-muted-foreground">{metric.unit}</p>
-          </div>
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-1 hover:bg-accent rounded-md transition-colors"
-            aria-label={isCollapsed ? 'Expand chart' : 'Collapse chart'}
-          >
-            <ChevronDown
-              size={18}
-              className={`text-muted-foreground transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`}
-            />
-          </button>
+        <div className="text-right flex items-baseline gap-1 flex-shrink-0">
+          <p className="text-xl sm:text-2xl font-bold text-foreground">{metric.value}</p>
+          <p className="text-xs text-muted-foreground">{metric.unit}</p>
         </div>
       </div>
 
@@ -122,7 +108,7 @@ export function MetricChart({ metricKey, reports, defaultCollapsed = true }) {
         unit={metric.unit}
       />
 
-      {!isCollapsed && (
+      {!collapsed && (
         <>
           <div className="flex items-center justify-between mt-2 mb-3">
             <div className="flex items-center gap-2">

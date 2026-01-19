@@ -32,7 +32,6 @@ import { ReferenceRangePanel } from './blood-tests/components/modals/ReferenceRa
 import { ReportImporter } from './blood-tests/components/modals/ReportImporter';
 import { ExportModal } from './blood-tests/components/modals/ExportModal';
 // import { AISummary } from './blood-tests/components/analysis/AISummary';
-import { HistoricalAbnormalTable } from './blood-tests/components/analysis/HistoricalAbnormalTable';
 
 export default function BloodTests() {
   const navigate = useNavigate();
@@ -50,7 +49,8 @@ export default function BloodTests() {
     return initial;
   });
   const [selectedReportIds, setSelectedReportIds] = useState(null); // null = all selected
-  const [allExpanded, setAllExpanded] = useState(false);
+  // Track which categories have their charts expanded (default all collapsed)
+  const [expandedChartCategories, setExpandedChartCategories] = useState({});
 
   if (loading) {
     return (
@@ -292,24 +292,35 @@ export default function BloodTests() {
                 className={`px-2.5 sm:px-4 flex items-center gap-1 ${filter === 'abnormal' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' : 'text-muted-foreground hover:bg-accent'}`}
               >
                 <AlertTriangle size={14} />
-                <span className="hidden sm:inline">Ever </span>Abnormal
+                Abnormal
               </button>
             </div>
             <button
-              onClick={() => setAllExpanded(!allExpanded)}
+              onClick={() => {
+                // Check if all categories are currently expanded
+                const allExpanded = Object.values(collapsedCategories).every((v) => !v);
+                const newState = {};
+                Object.keys(CATEGORY_INFO).forEach((key) => {
+                  newState[key] = allExpanded; // collapse all if all expanded, expand all otherwise
+                });
+                setCollapsedCategories(newState);
+              }}
               className="flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-lg border bg-card text-muted-foreground hover:bg-accent hover:text-foreground transition-colors flex-shrink-0"
-              title={allExpanded ? 'Collapse all' : 'Expand all'}
+              title={
+                Object.values(collapsedCategories).every((v) => !v)
+                  ? 'Collapse all categories'
+                  : 'Expand all categories'
+              }
             >
-              {allExpanded ? <ChevronsDownUp size={16} /> : <ChevronsUpDown size={16} />}
+              {Object.values(collapsedCategories).every((v) => !v) ? (
+                <ChevronsDownUp size={16} />
+              ) : (
+                <ChevronsUpDown size={16} />
+              )}
             </button>
             <span className="hidden sm:inline text-sm text-muted-foreground self-center ml-auto flex-shrink-0">
               {sortedMetrics.length} of {allMetrics.size} metrics
             </span>
-          </div>
-
-          {/* Historical Abnormals - below filter bar */}
-          <div className="mb-4">
-            <HistoricalAbnormalTable reports={filteredReports} />
           </div>
 
           {sortedMetrics.length > 0 ? (
@@ -324,37 +335,59 @@ export default function BloodTests() {
               ).map(([category, metrics]) => {
                 const categoryInfo = CATEGORY_INFO[category] || { label: category };
                 const isCollapsed = collapsedCategories[category] ?? true;
+                const chartsExpanded = expandedChartCategories[category] ?? false;
                 return (
                   <div key={category} className="bg-card rounded-xl border overflow-hidden">
-                    <button
-                      onClick={() =>
-                        setCollapsedCategories((prev) => ({
-                          ...prev,
-                          [category]: !prev[category],
-                        }))
-                      }
-                      className="w-full px-4 py-3 bg-muted/50 flex items-center justify-between hover:bg-muted transition-colors"
-                    >
-                      <h3 className="font-semibold text-foreground flex items-center gap-2">
-                        {categoryInfo.label}
-                        <span className="text-sm font-normal text-muted-foreground">
-                          ({metrics.length})
-                        </span>
-                      </h3>
-                      <ChevronDown
-                        size={18}
-                        className={`text-muted-foreground transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`}
-                      />
-                    </button>
+                    <div className="px-4 py-3 bg-muted/50 flex items-center justify-between">
+                      <button
+                        onClick={() =>
+                          setCollapsedCategories((prev) => ({
+                            ...prev,
+                            [category]: !prev[category],
+                          }))
+                        }
+                        className="flex items-center gap-2 hover:text-foreground transition-colors flex-1"
+                      >
+                        <ChevronDown
+                          size={18}
+                          className={`text-muted-foreground transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`}
+                        />
+                        <h3 className="font-semibold text-foreground flex items-center gap-2">
+                          {categoryInfo.label}
+                          <span className="text-sm font-normal text-muted-foreground">
+                            ({metrics.length})
+                          </span>
+                        </h3>
+                      </button>
+                      {!isCollapsed && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedChartCategories((prev) => ({
+                              ...prev,
+                              [category]: !prev[category],
+                            }));
+                          }}
+                          className="flex items-center justify-center h-7 w-7 rounded border bg-card text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                          title={chartsExpanded ? 'Collapse charts' : 'Expand charts'}
+                        >
+                          {chartsExpanded ? (
+                            <ChevronsDownUp size={14} />
+                          ) : (
+                            <ChevronsUpDown size={14} />
+                          )}
+                        </button>
+                      )}
+                    </div>
                     {!isCollapsed && (
                       <div className="p-3 sm:p-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                           {metrics.map((key) => (
                             <MetricChart
-                              key={`${key}-${allExpanded}`}
+                              key={key}
                               metricKey={key}
                               reports={filteredReports}
-                              defaultCollapsed={!allExpanded}
+                              collapsed={!chartsExpanded}
                             />
                           ))}
                         </div>
