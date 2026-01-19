@@ -255,10 +255,10 @@ export default function BloodTests() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      <main className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
         <div>
-          <div className="flex gap-2 mb-4 overflow-x-auto pb-1 -mx-3 px-3 sm:mx-0 sm:px-0 sm:overflow-visible">
-            <div className="flex rounded-lg border bg-card overflow-hidden text-xs sm:text-sm h-8 sm:h-9 flex-shrink-0">
+          <div className="flex gap-2 mb-3 overflow-x-auto pb-1 -mx-3 px-3 sm:mx-0 sm:px-0 sm:overflow-visible">
+            <div className="flex rounded-lg border bg-card overflow-hidden text-xs h-8 flex-shrink-0">
               <button
                 onClick={() => setFilter('all')}
                 className={`px-2.5 sm:px-4 ${filter === 'all' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-accent'}`}
@@ -283,7 +283,7 @@ export default function BloodTests() {
                 });
                 setCollapsedCategories(newState);
               }}
-              className="flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-lg border bg-card text-muted-foreground hover:bg-accent hover:text-foreground transition-colors flex-shrink-0"
+              className="flex items-center justify-center h-8 w-8 rounded-lg border bg-card text-muted-foreground hover:bg-accent hover:text-foreground transition-colors flex-shrink-0"
               title={
                 Object.values(collapsedCategories).every((v) => !v)
                   ? 'Collapse all categories'
@@ -296,9 +296,6 @@ export default function BloodTests() {
                 <ChevronsUpDown size={16} />
               )}
             </button>
-            <span className="hidden sm:inline text-sm text-muted-foreground self-center ml-auto flex-shrink-0">
-              {sortedMetrics.length} of {allMetrics.size} metrics
-            </span>
           </div>
 
           {sortedMetrics.length > 0 ? (

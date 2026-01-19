@@ -22,7 +22,12 @@
       "Bash(git push)",
       "Bash(cd /Users/michaelchu/Documents/Personal\\\\ Projects/soma && npm run format:*)",
       "Bash(cd /Users/michaelchu/Documents/Personal\\\\ Projects/soma && npm run lint:*)",
-      "Bash(npm run format:*)"
+      "Bash(npm run format:*)",
+      "Bash(gh run list --limit 3)",
+      "Bash(cd /Users/michaelchu/Documents/Personal\\\\ Projects/soma && npx prettier --write src/components/ui/dropdown-menu.jsx:*)",
+      "Bash(npm run lint -- --quiet)",
+      "Bash(curl:*)",
+      "Bash(cd /Users/michaelchu/Documents/Personal\\\\ Projects/soma && npx shadcn@latest add dropdown-menu --overwrite 2>&1:*)"
     ]
   }
 }
