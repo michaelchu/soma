@@ -9,24 +9,18 @@ npm install
 npm run dev
 ```
 
-## Adding Apps
+## Blood Tests
 
-Edit `src/config/apps.json`:
+Track and visualize blood test results over time. Features include:
 
-```json
-{
-  "apps": [
-    {
-      "id": "my-app",
-      "name": "My App",
-      "description": "Description",
-      "icon": "🩸",
-      "color": "#ef4444",
-      "url": "https://my-app.vercel.app"
-    }
-  ]
-}
-```
+- **Historical Tracking**: Import multiple reports to see trends across metrics
+- **Visual Charts**: Line charts showing metric values with reference range bands
+- **Abnormal Detection**: Automatic flagging of out-of-range values
+- **Category Filtering**: Filter by metabolic, lipid, thyroid, and other categories
+- **Export**: Download your data in various formats
+- **Reference Ranges**: Built-in reference ranges with explanations
+
+Data is stored in a markdown file at `src/pages/blood-tests/data/reports.md`.
 
 ## Tech Stack
 
