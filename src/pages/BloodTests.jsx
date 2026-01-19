@@ -37,14 +37,8 @@ export default function BloodTests({ onLogout }) {
   const [showImporter, setShowImporter] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [filter, setFilter] = useState('all');
-  // Initialize all categories collapsed
-  const [collapsedCategories, setCollapsedCategories] = useState(() => {
-    const initial = {};
-    Object.keys(CATEGORY_INFO).forEach((key) => {
-      initial[key] = true;
-    });
-    return initial;
-  });
+  // Initialize all categories expanded
+  const [collapsedCategories, setCollapsedCategories] = useState({});
   const [selectedReportIds, setSelectedReportIds] = useState(null); // null = all selected
   // Track which categories have their charts expanded (default all collapsed)
   const [expandedChartCategories, setExpandedChartCategories] = useState({});
@@ -205,7 +199,7 @@ export default function BloodTests({ onLogout }) {
           <div
             className={`flex gap-2 pb-3 overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0 sm:overflow-visible sticky top-[49px] z-10 bg-background py-2 ${isScrolled ? 'border-b' : ''}`}
           >
-            <div className="flex rounded-lg border bg-card overflow-hidden text-xs h-8 flex-shrink-0">
+            <div className="flex rounded-lg border bg-card overflow-hidden text-xs font-medium h-8 flex-shrink-0">
               <button
                 onClick={() => setFilter('all')}
                 className={`px-2.5 sm:px-4 ${filter === 'all' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-accent'}`}
@@ -311,7 +305,7 @@ export default function BloodTests({ onLogout }) {
                 }, {})
               ).map(([category, metrics]) => {
                 const categoryInfo = CATEGORY_INFO[category] || { label: category };
-                const isCollapsed = collapsedCategories[category] ?? true;
+                const isCollapsed = collapsedCategories[category] ?? false;
                 const chartsExpanded = expandedChartCategories[category] ?? false;
                 return (
                   <div key={category} className="bg-card rounded-xl border overflow-hidden">
