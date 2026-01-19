@@ -1,0 +1,20 @@
+{
+  "apps": [
+    {
+      "id": "xpanel",
+      "name": "xPanel",
+      "description": "Track and visualize blood test results",
+      "icon": "🩸",
+      "color": "#ef4444",
+      "url": "https://xpanel-vault.vercel.app/"
+    },
+    {
+      "id": "demo-app",
+      "name": "Demo App",
+      "description": "Example placeholder app",
+      "icon": "🧪",
+      "color": "#8b5cf6",
+      "url": "https://example.com"
+    }
+  ]
+}
