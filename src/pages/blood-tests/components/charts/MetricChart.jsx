@@ -140,6 +140,14 @@ export function MetricChart({ metricKey, reports, collapsed = false }) {
                   {metric.min !== null && metric.max !== null && (
                     <ReferenceArea y1={metric.min} y2={metric.max} fill="#22c55e" fillOpacity={0.15} />
                   )}
+                  {/* Normal zone for lower-bound only (e.g., eGFR ≥60) */}
+                  {metric.min !== null && metric.max === null && (
+                    <ReferenceArea y1={metric.min} y2={yMax} fill="#22c55e" fillOpacity={0.15} />
+                  )}
+                  {/* Normal zone for upper-bound only (e.g., LDL ≤3.5) */}
+                  {metric.min === null && metric.max !== null && (
+                    <ReferenceArea y1={yMin} y2={metric.max} fill="#22c55e" fillOpacity={0.15} />
+                  )}
                   {/* Optimal zone highlight */}
                   {metric.optimalMin !== null && metric.optimalMax !== null && (
                     <ReferenceArea
@@ -205,8 +213,8 @@ export function MetricChart({ metricKey, reports, collapsed = false }) {
                   <Line
                     type="monotone"
                     dataKey="value"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={3}
+                    stroke="hsl(var(--muted-foreground))"
+                    strokeWidth={2}
                     dot={(props) => {
                       const { cx, cy, payload } = props;
                       const pointStatus = getStatus(payload.value, payload.min, payload.max);
