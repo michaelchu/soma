@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Activity,
@@ -47,6 +47,13 @@ export default function BloodTests() {
   const [selectedReportIds, setSelectedReportIds] = useState(null); // null = all selected
   // Track which categories have their charts expanded (default all collapsed)
   const [expandedChartCategories, setExpandedChartCategories] = useState({});
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 8);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   if (loading) {
     return (
@@ -254,9 +261,9 @@ export default function BloodTests() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
+      <main className="max-w-7xl mx-auto px-3 sm:px-4 pb-3 sm:pb-4">
         <div>
-          <div className="flex gap-2 mb-3 overflow-x-auto pb-1 -mx-3 px-3 sm:mx-0 sm:px-0 sm:overflow-visible">
+          <div className={`flex gap-2 pb-3 overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0 sm:overflow-visible sticky top-[49px] z-10 bg-background py-2 ${isScrolled ? 'border-b' : ''}`}>
             <div className="flex rounded-lg border bg-card overflow-hidden text-xs h-8 flex-shrink-0">
               <button
                 onClick={() => setFilter('all')}
