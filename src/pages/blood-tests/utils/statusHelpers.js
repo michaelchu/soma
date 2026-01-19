@@ -3,6 +3,15 @@
  * Functions for determining and calculating metric statuses
  */
 
+// Range bar layout constants
+// The bar is divided into: [low zone 0-15%] [normal zone 15-85%] [high zone 85-100%]
+export const RANGE_CONSTANTS = {
+  LOW_ZONE_END: 15,
+  NORMAL_ZONE_END: 85,
+  NORMAL_ZONE_WIDTH: 70, // 85 - 15
+  OVERFLOW_FACTOR: 0.3, // How much beyond bounds to show before clamping
+};
+
 /**
  * Determine if a metric value is low, normal, or high
  * @param {number} value - The metric value
@@ -17,50 +26,100 @@ export function getStatus(value, min, max) {
 }
 
 /**
+ * Get the visual max for ranges with only a lower bound
+ * @param {number} min - Minimum reference range value
+ * @returns {number} Visual max for positioning
+ */
+export function getVisualMax(min) {
+  return min * 2;
+}
+
+/**
  * Calculate position of value within range for visualization (0-100%)
- * The bar layout is: [low zone 0-15%] [normal zone 15-85%] [high zone 85-100%]
  * @param {number} value - The metric value
  * @param {number|null} min - Minimum reference range value
  * @param {number|null} max - Maximum reference range value
  * @returns {number} Position percentage (0-100)
  */
 export function getPositionInRange(value, min, max) {
+  const { LOW_ZONE_END, NORMAL_ZONE_END, NORMAL_ZONE_WIDTH, OVERFLOW_FACTOR } = RANGE_CONSTANTS;
+
   if (min === null && max === null) return 50;
 
   // Only upper bound (e.g., LDL ≤3.5) - lower is better
-  // Normal zone is 0 to max, visualized in the 15-85% range
   if (min === null) {
-    if (value <= 0) return 15;
+    if (value <= 0) return LOW_ZONE_END;
     if (value >= max) {
-      // Above max - position in high zone (85-100%)
-      const overflow = (value - max) / (max * 0.3);
-      return Math.min(100, 85 + overflow * 15);
+      const overflow = (value - max) / (max * OVERFLOW_FACTOR);
+      return Math.min(100, NORMAL_ZONE_END + overflow * LOW_ZONE_END);
     }
-    // Within normal range - position in normal zone (15-85%)
-    return 15 + (value / max) * 70;
+    return LOW_ZONE_END + (value / max) * NORMAL_ZONE_WIDTH;
   }
 
   // Only lower bound (e.g., HDL ≥1) - higher is better
-  // Normal zone is min to infinity, visualized in the 15-85% range
   if (max === null) {
     if (value < min) {
-      // Below min - position in low zone (0-15%)
-      const underflow = (min - value) / (min * 0.3);
-      return Math.max(0, 15 - underflow * 15);
+      const underflow = (min - value) / (min * OVERFLOW_FACTOR);
+      return Math.max(0, LOW_ZONE_END - underflow * LOW_ZONE_END);
     }
-    // Within normal range - use min as anchor at 15%, scale based on reasonable upper display
-    // Use 2x min as the visual max for positioning
-    const visualMax = min * 2;
+    const visualMax = getVisualMax(min);
     const normalizedValue = Math.min(value, visualMax);
-    return 15 + ((normalizedValue - min) / (visualMax - min)) * 70;
+    return LOW_ZONE_END + ((normalizedValue - min) / (visualMax - min)) * NORMAL_ZONE_WIDTH;
   }
 
   // Both bounds defined
+  const range = max - min;
   if (value < min) {
-    return Math.max(0, ((value - (min - (max - min) * 0.3)) / ((max - min) * 0.3)) * 15);
+    return Math.max(
+      0,
+      ((value - (min - range * OVERFLOW_FACTOR)) / (range * OVERFLOW_FACTOR)) * LOW_ZONE_END
+    );
   }
   if (value > max) {
-    return Math.min(100, 85 + ((value - max) / ((max - min) * 0.3)) * 15);
+    return Math.min(
+      100,
+      NORMAL_ZONE_END + ((value - max) / (range * OVERFLOW_FACTOR)) * LOW_ZONE_END
+    );
   }
-  return 15 + ((value - min) / (max - min)) * 70;
+  return LOW_ZONE_END + ((value - min) / range) * NORMAL_ZONE_WIDTH;
+}
+
+/**
+ * Calculate optimal zone style for range bar visualization
+ * @param {number|null} optimalMin - Optimal minimum value
+ * @param {number|null} optimalMax - Optimal maximum value
+ * @param {number|null} min - Reference range minimum
+ * @param {number|null} max - Reference range maximum
+ * @returns {object|null} CSS style object with left and width, or null if no optimal range
+ */
+export function getOptimalZoneStyle(optimalMin, optimalMax, min, max) {
+  if (optimalMin === null || optimalMax === null) return null;
+
+  const { LOW_ZONE_END, NORMAL_ZONE_WIDTH } = RANGE_CONSTANTS;
+
+  if (min !== null && max !== null) {
+    const range = max - min;
+    return {
+      left: `${LOW_ZONE_END + ((optimalMin - min) / range) * NORMAL_ZONE_WIDTH}%`,
+      width: `${((optimalMax - optimalMin) / range) * NORMAL_ZONE_WIDTH}%`,
+    };
+  }
+
+  if (min === null && max !== null) {
+    return {
+      left: `${LOW_ZONE_END + (optimalMin / max) * NORMAL_ZONE_WIDTH}%`,
+      width: `${((optimalMax - optimalMin) / max) * NORMAL_ZONE_WIDTH}%`,
+    };
+  }
+
+  if (max === null && min !== null) {
+    const visualMax = getVisualMax(min);
+    const range = visualMax - min;
+    return {
+      left: `${LOW_ZONE_END + ((optimalMin - min) / range) * NORMAL_ZONE_WIDTH}%`,
+      width: `${((optimalMax - optimalMin) / range) * NORMAL_ZONE_WIDTH}%`,
+    };
+  }
+
+  return null;
 }
