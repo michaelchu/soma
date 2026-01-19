@@ -146,7 +146,7 @@ export function MetricChart({ metricKey, reports, collapsed = false }) {
                       y1={metric.optimalMin}
                       y2={metric.optimalMax}
                       fill="#22c55e"
-                      fillOpacity={0.1}
+                      fillOpacity={0.2}
                     />
                   )}
                   {/* High zone (above max) */}
@@ -205,7 +205,7 @@ export function MetricChart({ metricKey, reports, collapsed = false }) {
                   <Line
                     type="monotone"
                     dataKey="value"
-                    stroke="#3b82f6"
+                    stroke="hsl(var(--primary))"
                     strokeWidth={3}
                     dot={(props) => {
                       const { cx, cy, payload } = props;
@@ -240,7 +240,7 @@ export function MetricChart({ metricKey, reports, collapsed = false }) {
                         </g>
                       );
                     }}
-                    activeDot={{ r: 8, stroke: '#3b82f6', strokeWidth: 2, fill: '#fff' }}
+                    activeDot={{ r: 8, stroke: 'hsl(var(--primary))', strokeWidth: 2, fill: 'hsl(var(--background))' }}
                   />
                 </ComposedChart>
               </ResponsiveContainer>
