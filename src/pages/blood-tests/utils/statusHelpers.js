@@ -70,16 +70,10 @@ export function getPositionInRange(value, min, max) {
   // Both bounds defined
   const range = max - min;
   if (value < min) {
-    return Math.max(
-      0,
-      ((value - (min - range * OVERFLOW_FACTOR)) / (range * OVERFLOW_FACTOR)) * LOW_ZONE_END
-    );
+    return 0;
   }
   if (value > max) {
-    return Math.min(
-      100,
-      NORMAL_ZONE_END + ((value - max) / (range * OVERFLOW_FACTOR)) * LOW_ZONE_END
-    );
+    return 100;
   }
   return LOW_ZONE_END + ((value - min) / range) * NORMAL_ZONE_WIDTH;
 }

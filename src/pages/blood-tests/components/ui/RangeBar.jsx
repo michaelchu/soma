@@ -40,7 +40,7 @@ export function RangeBar({ value, min, max, optimalMin, optimalMax }) {
           className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-white dark:border-zinc-800 shadow-md ${
             status === 'normal' ? 'bg-green-500' : status === 'high' ? 'bg-red-500' : 'bg-amber-500'
           }`}
-          style={{ left: `calc(${position}% - 8px)` }}
+          style={{ left: `clamp(0px, calc(${position}% - 8px), calc(100% - 16px))` }}
         />
       </div>
       <div className="flex justify-between mt-1 text-xs text-muted-foreground">
