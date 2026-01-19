@@ -105,7 +105,6 @@ export function MetricChart({ metricKey, reports, collapsed = false }) {
         max={metric.max}
         optimalMin={metric.optimalMin}
         optimalMax={metric.optimalMax}
-        unit={metric.unit}
       />
 
       {!collapsed && (

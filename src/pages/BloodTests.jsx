@@ -29,7 +29,6 @@ import { getStatus } from './blood-tests/utils/statusHelpers';
 import { MetricChart } from './blood-tests/components/charts/MetricChart';
 import { ReportImporter } from './blood-tests/components/modals/ReportImporter';
 import { ExportModal } from './blood-tests/components/modals/ExportModal';
-// import { AISummary } from './blood-tests/components/analysis/AISummary';
 
 export default function BloodTests() {
   const navigate = useNavigate();
