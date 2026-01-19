@@ -25,7 +25,7 @@ import { MetricChart } from './blood-tests/components/charts/MetricChart';
 import { ReferenceRangePanel } from './blood-tests/components/modals/ReferenceRangePanel';
 import { ReportImporter } from './blood-tests/components/modals/ReportImporter';
 import { ExportModal } from './blood-tests/components/modals/ExportModal';
-import { AISummary } from './blood-tests/components/analysis/AISummary';
+// import { AISummary } from './blood-tests/components/analysis/AISummary';
 import { HistoricalAbnormalTable } from './blood-tests/components/analysis/HistoricalAbnormalTable';
 
 export default function BloodTests() {
@@ -269,14 +269,14 @@ export default function BloodTests() {
               </div>
             </div>
 
-            <AISummary reports={reports} />
+            {/* <AISummary reports={reports} /> */}
           </div>
 
           <div className="lg:col-span-3">
             {/* Mobile: AI Summary above charts */}
-            <div className="lg:hidden mb-4">
+            {/* <div className="lg:hidden mb-4">
               <AISummary reports={reports} />
-            </div>
+            </div> */}
 
             <div className="flex flex-wrap gap-2 sm:gap-3 mb-4">
               <div className="flex rounded-lg border bg-card overflow-hidden text-xs sm:text-sm">

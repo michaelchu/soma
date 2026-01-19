@@ -128,7 +128,7 @@ export function MetricChart({ metricKey, reports }) {
       {data.length > 1 ? (
         <div className="bg-muted rounded-lg p-2 -mx-2">
           <ResponsiveContainer width="100%" height={140}>
-            <ComposedChart data={data} margin={{ top: 10, right: 10, bottom: 5, left: 0 }}>
+            <ComposedChart data={data} margin={{ top: 10, right: 30, bottom: 5, left: -15 }}>
               {/* Low zone (below min) */}
               {metric.min !== null && (
                 <ReferenceArea
@@ -204,7 +204,7 @@ export function MetricChart({ metricKey, reports }) {
                   stroke="#f59e0b"
                   strokeWidth={2}
                   strokeDasharray="4 4"
-                  label={{ value: 'Min', fontSize: 9, fill: '#f59e0b', position: 'left' }}
+                  label={{ value: 'Min', fontSize: 9, fill: '#f59e0b', position: 'right' }}
                 />
               )}
               {metric.max !== null && (
@@ -213,7 +213,7 @@ export function MetricChart({ metricKey, reports }) {
                   stroke="#f59e0b"
                   strokeWidth={2}
                   strokeDasharray="4 4"
-                  label={{ value: 'Max', fontSize: 9, fill: '#f59e0b', position: 'left' }}
+                  label={{ value: 'Max', fontSize: 9, fill: '#f59e0b', position: 'right' }}
                 />
               )}
 
