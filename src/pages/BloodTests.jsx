@@ -37,11 +37,11 @@ export default function BloodTests({ onLogout }) {
   const [showImporter, setShowImporter] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [filter, setFilter] = useState('all');
-  // Initialize all categories collapsed except 'cbc' (Complete Blood Count)
+  // Initialize all categories collapsed
   const [collapsedCategories, setCollapsedCategories] = useState(() => {
     const initial = {};
     Object.keys(CATEGORY_INFO).forEach((key) => {
-      initial[key] = key !== 'cbc';
+      initial[key] = true;
     });
     return initial;
   });
@@ -146,94 +146,39 @@ export default function BloodTests({ onLogout }) {
   });
 
   const leftContent = (
-    <>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-8 w-8 flex-shrink-0"
-        onClick={() => navigate('/')}
-      >
-        <ArrowLeft className="h-4 w-4" />
-      </Button>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-1 sm:gap-2"
-            title="Select Reports"
-          >
-            <Calendar size={16} />
-            <span className="hidden sm:inline">Reports</span>
-            <span className="text-xs text-muted-foreground">
-              ({selectedCount}/{reports.length})
-            </span>
-            <ChevronDown size={14} />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-56">
-          <DropdownMenuLabel className="flex items-center justify-between">
-            <span>Select Reports</span>
-            <button onClick={selectAllReports} className="text-xs text-primary hover:underline">
-              Select All
-            </button>
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {sortedReports.map((report) => {
-            const abnormalCount = Object.entries(report.metrics).filter(([key, m]) => {
-              const ref = REFERENCE_RANGES[key];
-              return ref && getStatus(m.value, m.min, m.max) !== 'normal';
-            }).length;
-            return (
-              <DropdownMenuCheckboxItem
-                key={report.id}
-                checked={isReportSelected(report.id)}
-                onCheckedChange={() => toggleReportSelection(report.id)}
-              >
-                <div className="flex items-center justify-between w-full">
-                  <span>
-                    {new Date(report.date).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
-                  </span>
-                  {abnormalCount > 0 && (
-                    <span className="text-xs text-amber-500 ml-2">{abnormalCount} ⚠</span>
-                  )}
-                </div>
-              </DropdownMenuCheckboxItem>
-            );
-          })}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </>
+    <Button
+      variant="ghost"
+      size="icon"
+      className="h-8 w-8 flex-shrink-0"
+      onClick={() => navigate('/')}
+    >
+      <ArrowLeft className="h-4 w-4" />
+    </Button>
   );
 
   const rightContent = (
     <>
       <Button
-        size="sm"
+        variant="outline"
+        size="icon"
+        className="h-8 w-8 hidden sm:flex"
         onClick={() => setShowImporter(true)}
-        className="hidden sm:flex items-center gap-2"
         title="Add New Report"
       >
         <Plus size={16} />
-        Add Report
       </Button>
       <Button
-        variant="outline"
-        size="sm"
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 hidden sm:flex"
         onClick={() => setShowExportModal(true)}
-        className="hidden sm:flex items-center gap-2"
         title="Export Data"
       >
         <Download size={16} />
-        Export
       </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="icon" className="sm:hidden h-8 w-8">
+          <Button variant="ghost" size="icon" className="h-8 w-8 sm:hidden">
             <Menu size={16} />
           </Button>
         </DropdownMenuTrigger>
@@ -275,6 +220,61 @@ export default function BloodTests({ onLogout }) {
                 Abnormal
               </button>
             </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-1 sm:gap-2 h-8 flex-shrink-0"
+                  title="Select Reports"
+                >
+                  <Calendar size={16} />
+                  <span className="hidden sm:inline">Reports</span>
+                  <span className="text-xs text-muted-foreground">
+                    ({selectedCount}/{reports.length})
+                  </span>
+                  <ChevronDown size={14} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                <DropdownMenuLabel className="flex items-center justify-between">
+                  <span>Select Reports</span>
+                  <button
+                    onClick={selectAllReports}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Select All
+                  </button>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {sortedReports.map((report) => {
+                  const abnormalCount = Object.entries(report.metrics).filter(([key, m]) => {
+                    const ref = REFERENCE_RANGES[key];
+                    return ref && getStatus(m.value, m.min, m.max) !== 'normal';
+                  }).length;
+                  return (
+                    <DropdownMenuCheckboxItem
+                      key={report.id}
+                      checked={isReportSelected(report.id)}
+                      onCheckedChange={() => toggleReportSelection(report.id)}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <span>
+                          {new Date(report.date).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })}
+                        </span>
+                        {abnormalCount > 0 && (
+                          <span className="text-xs text-amber-500 ml-2">{abnormalCount} ⚠</span>
+                        )}
+                      </div>
+                    </DropdownMenuCheckboxItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <button
               onClick={() => {
                 // Check if all categories are currently expanded

@@ -3,6 +3,9 @@ export default {
   darkMode: ['class'],
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
+    fontFamily: {
+      sans: ['Rubik', 'system-ui', 'sans-serif'],
+    },
     container: {
       center: true,
       padding: '2rem',

@@ -20,8 +20,8 @@ export default function Navbar({ leftContent, rightContent, onLogout }) {
 
           {/* Center: Branding */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            <HeartPulse className="h-5 w-5 text-red-500" />
-            <span className="font-medium hidden sm:inline">Soma</span>
+            <HeartPulse className="h-7 w-7 text-red-500" strokeWidth={2.5} />
+            <span className="text-xl font-bold hidden sm:inline">Soma</span>
           </div>
 
           {/* Right: Page actions + theme + logout */}
