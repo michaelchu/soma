@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Activity,
-  BookOpen,
   AlertTriangle,
   Calendar,
   Plus,
@@ -28,7 +27,6 @@ import { REFERENCE_RANGES } from './blood-tests/constants/referenceRanges';
 import { CATEGORY_INFO } from './blood-tests/constants/categories';
 import { getStatus } from './blood-tests/utils/statusHelpers';
 import { MetricChart } from './blood-tests/components/charts/MetricChart';
-import { ReferenceRangePanel } from './blood-tests/components/modals/ReferenceRangePanel';
 import { ReportImporter } from './blood-tests/components/modals/ReportImporter';
 import { ExportModal } from './blood-tests/components/modals/ExportModal';
 // import { AISummary } from './blood-tests/components/analysis/AISummary';
@@ -36,7 +34,6 @@ import { ExportModal } from './blood-tests/components/modals/ExportModal';
 export default function BloodTests() {
   const navigate = useNavigate();
   const { reports, loading, error } = useReports();
-  const [showRefPanel, setShowRefPanel] = useState(false);
   const [showImporter, setShowImporter] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [filter, setFilter] = useState('all');
@@ -144,9 +141,9 @@ export default function BloodTests() {
   return (
     <div className="min-h-screen bg-background">
       <header className="bg-card border-b sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2">
           <div className="flex justify-between items-center gap-2">
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="flex items-center gap-1 sm:gap-2 min-w-0">
               <Button
                 variant="ghost"
                 size="icon"
@@ -154,43 +151,6 @@ export default function BloodTests() {
                 onClick={() => navigate('/')}
               >
                 <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center flex-shrink-0">
-                <Activity className="text-white" size={16} />
-              </div>
-              <h1 className="text-base sm:text-xl font-bold text-foreground truncate">
-                Blood Tests
-              </h1>
-            </div>
-            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-              {/* Desktop: Show all buttons */}
-              <Button
-                size="sm"
-                onClick={() => setShowImporter(true)}
-                className="hidden sm:flex items-center gap-2"
-                title="Add New Report"
-              >
-                <Plus size={16} />
-                Add Report
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => setShowExportModal(true)}
-                className="hidden sm:flex items-center gap-2"
-                title="Export Data"
-              >
-                <Download size={16} />
-                Export
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowRefPanel(true)}
-                className="hidden sm:flex items-center gap-2"
-                title="Reference Ranges"
-              >
-                <BookOpen size={16} />
-                Ranges
               </Button>
 
               {/* Reports dropdown - visible on all sizes */}
@@ -210,7 +170,7 @@ export default function BloodTests() {
                     <ChevronDown size={14} />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuContent align="start" className="w-56">
                   <DropdownMenuLabel className="flex items-center justify-between">
                     <span>Select Reports</span>
                     <button
@@ -249,6 +209,28 @@ export default function BloodTests() {
                   })}
                 </DropdownMenuContent>
               </DropdownMenu>
+            </div>
+            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+              {/* Desktop: Show all buttons */}
+              <Button
+                size="sm"
+                onClick={() => setShowImporter(true)}
+                className="hidden sm:flex items-center gap-2"
+                title="Add New Report"
+              >
+                <Plus size={16} />
+                Add Report
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowExportModal(true)}
+                className="hidden sm:flex items-center gap-2"
+                title="Export Data"
+              >
+                <Download size={16} />
+                Export
+              </Button>
 
               {/* Mobile: Hamburger menu */}
               <DropdownMenu>
@@ -265,10 +247,6 @@ export default function BloodTests() {
                   <DropdownMenuItem onClick={() => setShowExportModal(true)}>
                     <Download size={16} />
                     Export
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setShowRefPanel(true)}>
-                    <BookOpen size={16} />
-                    Reference Ranges
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -405,7 +383,6 @@ export default function BloodTests() {
         </div>
       </main>
 
-      {showRefPanel && <ReferenceRangePanel onClose={() => setShowRefPanel(false)} />}
       {showImporter && <ReportImporter onClose={() => setShowImporter(false)} />}
       {showExportModal && <ExportModal onClose={() => setShowExportModal(false)} />}
     </div>
