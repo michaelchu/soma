@@ -3,7 +3,7 @@ import AppIcon from '@/components/AppIcon';
 import Navbar from '@/components/Navbar';
 import apps from '@/config/apps.json';
 
-export default function Launcher({ onLogout }) {
+export default function Launcher() {
   const navigate = useNavigate();
 
   const handleAppClick = (app) => {
@@ -16,7 +16,7 @@ export default function Launcher({ onLogout }) {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <Navbar onLogout={onLogout} />
+      <Navbar />
 
       {/* Main Content */}
       <main className="flex-1 flex items-center justify-center p-8">

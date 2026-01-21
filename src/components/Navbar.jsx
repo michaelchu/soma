@@ -1,14 +1,14 @@
 import { LogOut, Sun, Moon, HeartPulse } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/lib/theme';
-import { clearSession } from '@/lib/auth';
+import { useAuth } from '@/lib/AuthContext';
 
-export default function Navbar({ leftContent, rightContent, onLogout }) {
+export default function Navbar({ leftContent, rightContent }) {
   const { theme, toggleTheme } = useTheme();
+  const { signOut } = useAuth();
 
-  const handleLogout = () => {
-    clearSession();
-    onLogout?.();
+  const handleLogout = async () => {
+    await signOut();
   };
 
   return (
@@ -36,17 +36,15 @@ export default function Navbar({ leftContent, rightContent, onLogout }) {
             >
               {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
-            {onLogout && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={handleLogout}
-                title="Sign out"
-              >
-                <LogOut className="h-4 w-4" />
-              </Button>
-            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={handleLogout}
+              title="Sign out"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </div>

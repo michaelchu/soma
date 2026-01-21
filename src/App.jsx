@@ -1,23 +1,13 @@
-import { useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from '@/lib/AuthContext';
 import Auth from '@/views/Auth';
 import Launcher from '@/views/Launcher';
 import BloodTests from '@/pages/BloodTests';
-import { isAuthenticated } from '@/lib/auth';
 
 export default function App() {
-  const [authenticated, setAuthenticated] = useState(() => isAuthenticated());
-  const [checking] = useState(false);
+  const { user, loading } = useAuth();
 
-  const handleAuthenticated = () => {
-    setAuthenticated(true);
-  };
-
-  const handleLogout = () => {
-    setAuthenticated(false);
-  };
-
-  if (checking) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center animate-pulse">
@@ -27,14 +17,14 @@ export default function App() {
     );
   }
 
-  if (!authenticated) {
-    return <Auth onAuthenticated={handleAuthenticated} />;
+  if (!user) {
+    return <Auth />;
   }
 
   return (
     <Routes>
-      <Route path="/" element={<Launcher onLogout={handleLogout} />} />
-      <Route path="/blood-tests" element={<BloodTests onLogout={handleLogout} />} />
+      <Route path="/" element={<Launcher />} />
+      <Route path="/blood-tests" element={<BloodTests />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

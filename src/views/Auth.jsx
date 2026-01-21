@@ -1,16 +1,14 @@
 import { useState } from 'react';
-import { isFirstTimeSetup, setupPasscode, verifyPasscode, createSession } from '@/lib/auth';
+import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-export default function Auth({ onAuthenticated }) {
-  const [isSetup] = useState(() => isFirstTimeSetup());
-  const [passcode, setPasscode] = useState('');
-  const [confirmPasscode, setConfirmPasscode] = useState('');
-  const [remember, setRemember] = useState(false);
+export default function Auth() {
+  const { signIn } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -20,31 +18,9 @@ export default function Auth({ onAuthenticated }) {
     setLoading(true);
 
     try {
-      if (isSetup) {
-        if (passcode.length < 4) {
-          setError('Passcode must be at least 4 characters');
-          setLoading(false);
-          return;
-        }
-        if (passcode !== confirmPasscode) {
-          setError('Passcodes do not match');
-          setLoading(false);
-          return;
-        }
-        await setupPasscode(passcode);
-        createSession(remember);
-        onAuthenticated();
-      } else {
-        const valid = await verifyPasscode(passcode);
-        if (valid) {
-          createSession(remember);
-          onAuthenticated();
-        } else {
-          setError('Incorrect passcode');
-        }
-      }
+      await signIn(email, password);
     } catch (err) {
-      setError(err.message || 'An error occurred');
+      setError(err.message || 'Invalid email or password');
     }
 
     setLoading(false);
@@ -53,61 +29,44 @@ export default function Auth({ onAuthenticated }) {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background">
       <div className="w-full max-w-sm animate-fade-in">
-        {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary text-primary-foreground mb-4">
             <span className="text-3xl font-semibold">S</span>
           </div>
           <h1 className="text-2xl font-semibold">Soma</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            {isSetup ? 'Create your passcode' : 'Welcome back'}
-          </p>
+          <p className="text-muted-foreground mt-1 text-sm">Welcome back</p>
         </div>
 
-        {/* Auth Card */}
         <Card>
           <CardHeader className="pb-4">
-            <CardTitle className="text-lg">{isSetup ? 'Set up passcode' : 'Sign in'}</CardTitle>
-            <CardDescription>
-              {isSetup
-                ? 'Choose a passcode to protect your portal'
-                : 'Enter your passcode to continue'}
-            </CardDescription>
+            <CardTitle className="text-lg">Sign in</CardTitle>
+            <CardDescription>Enter your credentials to continue</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="passcode">{isSetup ? 'New Passcode' : 'Passcode'}</Label>
+                <Label htmlFor="email">Email</Label>
                 <Input
-                  id="passcode"
-                  type="password"
-                  value={passcode}
-                  onChange={(e) => setPasscode(e.target.value)}
-                  placeholder="••••••"
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
                   autoFocus
-                  autoComplete={isSetup ? 'new-password' : 'current-password'}
+                  autoComplete="email"
                 />
               </div>
 
-              {isSetup && (
-                <div className="space-y-2">
-                  <Label htmlFor="confirm">Confirm Passcode</Label>
-                  <Input
-                    id="confirm"
-                    type="password"
-                    value={confirmPasscode}
-                    onChange={(e) => setConfirmPasscode(e.target.value)}
-                    placeholder="••••••"
-                    autoComplete="new-password"
-                  />
-                </div>
-              )}
-
-              <div className="flex items-center space-x-2">
-                <Checkbox id="remember" checked={remember} onCheckedChange={setRemember} />
-                <Label htmlFor="remember" className="text-sm font-normal cursor-pointer">
-                  Remember me
-                </Label>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                />
               </div>
 
               {error && (
@@ -117,7 +76,7 @@ export default function Auth({ onAuthenticated }) {
               )}
 
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Please wait...' : isSetup ? 'Create Passcode' : 'Sign In'}
+                {loading ? 'Signing in...' : 'Sign In'}
               </Button>
             </form>
           </CardContent>

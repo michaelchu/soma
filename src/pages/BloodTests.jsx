@@ -31,7 +31,7 @@ import { MetricChart } from './blood-tests/components/charts/MetricChart';
 import { ReportImporter } from './blood-tests/components/modals/ReportImporter';
 import { ExportModal } from './blood-tests/components/modals/ExportModal';
 
-export default function BloodTests({ onLogout }) {
+export default function BloodTests() {
   const navigate = useNavigate();
   const { reports, loading, error } = useReports();
   const [showImporter, setShowImporter] = useState(false);
@@ -192,7 +192,7 @@ export default function BloodTests({ onLogout }) {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar leftContent={leftContent} rightContent={rightContent} onLogout={onLogout} />
+      <Navbar leftContent={leftContent} rightContent={rightContent} />
 
       <main className="max-w-7xl mx-auto px-3 sm:px-4 pb-3 sm:pb-4">
         <div>
