@@ -3,15 +3,39 @@ import {
   Line,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip as RechartsTooltip,
   ResponsiveContainer,
-  ReferenceLine,
-  ReferenceArea,
   Legend,
+  CartesianGrid,
 } from 'recharts';
 import { getBPCategory, getCategoryInfo, formatDateTime } from '../../utils/bpHelpers';
-import { BP_CATEGORIES } from '../../constants/bpCategories';
+
+// Calculate linear regression for a series of values
+function linearRegression(values) {
+  const n = values.length;
+  if (n < 2) return null;
+
+  let sumX = 0;
+  let sumY = 0;
+  let sumXY = 0;
+  let sumX2 = 0;
+
+  for (let i = 0; i < n; i++) {
+    sumX += i;
+    sumY += values[i];
+    sumXY += i * values[i];
+    sumX2 += i * i;
+  }
+
+  const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+  const intercept = (sumY - slope * sumX) / n;
+
+  return {
+    slope,
+    intercept,
+    getY: (x) => slope * x + intercept,
+  };
+}
 
 // Custom tooltip component - defined outside to avoid recreation during render
 function CustomTooltip({ active, payload, label }) {
@@ -62,7 +86,7 @@ function DotRenderer(props) {
   );
 }
 
-export function BPTimeChart({ readings, height = 280 }) {
+export function BPTimeChart({ readings, height = 280, showTrendline = true, showMarkers = true }) {
   if (!readings || readings.length === 0) {
     return (
       <div className="h-40 flex items-center justify-center text-sm text-muted-foreground bg-muted rounded-lg">
@@ -89,13 +113,24 @@ export function BPTimeChart({ readings, height = 280 }) {
     };
   });
 
-  // Calculate Y-axis domain with padding
+  // Calculate Y-axis domain rounded to increments of 20
   const allSystolic = chartData.map((d) => d.systolic);
   const allDiastolic = chartData.map((d) => d.diastolic);
-  const minValue = Math.min(...allDiastolic) - 10;
-  const maxValue = Math.max(...allSystolic) + 15;
-  const yMin = Math.max(40, minValue);
-  const yMax = Math.min(200, maxValue);
+  const minValue = Math.min(...allDiastolic);
+  const maxValue = Math.max(...allSystolic);
+  const yMin = Math.floor(minValue / 20) * 20;
+  const yMax = Math.ceil(maxValue / 20) * 20;
+
+  // Calculate linear regression trendlines
+  const sysRegression = linearRegression(allSystolic);
+  const diaRegression = linearRegression(allDiastolic);
+
+  // Add trendline values to chart data
+  const chartDataWithTrend = chartData.map((d, i) => ({
+    ...d,
+    sysTrend: sysRegression ? sysRegression.getY(i) : null,
+    diaTrend: diaRegression ? diaRegression.getY(i) : null,
+  }));
 
   if (chartData.length === 1) {
     return (
@@ -108,47 +143,11 @@ export function BPTimeChart({ readings, height = 280 }) {
   return (
     <div className="w-full">
       <ResponsiveContainer width="100%" height={height}>
-        <ComposedChart data={chartData} margin={{ top: 10, right: 30, bottom: 5, left: -10 }}>
-          {/* Background zones */}
-          <ReferenceArea
-            y1={yMin}
-            y2={80}
-            fill={BP_CATEGORIES.normal.chartColor}
-            fillOpacity={0.08}
-          />
-          <ReferenceArea
-            y1={80}
-            y2={90}
-            fill={BP_CATEGORIES.hypertension1.chartColor}
-            fillOpacity={0.08}
-          />
-          <ReferenceArea
-            y1={90}
-            y2={120}
-            fill={BP_CATEGORIES.hypertension2.chartColor}
-            fillOpacity={0.08}
-          />
-          <ReferenceArea
-            y1={120}
-            y2={130}
-            fill={BP_CATEGORIES.elevated.chartColor}
-            fillOpacity={0.08}
-          />
-          <ReferenceArea
-            y1={130}
-            y2={140}
-            fill={BP_CATEGORIES.hypertension1.chartColor}
-            fillOpacity={0.08}
-          />
-          <ReferenceArea
-            y1={140}
-            y2={yMax}
-            fill={BP_CATEGORIES.hypertension2.chartColor}
-            fillOpacity={0.08}
-          />
-
-          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-
+        <ComposedChart
+          data={chartDataWithTrend}
+          margin={{ top: 10, right: 30, bottom: 5, left: 10 }}
+        >
+          <CartesianGrid horizontal={true} vertical={false} stroke="hsl(var(--border))" />
           <XAxis
             dataKey="date"
             tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
@@ -158,11 +157,18 @@ export function BPTimeChart({ readings, height = 280 }) {
 
           <YAxis
             domain={[yMin, yMax]}
+            ticks={Array.from({ length: (yMax - yMin) / 20 + 1 }, (_, i) => yMin + i * 20)}
             tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
             stroke="hsl(var(--muted-foreground))"
-            width={40}
+            width={55}
             axisLine={false}
-            tickFormatter={(v) => v}
+            label={{
+              value: 'Sys/Dia (mmHg)',
+              angle: -90,
+              position: 'insideLeft',
+              fontSize: 12,
+              fill: 'hsl(var(--muted-foreground))',
+            }}
           />
 
           <RechartsTooltip content={<CustomTooltip />} />
@@ -173,36 +179,6 @@ export function BPTimeChart({ readings, height = 280 }) {
             formatter={(value) => <span className="text-sm text-foreground">{value}</span>}
           />
 
-          {/* Reference lines for thresholds */}
-          <ReferenceLine
-            y={120}
-            stroke="#f59e0b"
-            strokeWidth={1}
-            strokeDasharray="4 4"
-            label={{ value: '120', fontSize: 9, fill: '#f59e0b', position: 'right' }}
-          />
-          <ReferenceLine
-            y={80}
-            stroke="#f59e0b"
-            strokeWidth={1}
-            strokeDasharray="4 4"
-            label={{ value: '80', fontSize: 9, fill: '#f59e0b', position: 'right' }}
-          />
-          <ReferenceLine
-            y={140}
-            stroke="#ef4444"
-            strokeWidth={1}
-            strokeDasharray="4 4"
-            label={{ value: '140', fontSize: 9, fill: '#ef4444', position: 'right' }}
-          />
-          <ReferenceLine
-            y={90}
-            stroke="#ef4444"
-            strokeWidth={1}
-            strokeDasharray="4 4"
-            label={{ value: '90', fontSize: 9, fill: '#ef4444', position: 'right' }}
-          />
-
           {/* Systolic line */}
           <Line
             type="monotone"
@@ -210,8 +186,10 @@ export function BPTimeChart({ readings, height = 280 }) {
             name="Systolic"
             stroke="#f43f5e"
             strokeWidth={2}
-            dot={DotRenderer}
-            activeDot={{ r: 7, stroke: '#f43f5e', strokeWidth: 2, fill: '#fff' }}
+            dot={showMarkers ? DotRenderer : false}
+            activeDot={
+              showMarkers ? { r: 7, stroke: '#f43f5e', strokeWidth: 2, fill: '#fff' } : false
+            }
           />
 
           {/* Diastolic line */}
@@ -221,9 +199,41 @@ export function BPTimeChart({ readings, height = 280 }) {
             name="Diastolic"
             stroke="#3b82f6"
             strokeWidth={2}
-            dot={DotRenderer}
-            activeDot={{ r: 7, stroke: '#3b82f6', strokeWidth: 2, fill: '#fff' }}
+            dot={showMarkers ? DotRenderer : false}
+            activeDot={
+              showMarkers ? { r: 7, stroke: '#3b82f6', strokeWidth: 2, fill: '#fff' } : false
+            }
           />
+
+          {/* Systolic trendline (linear regression) */}
+          {showTrendline && sysRegression && (
+            <Line
+              type="linear"
+              dataKey="sysTrend"
+              name="Sys Trend"
+              stroke="#f43f5e"
+              strokeWidth={2}
+              strokeDasharray="5 5"
+              dot={false}
+              activeDot={false}
+              legendType="none"
+            />
+          )}
+
+          {/* Diastolic trendline (linear regression) */}
+          {showTrendline && diaRegression && (
+            <Line
+              type="linear"
+              dataKey="diaTrend"
+              name="Dia Trend"
+              stroke="#3b82f6"
+              strokeWidth={2}
+              strokeDasharray="5 5"
+              dot={false}
+              activeDot={false}
+              legendType="none"
+            />
+          )}
         </ComposedChart>
       </ResponsiveContainer>
 
