@@ -8,7 +8,6 @@ import {
   ChevronDown,
   ChevronsDownUp,
   ChevronsUpDown,
-  Menu,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,7 +17,6 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuSeparator,
   DropdownMenuLabel,
-  DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
 import Navbar from '@/components/Navbar';
 import { useReports } from './blood-tests/hooks/useReports';
@@ -150,29 +148,12 @@ export default function BloodTests() {
       <Button
         variant="ghost"
         size="icon"
-        className="h-8 w-8 hidden sm:flex"
+        className="h-8 w-8"
         onClick={() => setShowExportModal(true)}
         title="Export Data"
       >
         <Download size={16} />
       </Button>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8 sm:hidden">
-            <Menu size={16} />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => setShowImporter(true)}>
-            <Plus size={16} />
-            Add Report
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setShowExportModal(true)}>
-            <Download size={16} />
-            Export
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
     </>
   );
 
@@ -361,6 +342,14 @@ export default function BloodTests() {
           )}
         </div>
       </main>
+
+      {/* FAB Button - mobile only */}
+      <button
+        onClick={() => setShowImporter(true)}
+        className="sm:hidden fixed bottom-4 right-4 z-50 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors"
+      >
+        <Plus className="h-6 w-6" />
+      </button>
 
       {showImporter && <ReportImporter onClose={() => setShowImporter(false)} />}
       {showExportModal && <ExportModal onClose={() => setShowExportModal(false)} />}

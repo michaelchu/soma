@@ -118,7 +118,7 @@ export function ExportModal({ onClose }) {
 
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-3xl h-[70vh] flex flex-col p-0 gap-0 overflow-hidden">
+      <DialogContent className="w-full h-full max-w-none sm:max-w-3xl sm:h-[85vh] flex flex-col p-0 gap-0 overflow-hidden rounded-none sm:rounded-lg">
         <DialogHeader className="p-4 border-b">
           <DialogTitle className="flex items-center gap-2">
             <FileText size={18} className="text-muted-foreground" />

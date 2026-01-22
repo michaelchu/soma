@@ -262,7 +262,7 @@ function ReadingFormContent({ reading, onOpenChange }) {
 export function ReadingForm({ open, onOpenChange, reading = null }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-full h-full max-w-none sm:max-w-md sm:h-auto flex flex-col rounded-none sm:rounded-lg">
         <ReadingFormContent
           key={reading?.id || 'new'}
           reading={reading}
