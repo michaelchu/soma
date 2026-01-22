@@ -135,7 +135,7 @@ function StatsTable({ currentStats, previousStats, dateRange, normalThresholds }
   ];
 
   return (
-    <div className="overflow-x-auto -mx-4 px-4">
+    <div className="overflow-x-hidden">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b">
@@ -294,7 +294,7 @@ export function StatisticsTab({ readings, allReadings, dateRange, timeOfDay }) {
       {/* Reference Ranges */}
       <div>
         <h3 className="text-base font-semibold mb-3">Reference Ranges</h3>
-        <div className="overflow-x-auto -mx-4 px-4">
+        <div className="overflow-x-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b">

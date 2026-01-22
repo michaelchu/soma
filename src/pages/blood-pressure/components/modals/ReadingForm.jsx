@@ -147,7 +147,7 @@ function ReadingFormContent({ reading, onOpenChange }) {
         {/* Blood Pressure */}
         <div className="space-y-2">
           <Label>Blood Pressure (mmHg)</Label>
-          <div className="space-y-2">
+          <div className="max-h-40 overflow-y-auto space-y-2 pr-1">
             {bpRows.map((row, index) => (
               <div key={index} className="flex items-center gap-2">
                 <Input

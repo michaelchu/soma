@@ -143,7 +143,7 @@ export default function BloodPressure({ onLogout }) {
               />
             </div>
 
-            {/* Mobile: Tab-based view */}
+            {/* Mobile: Tab-based view with scrollable content */}
             <div className="md:hidden">{renderMobileTabContent()}</div>
 
             {/* Desktop: Full card layout */}
