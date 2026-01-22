@@ -30,7 +30,7 @@ export default function Navbar({ leftContent, rightContent }) {
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 flex-1 justify-end">
             {rightContent}
             <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Settings">
-              <Link to="/settings" state={{ from: location.pathname }}>
+              <Link to="/settings" state={{ from: location.pathname + location.search }}>
                 <Settings className="h-4 w-4" />
               </Link>
             </Button>

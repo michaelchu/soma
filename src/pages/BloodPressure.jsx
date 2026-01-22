@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Activity, AlertTriangle, Plus, ArrowLeft, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -15,14 +15,30 @@ import { ExportModal } from './blood-pressure/components/modals/ExportModal';
 import { LatestReading } from './blood-pressure/components/ui/LatestReading';
 import { calculateStats } from './blood-pressure/utils/bpHelpers';
 
+const VALID_TABS = ['readings', 'statistics', 'charts'];
+
 export default function BloodPressure({ onLogout }) {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { readings, loading, error } = useReadings();
   const [showForm, setShowForm] = useState(false);
   const [showExport, setShowExport] = useState(false);
-  const [activeTab, setActiveTab] = useState('readings');
   const [dateRange, setDateRange] = useState('all');
   const [timeOfDay, setTimeOfDay] = useState('all');
+
+  // Get active tab from URL, default to 'readings'
+  const tabParam = searchParams.get('tab');
+  const activeTab = VALID_TABS.includes(tabParam) ? tabParam : 'readings';
+
+  const setActiveTab = (tab) => {
+    if (tab === 'readings') {
+      // Remove tab param for default tab to keep URL clean
+      searchParams.delete('tab');
+    } else {
+      searchParams.set('tab', tab);
+    }
+    setSearchParams(searchParams, { replace: true });
+  };
 
   const filteredReadings = useMemo(
     () => filterReadings(readings, dateRange, timeOfDay),
