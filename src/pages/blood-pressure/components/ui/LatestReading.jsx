@@ -1,17 +1,10 @@
-import { Card, CardContent } from '@/components/ui/card';
 import { Activity, Clock } from 'lucide-react';
 import { BPStatusBadge } from './BPStatusBadge';
 import { getBPCategory, formatDateTime, getTrend } from '../../utils/bpHelpers';
 
 export function LatestReading({ readings }) {
   if (!readings || readings.length === 0) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <p className="text-muted-foreground text-center">No readings yet</p>
-        </CardContent>
-      </Card>
-    );
+    return <p className="text-muted-foreground text-center">No readings yet</p>;
   }
 
   const latest = readings[0]; // readings are sorted descending
@@ -20,54 +13,53 @@ export function LatestReading({ readings }) {
   const trend = getTrend(readings);
 
   return (
-    <Card>
-      <CardContent className="p-4 sm:p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
-              <Clock className="h-4 w-4" />
-              <span>{date}</span>
-              <span className="text-muted-foreground/60">at</span>
-              <span>{time}</span>
-            </div>
+    <div>
+      <h3 className="text-base font-semibold mb-4">Latest Reading</h3>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
+            <Clock className="h-4 w-4" />
+            <span>{date}</span>
+            <span className="text-muted-foreground/60">at</span>
+            <span>{time}</span>
+          </div>
 
-            <div className="flex items-baseline gap-2 mb-3">
-              <span className="text-4xl sm:text-5xl font-bold text-foreground">
-                {latest.systolic}
-              </span>
-              <span className="text-2xl sm:text-3xl text-muted-foreground">/</span>
-              <span className="text-4xl sm:text-5xl font-bold text-foreground">
-                {latest.diastolic}
-              </span>
-              <span className="text-sm text-muted-foreground ml-1">mmHg</span>
-            </div>
+          <div className="flex items-baseline gap-2 mb-3">
+            <span className="text-4xl sm:text-5xl font-bold text-foreground">
+              {latest.systolic}
+            </span>
+            <span className="text-2xl sm:text-3xl text-muted-foreground">/</span>
+            <span className="text-4xl sm:text-5xl font-bold text-foreground">
+              {latest.diastolic}
+            </span>
+            <span className="text-sm text-muted-foreground ml-1">mmHg</span>
+          </div>
 
-            <div className="flex items-center gap-3">
-              <BPStatusBadge category={category} />
-              {latest.pulse && (
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <Activity className="h-4 w-4" />
-                  <span>{latest.pulse} bpm</span>
-                </div>
-              )}
-            </div>
-
-            {trend && (
-              <div className="mt-3 flex gap-4 text-sm">
-                <TrendDisplay label="Systolic" trend={trend.systolic} />
-                <TrendDisplay label="Diastolic" trend={trend.diastolic} />
+          <div className="flex items-center gap-3">
+            <BPStatusBadge category={category} />
+            {latest.pulse && (
+              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                <Activity className="h-4 w-4" />
+                <span>{latest.pulse} bpm</span>
               </div>
             )}
-
-            {latest.notes && (
-              <p className="mt-3 text-sm text-muted-foreground italic">
-                &ldquo;{latest.notes}&rdquo;
-              </p>
-            )}
           </div>
+
+          {trend && (
+            <div className="mt-3 flex gap-4 text-sm">
+              <TrendDisplay label="Systolic" trend={trend.systolic} />
+              <TrendDisplay label="Diastolic" trend={trend.diastolic} />
+            </div>
+          )}
+
+          {latest.notes && (
+            <p className="mt-3 text-sm text-muted-foreground italic">
+              &ldquo;{latest.notes}&rdquo;
+            </p>
+          )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 

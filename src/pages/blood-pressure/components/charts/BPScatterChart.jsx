@@ -3,11 +3,9 @@ import {
   Scatter,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip as RechartsTooltip,
   ResponsiveContainer,
   ReferenceArea,
-  ReferenceLine,
   Cell,
 } from 'recharts';
 import { getBPCategory, getCategoryInfo, formatDateTime } from '../../utils/bpHelpers';
@@ -74,7 +72,7 @@ export function BPScatterChart({ readings, height = 280 }) {
   return (
     <div className="w-full">
       <ResponsiveContainer width="100%" height={height}>
-        <ScatterChart margin={{ top: 10, right: 30, bottom: 20, left: -10 }}>
+        <ScatterChart margin={{ top: 10, right: 30, bottom: 20, left: 10 }}>
           {/* Background zones - colored regions for each BP category */}
           {/* Normal zone: systolic < 120 AND diastolic < 80 */}
           <ReferenceArea
@@ -136,8 +134,6 @@ export function BPScatterChart({ readings, height = 280 }) {
             fillOpacity={0.15}
           />
 
-          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-
           <XAxis
             type="number"
             dataKey="x"
@@ -160,24 +156,18 @@ export function BPScatterChart({ readings, height = 280 }) {
             domain={[yMin, yMax]}
             tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
             stroke="hsl(var(--muted-foreground))"
-            width={40}
+            width={55}
             axisLine={false}
             label={{
               value: 'Systolic (mmHg)',
               angle: -90,
               position: 'insideLeft',
-              offset: 15,
+              offset: 10,
               fontSize: 12,
               fill: 'hsl(var(--muted-foreground))',
+              dx: -5,
             }}
           />
-
-          {/* Reference lines for thresholds */}
-          <ReferenceLine x={80} stroke="#f59e0b" strokeWidth={1} strokeDasharray="4 4" />
-          <ReferenceLine x={90} stroke="#ef4444" strokeWidth={1} strokeDasharray="4 4" />
-          <ReferenceLine y={120} stroke="#f59e0b" strokeWidth={1} strokeDasharray="4 4" />
-          <ReferenceLine y={130} stroke="#f97316" strokeWidth={1} strokeDasharray="4 4" />
-          <ReferenceLine y={140} stroke="#ef4444" strokeWidth={1} strokeDasharray="4 4" />
 
           <RechartsTooltip content={<CustomTooltip />} />
 

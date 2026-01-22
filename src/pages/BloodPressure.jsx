@@ -1,37 +1,33 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Activity, AlertTriangle, Plus, ArrowLeft, LineChart, ScatterChart } from 'lucide-react';
+import { Activity, AlertTriangle, Plus, ArrowLeft, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Card, CardContent } from '@/components/ui/card';
 import Navbar from '@/components/Navbar';
 import { useReadings } from './blood-pressure/hooks/useReadings';
-import { BPTimeChart } from './blood-pressure/components/charts/BPTimeChart';
-import { BPScatterChart } from './blood-pressure/components/charts/BPScatterChart';
-import { LatestReading } from './blood-pressure/components/ui/LatestReading';
-import { BPStatusBadge } from './blood-pressure/components/ui/BPStatusBadge';
+import { BottomNav } from './blood-pressure/components/ui/BottomNav';
+import { FilterBar, filterReadings } from './blood-pressure/components/ui/FilterBar';
+import { ReadingsTab } from './blood-pressure/components/tabs/ReadingsTab';
+import { StatisticsTab } from './blood-pressure/components/tabs/StatisticsTab';
+import { ChartsTab } from './blood-pressure/components/tabs/ChartsTab';
 import { ReadingForm } from './blood-pressure/components/modals/ReadingForm';
-import { getBPCategory, calculateStats, formatDateTime } from './blood-pressure/utils/bpHelpers';
+import { ExportModal } from './blood-pressure/components/modals/ExportModal';
+import { LatestReading } from './blood-pressure/components/ui/LatestReading';
+import { calculateStats } from './blood-pressure/utils/bpHelpers';
 
 export default function BloodPressure({ onLogout }) {
   const navigate = useNavigate();
   const { readings, loading, error } = useReadings();
   const [showForm, setShowForm] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
+  const [showExport, setShowExport] = useState(false);
+  const [activeTab, setActiveTab] = useState('readings');
+  const [dateRange, setDateRange] = useState('all');
+  const [timeOfDay, setTimeOfDay] = useState('all');
 
-  useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 8);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  const filteredReadings = useMemo(
+    () => filterReadings(readings, dateRange, timeOfDay),
+    [readings, dateRange, timeOfDay]
+  );
 
   if (loading) {
     return (
@@ -58,10 +54,21 @@ export default function BloodPressure({ onLogout }) {
     );
   }
 
-  const stats = calculateStats(readings);
+  const renderMobileTabContent = () => {
+    switch (activeTab) {
+      case 'readings':
+        return <ReadingsTab readings={filteredReadings} />;
+      case 'statistics':
+        return <StatisticsTab readings={filteredReadings} />;
+      case 'charts':
+        return <ChartsTab readings={filteredReadings} />;
+      default:
+        return <ReadingsTab readings={filteredReadings} />;
+    }
+  };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-background pb-14 md:pb-0">
       <Navbar
         onLogout={onLogout}
         leftContent={
@@ -75,32 +82,32 @@ export default function BloodPressure({ onLogout }) {
             <span className="hidden sm:inline">Back</span>
           </Button>
         }
+        rightContent={
+          <>
+            <Button
+              onClick={() => setShowForm(true)}
+              size="icon"
+              variant="ghost"
+              className="hidden md:flex h-8 w-8"
+              title="Add Reading"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+            <Button
+              onClick={() => setShowExport(true)}
+              size="icon"
+              variant="ghost"
+              className="hidden md:flex h-8 w-8"
+              title="Export Data"
+            >
+              <Download className="h-4 w-4" />
+            </Button>
+          </>
+        }
       />
 
-      {/* Sticky Toolbar */}
-      <div
-        className={`sticky top-[57px] z-10 bg-background/95 backdrop-blur-sm transition-all ${
-          isScrolled ? 'border-b shadow-sm' : ''
-        }`}
-      >
-        <div className="max-w-5xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground">Blood Pressure</h1>
-              <p className="text-sm text-muted-foreground">
-                {readings.length} reading{readings.length !== 1 ? 's' : ''} recorded
-              </p>
-            </div>
-            <Button onClick={() => setShowForm(true)} size="sm" className="gap-1.5">
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Add Reading</span>
-            </Button>
-          </div>
-        </div>
-      </div>
-
       {/* Main Content */}
-      <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-6">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-3 sm:px-4 pt-4 pb-0 md:pb-4">
         {readings.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
@@ -112,128 +119,105 @@ export default function BloodPressure({ onLogout }) {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-6">
-            {/* Latest Reading & Stats */}
-            <div className="grid gap-4 md:grid-cols-2">
-              <LatestReading readings={readings} />
-
-              {stats && (
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Statistics</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <p className="text-muted-foreground">Average</p>
-                        <p className="text-lg font-semibold">
-                          {stats.avgSystolic}/{stats.avgDiastolic}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Readings</p>
-                        <p className="text-lg font-semibold">{stats.count}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Systolic Range</p>
-                        <p className="font-medium">
-                          {stats.minSystolic} - {stats.maxSystolic}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Diastolic Range</p>
-                        <p className="font-medium">
-                          {stats.minDiastolic} - {stats.maxDiastolic}
-                        </p>
-                      </div>
-                      {stats.avgPulse && (
-                        <div className="col-span-2">
-                          <p className="text-muted-foreground">Average Pulse</p>
-                          <p className="font-medium">{stats.avgPulse} bpm</p>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+          <>
+            {/* Filter Bar */}
+            <div className="sticky top-[49px] z-10 bg-background pb-4 mb-0 md:mb-4 -mx-3 sm:-mx-4 md:mx-0 px-3 sm:px-4 md:px-0 border-b -mt-4 pt-4">
+              <FilterBar
+                dateRange={dateRange}
+                timeOfDay={timeOfDay}
+                onDateRangeChange={setDateRange}
+                onTimeOfDayChange={setTimeOfDay}
+              />
+              {filteredReadings.length !== readings.length && (
+                <p className="text-xs text-muted-foreground mt-2 -mb-1 text-center md:text-left">
+                  Showing {filteredReadings.length} of {readings.length} readings
+                </p>
               )}
             </div>
 
-            {/* Charts */}
-            <Card>
-              <CardContent className="pt-6">
-                <Tabs defaultValue="timeline">
-                  <TabsList className="mb-4">
-                    <TabsTrigger value="timeline" className="gap-1.5">
-                      <LineChart className="h-4 w-4" />
-                      Timeline
-                    </TabsTrigger>
-                    <TabsTrigger value="scatter" className="gap-1.5">
-                      <ScatterChart className="h-4 w-4" />
-                      Distribution
-                    </TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="timeline">
-                    <BPTimeChart readings={readings} />
-                  </TabsContent>
-                  <TabsContent value="scatter">
-                    <BPScatterChart readings={readings} />
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
+            {/* Mobile: Tab-based view */}
+            <div className="md:hidden">{renderMobileTabContent()}</div>
 
-            {/* Readings Table */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">All Readings</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-lg border overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Time</TableHead>
-                        <TableHead className="text-right">BP</TableHead>
-                        <TableHead className="text-right">Pulse</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="hidden sm:table-cell">Notes</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {readings.map((reading) => {
-                        const { date, time } = formatDateTime(reading.datetime);
-                        const category = getBPCategory(reading.systolic, reading.diastolic);
-                        return (
-                          <TableRow key={reading.id}>
-                            <TableCell className="font-medium">{date}</TableCell>
-                            <TableCell className="text-muted-foreground">{time}</TableCell>
-                            <TableCell className="text-right font-mono">
-                              {reading.systolic}/{reading.diastolic}
-                            </TableCell>
-                            <TableCell className="text-right text-muted-foreground">
-                              {reading.pulse || '—'}
-                            </TableCell>
-                            <TableCell>
-                              <BPStatusBadge category={category} size="sm" />
-                            </TableCell>
-                            <TableCell className="hidden sm:table-cell text-muted-foreground text-sm truncate max-w-[200px]">
-                              {reading.notes || '—'}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+            {/* Desktop: Full card layout */}
+            <div className="hidden md:block space-y-6">
+              {/* Latest Reading & Stats - side by side */}
+              <div className="grid grid-cols-2 gap-6">
+                <div className="rounded-lg border bg-card shadow-sm p-6">
+                  <LatestReading readings={filteredReadings} />
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+                <div className="rounded-lg border bg-card shadow-sm p-6">
+                  <h3 className="text-base font-semibold mb-4">Statistics</h3>
+                  {(() => {
+                    const stats = calculateStats(filteredReadings);
+                    if (!stats) return <p className="text-muted-foreground">No data</p>;
+                    return (
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p className="text-muted-foreground">Average</p>
+                          <p className="text-lg font-semibold">
+                            {stats.avgSystolic}/{stats.avgDiastolic}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Readings</p>
+                          <p className="text-lg font-semibold">{stats.count}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Systolic Range</p>
+                          <p className="font-medium">
+                            {stats.minSystolic} - {stats.maxSystolic}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Diastolic Range</p>
+                          <p className="font-medium">
+                            {stats.minDiastolic} - {stats.maxDiastolic}
+                          </p>
+                        </div>
+                        {stats.avgPulse && (
+                          <div className="col-span-2">
+                            <p className="text-muted-foreground">Average Pulse</p>
+                            <p className="font-medium">{stats.avgPulse} bpm</p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* Charts Section */}
+              <div className="rounded-lg border bg-card shadow-sm p-6">
+                <ChartsTab readings={filteredReadings} />
+              </div>
+
+              {/* Readings Table */}
+              <ReadingsTab readings={filteredReadings} />
+            </div>
+          </>
         )}
       </main>
 
+      {/* FAB Button - mobile only */}
+      <button
+        onClick={() => setShowForm(true)}
+        className="md:hidden fixed bottom-20 right-4 z-50 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors"
+      >
+        <Plus className="h-6 w-6" />
+      </button>
+
+      {/* Bottom Navigation - mobile only */}
+      <div className="md:hidden">
+        <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+      </div>
+
       {/* Add Reading Modal */}
       <ReadingForm open={showForm} onOpenChange={setShowForm} />
+
+      {/* Export Modal */}
+      {showExport && (
+        <ExportModal readings={filteredReadings} onClose={() => setShowExport(false)} />
+      )}
     </div>
   );
 }
