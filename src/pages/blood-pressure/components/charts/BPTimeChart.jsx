@@ -44,27 +44,23 @@ function CustomTooltip({ active, payload, label }) {
   );
 }
 
-// Custom dot renderer
-function createDotRenderer() {
-  return (props) => {
-    const { cx, cy, payload } = props;
-    if (!cx || !cy) return null;
+// Custom dot renderer component
+function DotRenderer(props) {
+  const { cx, cy, payload } = props;
+  if (!cx || !cy) return null;
 
-    const info = getCategoryInfo(payload.category);
-    const color = info.chartColor;
+  const info = getCategoryInfo(payload.category);
+  const color = info.chartColor;
 
-    return (
-      <g>
-        <circle cx={cx} cy={cy} r={5} fill={color} stroke="#fff" strokeWidth={2} />
-        {payload.category !== 'normal' && (
-          <circle cx={cx} cy={cy} r={9} fill="none" stroke={color} strokeWidth={2} opacity={0.3} />
-        )}
-      </g>
-    );
-  };
+  return (
+    <g>
+      <circle cx={cx} cy={cy} r={5} fill={color} stroke="#fff" strokeWidth={2} />
+      {payload.category !== 'normal' && (
+        <circle cx={cx} cy={cy} r={9} fill="none" stroke={color} strokeWidth={2} opacity={0.3} />
+      )}
+    </g>
+  );
 }
-
-const renderDot = createDotRenderer();
 
 export function BPTimeChart({ readings, height = 280 }) {
   if (!readings || readings.length === 0) {
@@ -214,7 +210,7 @@ export function BPTimeChart({ readings, height = 280 }) {
             name="Systolic"
             stroke="#f43f5e"
             strokeWidth={2}
-            dot={renderDot}
+            dot={DotRenderer}
             activeDot={{ r: 7, stroke: '#f43f5e', strokeWidth: 2, fill: '#fff' }}
           />
 
@@ -225,7 +221,7 @@ export function BPTimeChart({ readings, height = 280 }) {
             name="Diastolic"
             stroke="#3b82f6"
             strokeWidth={2}
-            dot={renderDot}
+            dot={DotRenderer}
             activeDot={{ r: 7, stroke: '#3b82f6', strokeWidth: 2, fill: '#fff' }}
           />
         </ComposedChart>

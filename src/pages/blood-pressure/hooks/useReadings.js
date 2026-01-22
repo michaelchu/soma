@@ -29,8 +29,21 @@ export function useReadings() {
   }, []);
 
   useEffect(() => {
-    fetchReadings();
-  }, [fetchReadings]);
+    const loadReadings = async () => {
+      setLoading(true);
+      const { data, error: fetchError } = await getReadings();
+
+      if (fetchError) {
+        setError('Failed to load blood pressure readings');
+        console.error('Error fetching readings:', fetchError);
+      } else {
+        setReadings(data || []);
+        setError(null);
+      }
+      setLoading(false);
+    };
+    loadReadings();
+  }, []);
 
   const addReading = useCallback(async (reading) => {
     const { data, error: addError } = await addReadingDb(reading);
