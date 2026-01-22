@@ -150,7 +150,7 @@ export default function BloodTests() {
   const rightContent = (
     <>
       <Button
-        variant="outline"
+        variant="ghost"
         size="icon"
         className="h-8 w-8 hidden sm:flex"
         onClick={() => setShowImporter(true)}

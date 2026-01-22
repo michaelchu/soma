@@ -126,7 +126,7 @@ export function ExportModal({ onClose }) {
           </DialogTitle>
         </DialogHeader>
 
-        <div className="px-4 pt-3 flex gap-2">
+        <div className="px-4 py-3 flex gap-2">
           <Button
             variant={format === 'markdown' ? 'default' : 'outline'}
             size="sm"
