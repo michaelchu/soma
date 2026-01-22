@@ -42,8 +42,32 @@ export function useReports() {
   }, []);
 
   useEffect(() => {
-    fetchReports();
-  }, [fetchReports]);
+    const loadReports = async () => {
+      setLoading(true);
+      const { data, error: fetchError } = await getReports();
+
+      if (fetchError) {
+        setError('Failed to load reports');
+        console.error('Error fetching reports:', fetchError);
+        setLoading(false);
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        setReports([]);
+        setError(null);
+        setLoading(false);
+        return;
+      }
+
+      // Enrich reports with reference range data from constants
+      const enrichedReports = enrichReportMetrics(data);
+      setReports(enrichedReports);
+      setError(null);
+      setLoading(false);
+    };
+    loadReports();
+  }, []);
 
   const addReport = useCallback(
     async (report) => {
