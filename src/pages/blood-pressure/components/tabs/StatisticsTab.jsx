@@ -49,7 +49,7 @@ function getChangeColor(current, previous, config) {
 
 function ChangeIndicator({ current, previous, config, disabled = false }) {
   if (disabled || current === null || previous === null) {
-    return <span className="text-muted-foreground flex justify-center">—</span>;
+    return <span className="text-muted-foreground flex justify-end">—</span>;
   }
 
   const diff = current - previous;
@@ -57,7 +57,7 @@ function ChangeIndicator({ current, previous, config, disabled = false }) {
 
   if (diff === 0) {
     return (
-      <span className="flex items-center gap-1 text-muted-foreground">
+      <span className="flex items-center justify-end gap-1 text-muted-foreground">
         <Minus className="h-3 w-3" />
         <span>0</span>
       </span>
@@ -78,7 +78,7 @@ function ChangeIndicator({ current, previous, config, disabled = false }) {
   const roundedDiff = diff.toFixed(1);
 
   return (
-    <span className={`flex items-center gap-1 ${colorClass}`}>
+    <span className={`flex items-center justify-end gap-1 ${colorClass}`}>
       <Icon className="h-3 w-3" />
       <span className="font-medium">
         {sign}
@@ -143,7 +143,7 @@ function StatsTable({ currentStats, previousStats, dateRange, normalThresholds }
             <th className="text-right py-2 px-3 font-medium text-muted-foreground">Min</th>
             <th className="text-right py-2 px-3 font-medium text-muted-foreground">Max</th>
             <th className="text-right py-2 px-3 font-medium text-muted-foreground">Avg</th>
-            <th className="text-right py-2 pl-3 font-medium text-muted-foreground">vs Previous</th>
+            <th className="text-right py-2 pl-3 font-medium text-muted-foreground">vs Prev.</th>
           </tr>
         </thead>
         <tbody>

@@ -28,7 +28,7 @@ export function ReadingsTab({ readings }) {
   return (
     <>
       {/* Mobile: List layout */}
-      <div className="md:hidden -mx-3 sm:-mx-4">
+      <div className="md:hidden -mx-5 sm:-mx-6">
         {readings.map((reading, index) => {
           const { date, time } = formatDateTime(reading.datetime, { hideCurrentYear: true });
           const category = getCategory(reading.systolic, reading.diastolic);
