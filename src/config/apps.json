@@ -7,6 +7,14 @@
       "icon": "🩸",
       "color": "#ef4444",
       "route": "/blood-tests"
+    },
+    {
+      "id": "blood-pressure",
+      "name": "Blood Pressure",
+      "description": "Monitor and track blood pressure readings",
+      "icon": "💓",
+      "color": "#ec4899",
+      "route": "/blood-pressure"
     }
   ]
 }
