@@ -51,13 +51,17 @@ export function calculateStats(readings) {
   return {
     avgSystolic: Math.round(systolics.reduce((a, b) => a + b, 0) / systolics.length),
     avgDiastolic: Math.round(diastolics.reduce((a, b) => a + b, 0) / diastolics.length),
-    avgPulse: pulses.length > 0 ? Math.round(pulses.reduce((a, b) => a + b, 0) / pulses.length) : null,
+    avgPulse:
+      pulses.length > 0 ? Math.round(pulses.reduce((a, b) => a + b, 0) / pulses.length) : null,
     minSystolic: Math.min(...systolics),
     maxSystolic: Math.max(...systolics),
     minDiastolic: Math.min(...diastolics),
     maxDiastolic: Math.max(...diastolics),
     count: readings.length,
-    latestCategory: getBPCategory(systolics[systolics.length - 1], diastolics[diastolics.length - 1]),
+    latestCategory: getBPCategory(
+      systolics[systolics.length - 1],
+      diastolics[diastolics.length - 1]
+    ),
   };
 }
 

@@ -121,9 +121,7 @@ export async function addReport(report) {
       reference_raw: data.reference?.raw || null,
     }));
 
-    const { error: metricsError } = await supabase
-      .from('blood_test_metrics')
-      .insert(metricsRows);
+    const { error: metricsError } = await supabase.from('blood_test_metrics').insert(metricsRows);
 
     if (metricsError) {
       console.error('Error adding blood test metrics:', metricsError);
@@ -187,10 +185,7 @@ export async function updateReport(id, updates) {
  * @returns {Promise<{error: Error|null}>}
  */
 export async function deleteReport(id) {
-  const { error } = await supabase
-    .from('blood_test_reports')
-    .delete()
-    .eq('id', id);
+  const { error } = await supabase.from('blood_test_reports').delete().eq('id', id);
 
   if (error) {
     console.error('Error deleting blood test report:', error);
@@ -207,17 +202,15 @@ export async function deleteReport(id) {
  * @returns {Promise<{error: Error|null}>}
  */
 export async function updateMetric(reportId, metricKey, data) {
-  const { error } = await supabase
-    .from('blood_test_metrics')
-    .upsert({
-      report_id: reportId,
-      metric_key: metricKey,
-      value: data.value,
-      unit: data.unit || '',
-      reference_min: data.reference?.min ?? null,
-      reference_max: data.reference?.max ?? null,
-      reference_raw: data.reference?.raw || null,
-    });
+  const { error } = await supabase.from('blood_test_metrics').upsert({
+    report_id: reportId,
+    metric_key: metricKey,
+    value: data.value,
+    unit: data.unit || '',
+    reference_min: data.reference?.min ?? null,
+    reference_max: data.reference?.max ?? null,
+    reference_raw: data.reference?.raw || null,
+  });
 
   if (error) {
     console.error('Error updating metric:', error);
@@ -272,9 +265,7 @@ export async function bulkInsertReports(reports) {
         reference_raw: data.reference?.raw || null,
       }));
 
-      const { error: metricsError } = await supabase
-        .from('blood_test_metrics')
-        .insert(metricsRows);
+      const { error: metricsError } = await supabase.from('blood_test_metrics').insert(metricsRows);
 
       if (metricsError) {
         console.error('Error inserting metrics for report:', metricsError);

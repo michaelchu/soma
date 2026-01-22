@@ -45,33 +45,39 @@ export function useReports() {
     fetchReports();
   }, [fetchReports]);
 
-  const addReport = useCallback(async (report) => {
-    const { data, error: addError } = await addReportDb(report);
+  const addReport = useCallback(
+    async (report) => {
+      const { data, error: addError } = await addReportDb(report);
 
-    if (addError) {
-      console.error('Error adding report:', addError);
-      return { error: addError };
-    }
+      if (addError) {
+        console.error('Error adding report:', addError);
+        return { error: addError };
+      }
 
-    // Refetch to get enriched data
-    await fetchReports();
+      // Refetch to get enriched data
+      await fetchReports();
 
-    return { data };
-  }, [fetchReports]);
+      return { data };
+    },
+    [fetchReports]
+  );
 
-  const updateReport = useCallback(async (id, updates) => {
-    const { data, error: updateError } = await updateReportDb(id, updates);
+  const updateReport = useCallback(
+    async (id, updates) => {
+      const { data, error: updateError } = await updateReportDb(id, updates);
 
-    if (updateError) {
-      console.error('Error updating report:', updateError);
-      return { error: updateError };
-    }
+      if (updateError) {
+        console.error('Error updating report:', updateError);
+        return { error: updateError };
+      }
 
-    // Refetch to get enriched data
-    await fetchReports();
+      // Refetch to get enriched data
+      await fetchReports();
 
-    return { data };
-  }, [fetchReports]);
+      return { data };
+    },
+    [fetchReports]
+  );
 
   const deleteReport = useCallback(async (id) => {
     const { error: deleteError } = await deleteReportDb(id);

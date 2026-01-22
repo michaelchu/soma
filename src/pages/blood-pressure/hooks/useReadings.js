@@ -58,9 +58,7 @@ export function useReadings() {
     }
 
     // Update local state
-    setReadings((prev) =>
-      prev.map((r) => (r.id === id ? data : r))
-    );
+    setReadings((prev) => prev.map((r) => (r.id === id ? data : r)));
 
     return { data };
   }, []);

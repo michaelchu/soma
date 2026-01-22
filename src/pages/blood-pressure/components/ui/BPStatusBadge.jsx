@@ -17,9 +17,7 @@ export function BPStatusBadge({ category, showDescription = false, size = 'defau
       >
         {info.shortLabel || info.label}
       </span>
-      {showDescription && (
-        <span className="text-xs text-muted-foreground">{info.description}</span>
-      )}
+      {showDescription && <span className="text-xs text-muted-foreground">{info.description}</span>}
     </div>
   );
 }
