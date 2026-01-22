@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, Copy, Check, Download } from 'lucide-react';
+import { Plus, Trash2, Save, Loader2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -19,14 +19,33 @@ import {
 } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { REFERENCE_RANGES } from '../../constants/referenceRanges';
+import { useReports } from '../../hooks/useReports';
+
+function parseReference(refString) {
+  if (!refString) return {};
+  const rangeMatch = refString.match(/^([\d.]+)-([\d.]+)$/);
+  if (rangeMatch) {
+    return { min: parseFloat(rangeMatch[1]), max: parseFloat(rangeMatch[2]) };
+  }
+  const ltMatch = refString.match(/^<([\d.]+)$/);
+  if (ltMatch) {
+    return { max: parseFloat(ltMatch[1]) };
+  }
+  const gtMatch = refString.match(/^>([\d.]+)$/);
+  if (gtMatch) {
+    return { min: parseFloat(gtMatch[1]) };
+  }
+  return { raw: refString };
+}
 
 export function ReportImporter({ onClose }) {
+  const { addReport } = useReports();
   const [reportDate, setReportDate] = useState('');
   const [orderNumber, setOrderNumber] = useState('');
   const [orderedBy, setOrderedBy] = useState('');
   const [metrics, setMetrics] = useState([]);
-  const [copied, setCopied] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
 
   const addMetric = () => {
     setMetrics([
@@ -66,49 +85,39 @@ export function ReportImporter({ onClose }) {
     setMetrics(updated);
   };
 
-  const generateMarkdown = () => {
-    let md = `## Report: ${reportDate}\n\n`;
-    md += `**Date:** ${reportDate}\n`;
-    if (orderNumber) md += `**Order Number:** ${orderNumber}\n`;
-    if (orderedBy) md += `**Ordered By:** ${orderedBy}\n`;
-    md += `\n### Metrics\n\n`;
+  const handleSave = async () => {
+    setError(null);
+    setSaving(true);
 
-    // Add table header
-    md += `| Metric | Value | Reference | Unit |\n`;
-    md += `|--------|-------|-----------|------|\n`;
-
-    // Add table rows
-    metrics.forEach((metric) => {
+    // Build metrics object for database
+    const metricsObj = {};
+    for (const metric of metrics) {
       if (metric.key && metric.value) {
-        md += `| ${metric.key} | ${metric.value} | ${metric.reference} | ${metric.unit} |\n`;
+        metricsObj[metric.key] = {
+          value: parseFloat(metric.value),
+          unit: metric.unit || '',
+          reference: parseReference(metric.reference),
+        };
       }
-    });
-
-    return md;
-  };
-
-  const copyToClipboard = async () => {
-    const markdown = generateMarkdown();
-    try {
-      await navigator.clipboard.writeText(markdown);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy:', err);
     }
-  };
 
-  const downloadMarkdown = () => {
-    const markdown = generateMarkdown();
-    const blob = new Blob([markdown], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `report-${reportDate}.md`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const report = {
+      date: reportDate,
+      orderNumber: orderNumber || null,
+      orderedBy: orderedBy || null,
+      metrics: metricsObj,
+    };
+
+    const { error: saveError } = await addReport(report);
+
+    setSaving(false);
+
+    if (saveError) {
+      setError(saveError.message || 'Failed to save report');
+      return;
+    }
+
+    onClose();
   };
 
   const availableMetrics = Object.entries(REFERENCE_RANGES).map(([key, ref]) => ({
@@ -117,13 +126,13 @@ export function ReportImporter({ onClose }) {
     category: ref.category,
   }));
 
-  const canGenerate = reportDate && metrics.some((m) => m.key && m.value);
+  const canSave = reportDate && metrics.some((m) => m.key && m.value);
 
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-3xl h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
         <DialogHeader className="p-4 border-b">
-          <DialogTitle>Import New Report</DialogTitle>
+          <DialogTitle>Add New Report</DialogTitle>
         </DialogHeader>
 
         <ScrollArea className="flex-1">
@@ -250,44 +259,32 @@ export function ReportImporter({ onClose }) {
               )}
             </div>
 
-            {/* Markdown Preview */}
-            {canGenerate && showPreview && (
-              <div className="bg-muted rounded-lg p-4">
-                <h3 className="font-semibold text-foreground mb-2">Markdown Preview</h3>
-                <pre className="bg-card p-3 rounded border border-border text-xs overflow-x-auto text-foreground">
-                  {generateMarkdown()}
-                </pre>
+            {error && (
+              <div className="bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm">
+                {error}
               </div>
             )}
           </div>
         </ScrollArea>
 
-        <DialogFooter className="p-3 border-t bg-muted flex-row justify-between sm:justify-between">
-          <Button
-            variant="outline"
-            onClick={() => setShowPreview(!showPreview)}
-            disabled={!canGenerate}
-          >
-            {showPreview ? 'Hide' : 'Preview'}
+        <DialogFooter className="p-3 border-t bg-muted flex-row justify-end">
+          <Button variant="outline" onClick={onClose} disabled={saving}>
+            Cancel
           </Button>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={downloadMarkdown} disabled={!canGenerate}>
-              <Download size={16} />
-              <span className="hidden sm:inline">Download</span>
-            </Button>
-            <Button
-              onClick={copyToClipboard}
-              disabled={!canGenerate}
-              className={copied ? 'bg-green-600 hover:bg-green-700' : ''}
-            >
-              {copied ? <Check size={16} /> : <Copy size={16} />}
-              {copied ? 'Copied!' : 'Copy Markdown'}
-            </Button>
-          </div>
+          <Button onClick={handleSave} disabled={!canSave || saving}>
+            {saving ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save size={16} />
+                Save Report
+              </>
+            )}
+          </Button>
         </DialogFooter>
-        <p className="px-3 pb-3 text-xs text-muted-foreground bg-muted">
-          Copy markdown and paste into <code className="bg-accent px-1 rounded">reports.md</code>
-        </p>
       </DialogContent>
     </Dialog>
   );

@@ -68,9 +68,6 @@ export default function BloodTests() {
           <AlertTriangle className="text-red-600 dark:text-red-400 mx-auto mb-4" size={32} />
           <p className="text-red-600 dark:text-red-400 font-semibold mb-2">Error loading reports</p>
           <p className="text-muted-foreground">{error}</p>
-          <p className="text-sm text-muted-foreground mt-4">
-            Check that src/pages/blood-tests/data/reports.md exists and is properly formatted
-          </p>
         </div>
       </div>
     );

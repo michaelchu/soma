@@ -28,7 +28,13 @@
       "Bash(npm run lint -- --quiet)",
       "Bash(curl:*)",
       "Bash(cd /Users/michaelchu/Documents/Personal\\\\ Projects/soma && npx shadcn@latest add dropdown-menu --overwrite 2>&1:*)",
-      "Bash(cd /Users/michaelchu/Documents/Personal\\\\ Projects/soma && npx prettier:*)"
+      "Bash(cd /Users/michaelchu/Documents/Personal\\\\ Projects/soma && npx prettier:*)",
+      "Bash(tree:*)",
+      "Bash(git -C \"/Users/michaelchu/Documents/Personal Projects/soma\" log --oneline -20)",
+      "Bash(supabase --version)",
+      "Bash(supabase init)",
+      "Bash(supabase link --project-ref jubfpmphjfsvtchrsrno)",
+      "Bash(supabase db push)"
     ]
   }
 }
