@@ -54,7 +54,18 @@ function generateMarkdown(reports) {
 }
 
 function generateCSV(reports) {
-  const rows = [['Date', 'Order Number', 'Ordered By', 'Metric', 'Value', 'Unit', 'Reference Min', 'Reference Max']];
+  const rows = [
+    [
+      'Date',
+      'Order Number',
+      'Ordered By',
+      'Metric',
+      'Value',
+      'Unit',
+      'Reference Min',
+      'Reference Max',
+    ],
+  ];
 
   for (const report of reports) {
     for (const [key, metric] of Object.entries(report.metrics)) {

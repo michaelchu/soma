@@ -76,9 +76,7 @@ export function BPTimeChart({ readings, height = 280 }) {
   }
 
   // Sort by datetime ascending for chart
-  const sortedReadings = [...readings].sort(
-    (a, b) => new Date(a.datetime) - new Date(b.datetime)
-  );
+  const sortedReadings = [...readings].sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
 
   // Transform data for chart
   const chartData = sortedReadings.map((r) => {

@@ -128,10 +128,7 @@ export async function updateReading(id, updates) {
  * @returns {Promise<{error: Error|null}>}
  */
 export async function deleteReading(id) {
-  const { error } = await supabase
-    .from('blood_pressure_readings')
-    .delete()
-    .eq('id', id);
+  const { error } = await supabase.from('blood_pressure_readings').delete().eq('id', id);
 
   if (error) {
     console.error('Error deleting blood pressure reading:', error);
@@ -163,10 +160,7 @@ export async function bulkInsertReadings(readings) {
     notes: r.notes || null,
   }));
 
-  const { data, error } = await supabase
-    .from('blood_pressure_readings')
-    .insert(rows)
-    .select();
+  const { data, error } = await supabase.from('blood_pressure_readings').insert(rows).select();
 
   if (error) {
     console.error('Error bulk inserting readings:', error);

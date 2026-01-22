@@ -4,7 +4,14 @@ import { Activity, AlertTriangle, Plus, ArrowLeft, LineChart, ScatterChart } fro
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import Navbar from '@/components/Navbar';
 import { useReadings } from './blood-pressure/hooks/useReadings';
 import { BPTimeChart } from './blood-pressure/components/charts/BPTimeChart';
@@ -42,7 +49,9 @@ export default function BloodPressure({ onLogout }) {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <AlertTriangle className="text-red-600 dark:text-red-400 mx-auto mb-4" size={32} />
-          <p className="text-red-600 dark:text-red-400 font-semibold mb-2">Error loading readings</p>
+          <p className="text-red-600 dark:text-red-400 font-semibold mb-2">
+            Error loading readings
+          </p>
           <p className="text-muted-foreground">{error}</p>
         </div>
       </div>

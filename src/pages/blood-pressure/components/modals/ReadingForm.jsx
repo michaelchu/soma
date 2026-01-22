@@ -23,7 +23,8 @@ export function ReadingForm({ open, onOpenChange }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
-  const category = systolic && diastolic ? getBPCategory(parseInt(systolic), parseInt(diastolic)) : null;
+  const category =
+    systolic && diastolic ? getBPCategory(parseInt(systolic), parseInt(diastolic)) : null;
 
   const isValid =
     datetime &&
