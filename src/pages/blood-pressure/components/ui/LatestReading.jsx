@@ -1,14 +1,17 @@
 import { Activity, Clock } from 'lucide-react';
 import { BPStatusBadge } from './BPStatusBadge';
-import { getBPCategory, formatDateTime, getTrend } from '../../utils/bpHelpers';
+import { formatDateTime, getTrend } from '../../utils/bpHelpers';
+import { useBPSettings } from '../../hooks/useBPSettings';
 
 export function LatestReading({ readings }) {
+  const { getCategory } = useBPSettings();
+
   if (!readings || readings.length === 0) {
     return <p className="text-muted-foreground text-center">No readings yet</p>;
   }
 
   const latest = readings[0]; // readings are sorted descending
-  const category = getBPCategory(latest.systolic, latest.diastolic);
+  const category = getCategory(latest.systolic, latest.diastolic);
   const { date, time } = formatDateTime(latest.datetime);
   const trend = getTrend(readings);
 

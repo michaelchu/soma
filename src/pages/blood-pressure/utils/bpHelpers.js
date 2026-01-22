@@ -1,33 +1,67 @@
-import { BP_CATEGORIES } from '../constants/bpCategories';
+import { BP_GUIDELINES, BP_CATEGORY_INFO, DEFAULT_GUIDELINE } from '../constants/bpGuidelines';
 
 /**
  * Determine BP category based on systolic and diastolic values
- * Following American Heart Association guidelines
+ * Uses the specified guideline for classification
  */
-export function getBPCategory(systolic, diastolic) {
+export function getBPCategory(systolic, diastolic, guidelineKey = DEFAULT_GUIDELINE) {
   if (!systolic || !diastolic) return null;
 
-  // Crisis check first (either value triggers)
-  if (systolic > 180 || diastolic > 120) return 'crisis';
+  const guideline = BP_GUIDELINES[guidelineKey];
+  if (!guideline) return null;
 
-  // Hypertension Stage 2 (either value triggers)
-  if (systolic >= 140 || diastolic >= 90) return 'hypertension2';
+  const { categories, thresholds } = guideline;
 
-  // Hypertension Stage 1 (either value triggers)
-  if (systolic >= 130 || diastolic >= 80) return 'hypertension1';
+  // Check categories in reverse order (most severe first)
+  for (let i = categories.length - 1; i >= 0; i--) {
+    const category = categories[i];
+    const threshold = thresholds[category];
 
-  // Elevated (only systolic elevated, diastolic must be normal)
-  if (systolic >= 120 && diastolic < 80) return 'elevated';
+    if (!threshold) continue;
 
-  // Normal
-  return 'normal';
+    const sysMin = threshold.systolic?.min ?? 0;
+    const diaMin = threshold.diastolic?.min ?? 0;
+
+    // For most categories, either systolic OR diastolic exceeding triggers
+    // Exception: "elevated" in AHA requires systolic elevated but diastolic normal
+    if (category === 'elevated') {
+      const sysMax = threshold.systolic?.max ?? 999;
+      const diaMax = threshold.diastolic?.max ?? 999;
+      if (systolic >= sysMin && systolic <= sysMax && diastolic <= diaMax) {
+        return category;
+      }
+    } else if (category === 'normal' || category === 'optimal') {
+      // Normal/optimal: both must be below max
+      const sysMax = threshold.systolic?.max ?? 999;
+      const diaMax = threshold.diastolic?.max ?? 999;
+      if (systolic <= sysMax && diastolic <= diaMax) {
+        return category;
+      }
+    } else {
+      // All other categories: either value exceeding min triggers
+      if (systolic >= sysMin || diastolic >= diaMin) {
+        return category;
+      }
+    }
+  }
+
+  // Fallback to first category (should be normal/optimal)
+  return categories[0];
 }
 
 /**
  * Get category info object for display
  */
 export function getCategoryInfo(category) {
-  return BP_CATEGORIES[category] || BP_CATEGORIES.normal;
+  return BP_CATEGORY_INFO[category] || BP_CATEGORY_INFO.normal;
+}
+
+/**
+ * Get reference lines for charts based on guideline
+ */
+export function getReferenceLines(guidelineKey = DEFAULT_GUIDELINE) {
+  const guideline = BP_GUIDELINES[guidelineKey];
+  return guideline?.referenceLines || BP_GUIDELINES[DEFAULT_GUIDELINE].referenceLines;
 }
 
 /**
@@ -70,15 +104,16 @@ export function calculateStats(readings) {
  * @param {string} datetime - ISO datetime string
  * @param {Object} options - Formatting options
  * @param {boolean} options.hideCurrentYear - Hide year if it's the current year (default: false)
+ * @param {boolean} options.hideWeekday - Hide weekday from date (default: false)
  */
 export function formatDateTime(datetime, options = {}) {
   const date = new Date(datetime);
-  const { hideCurrentYear = false } = options;
+  const { hideCurrentYear = false, hideWeekday = false } = options;
   const isCurrentYear = hideCurrentYear && date.getFullYear() === new Date().getFullYear();
 
   return {
     date: date.toLocaleDateString('en-US', {
-      weekday: 'short',
+      ...(hideWeekday ? {} : { weekday: 'short' }),
       month: 'short',
       day: 'numeric',
       ...(isCurrentYear ? {} : { year: 'numeric' }),

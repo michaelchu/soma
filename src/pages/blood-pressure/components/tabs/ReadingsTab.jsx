@@ -9,11 +9,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { BPStatusBadge } from '../ui/BPStatusBadge';
-import { getBPCategory, getCategoryInfo, formatDateTime } from '../../utils/bpHelpers';
+import { formatDateTime } from '../../utils/bpHelpers';
+import { useBPSettings } from '../../hooks/useBPSettings';
 import { ReadingForm } from '../modals/ReadingForm';
 
 export function ReadingsTab({ readings }) {
   const [editingReading, setEditingReading] = useState(null);
+  const { getCategory, getCategoryInfo } = useBPSettings();
+
   if (!readings || readings.length === 0) {
     return (
       <div className="flex items-center justify-center h-40 text-muted-foreground">
@@ -28,7 +31,7 @@ export function ReadingsTab({ readings }) {
       <div className="md:hidden -mx-3 sm:-mx-4">
         {readings.map((reading, index) => {
           const { date, time } = formatDateTime(reading.datetime, { hideCurrentYear: true });
-          const category = getBPCategory(reading.systolic, reading.diastolic);
+          const category = getCategory(reading.systolic, reading.diastolic);
           const categoryInfo = getCategoryInfo(category);
           return (
             <div
@@ -100,7 +103,7 @@ export function ReadingsTab({ readings }) {
           <TableBody>
             {readings.map((reading) => {
               const { date, time } = formatDateTime(reading.datetime);
-              const category = getBPCategory(reading.systolic, reading.diastolic);
+              const category = getCategory(reading.systolic, reading.diastolic);
               return (
                 <TableRow key={reading.id}>
                   <TableCell className="font-medium">{date}</TableCell>

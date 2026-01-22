@@ -9,9 +9,10 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { getBPCategory, getCategoryInfo, calculateStats } from '../../utils/bpHelpers';
+import { calculateStats } from '../../utils/bpHelpers';
+import { useBPSettings } from '../../hooks/useBPSettings';
 
-function generateMarkdown(readings, stats) {
+function generateMarkdown(readings, stats, getCategory, getCategoryInfo) {
   if (!readings || readings.length === 0) {
     return '# Blood Pressure Summary\n\nNo readings available.';
   }
@@ -21,10 +22,10 @@ function generateMarkdown(readings, stats) {
   md += `**Total Readings:** ${readings.length}\n\n`;
 
   // Category distribution
-  const categoryCount = { normal: 0, elevated: 0, hypertension1: 0, hypertension2: 0 };
+  const categoryCount = {};
   readings.forEach((r) => {
-    const cat = getBPCategory(r.systolic, r.diastolic);
-    categoryCount[cat]++;
+    const cat = getCategory(r.systolic, r.diastolic);
+    categoryCount[cat] = (categoryCount[cat] || 0) + 1;
   });
 
   md += '## Reading Distribution\n\n';
@@ -51,14 +52,14 @@ function generateMarkdown(readings, stats) {
     md += '\n';
 
     // Determine overall assessment
-    const avgCategory = getBPCategory(stats.avgSystolic, stats.avgDiastolic);
+    const avgCategory = getCategory(stats.avgSystolic, stats.avgDiastolic);
     const avgInfo = getCategoryInfo(avgCategory);
     md += '## Assessment\n\n';
     md += `Based on the average readings, blood pressure is classified as **${avgInfo.label}**.\n\n`;
 
     // Abnormal readings summary
-    const abnormalCount =
-      categoryCount.elevated + categoryCount.hypertension1 + categoryCount.hypertension2;
+    const normalCount = categoryCount['normal'] || categoryCount['optimal'] || 0;
+    const abnormalCount = readings.length - normalCount;
     if (abnormalCount > 0) {
       const abnormalPct = ((abnormalCount / readings.length) * 100).toFixed(1);
       md += `**Note:** ${abnormalCount} of ${readings.length} readings (${abnormalPct}%) were above normal range.\n\n`;
@@ -74,7 +75,7 @@ function generateMarkdown(readings, stats) {
     const date = new Date(r.datetime);
     const dateStr = date.toLocaleDateString();
     const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const cat = getBPCategory(r.systolic, r.diastolic);
+    const cat = getCategory(r.systolic, r.diastolic);
     const info = getCategoryInfo(cat);
     md += `| ${dateStr} | ${timeStr} | ${r.systolic} | ${r.diastolic} | ${r.pulse || '-'} | ${info.label} |\n`;
   });
@@ -86,12 +87,12 @@ function generateMarkdown(readings, stats) {
   return md;
 }
 
-function generateCSV(readings) {
+function generateCSV(readings, getCategory, getCategoryInfo) {
   const rows = [['Date', 'Time', 'Systolic', 'Diastolic', 'Pulse', 'Category', 'Notes']];
 
   for (const reading of readings) {
     const date = new Date(reading.datetime);
-    const cat = getBPCategory(reading.systolic, reading.diastolic);
+    const cat = getCategory(reading.systolic, reading.diastolic);
     const info = getCategoryInfo(cat);
     rows.push([
       date.toLocaleDateString(),
@@ -110,9 +111,13 @@ function generateCSV(readings) {
 export function ExportModal({ readings, onClose }) {
   const [copied, setCopied] = useState(false);
   const [format, setFormat] = useState('markdown');
+  const { getCategory, getCategoryInfo } = useBPSettings();
 
   const stats = calculateStats(readings);
-  const content = format === 'markdown' ? generateMarkdown(readings, stats) : generateCSV(readings);
+  const content =
+    format === 'markdown'
+      ? generateMarkdown(readings, stats, getCategory, getCategoryInfo)
+      : generateCSV(readings, getCategory, getCategoryInfo);
 
   const handleCopy = async () => {
     try {

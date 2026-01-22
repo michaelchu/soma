@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Save, Loader2 } from 'lucide-react';
 import { BPStatusBadge } from '../ui/BPStatusBadge';
-import { getBPCategory } from '../../utils/bpHelpers';
+import { useBPSettings } from '../../hooks/useBPSettings';
 import { useReadings } from '../../hooks/useReadings';
 
 function getDefaultDatetime() {
@@ -24,6 +24,7 @@ function formatDatetimeForInput(isoString) {
 // Inner form component that resets when key changes
 function ReadingFormContent({ reading, onOpenChange }) {
   const { addReading, updateReading } = useReadings();
+  const { getCategory } = useBPSettings();
   const isEditing = !!reading;
 
   const [datetime, setDatetime] = useState(() =>
@@ -37,7 +38,7 @@ function ReadingFormContent({ reading, onOpenChange }) {
   const [error, setError] = useState(null);
 
   const category =
-    systolic && diastolic ? getBPCategory(parseInt(systolic), parseInt(diastolic)) : null;
+    systolic && diastolic ? getCategory(parseInt(systolic), parseInt(diastolic)) : null;
 
   const isValid =
     datetime &&
