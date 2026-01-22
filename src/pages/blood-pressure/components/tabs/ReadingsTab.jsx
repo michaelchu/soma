@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { StickyNote } from 'lucide-react';
 import {
   Table,
@@ -7,17 +8,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import { BPStatusBadge } from '../ui/BPStatusBadge';
 import { getBPCategory, getCategoryInfo, formatDateTime } from '../../utils/bpHelpers';
+import { ReadingForm } from '../modals/ReadingForm';
 
 export function ReadingsTab({ readings }) {
+  const [editingReading, setEditingReading] = useState(null);
   if (!readings || readings.length === 0) {
     return (
       <div className="flex items-center justify-center h-40 text-muted-foreground">
@@ -37,7 +33,8 @@ export function ReadingsTab({ readings }) {
           return (
             <div
               key={reading.id}
-              className={`flex items-stretch ${index !== readings.length - 1 ? 'border-b' : ''}`}
+              className={`flex items-stretch cursor-pointer hover:bg-muted/50 transition-colors ${index !== readings.length - 1 ? 'border-b' : ''}`}
+              onClick={() => setEditingReading(reading)}
             >
               {/* BP Reading - colored background */}
               <div
@@ -72,21 +69,7 @@ export function ReadingsTab({ readings }) {
                     className={`flex items-center gap-1.5 text-xs mt-0.5 ${categoryInfo.textClass}`}
                   >
                     <span>{categoryInfo.shortLabel || categoryInfo.label}</span>
-                    {reading.notes && (
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <button className="text-muted-foreground hover:text-foreground transition-colors">
-                            <StickyNote className="h-3.5 w-3.5" />
-                          </button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Note</DialogTitle>
-                          </DialogHeader>
-                          <p className="text-sm text-muted-foreground">{reading.notes}</p>
-                        </DialogContent>
-                      </Dialog>
-                    )}
+                    {reading.notes && <StickyNote className="h-3.5 w-3.5 text-muted-foreground" />}
                   </div>
                 </div>
               </div>
@@ -140,6 +123,13 @@ export function ReadingsTab({ readings }) {
           </TableBody>
         </Table>
       </div>
+
+      {/* Edit Reading Dialog */}
+      <ReadingForm
+        open={!!editingReading}
+        onOpenChange={(open) => !open && setEditingReading(null)}
+        reading={editingReading}
+      />
     </>
   );
 }
