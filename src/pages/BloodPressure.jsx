@@ -23,7 +23,7 @@ export default function BloodPressure({ onLogout }) {
   const { readings, loading, error } = useReadings();
   const [showForm, setShowForm] = useState(false);
   const [showExport, setShowExport] = useState(false);
-  const [dateRange, setDateRange] = useState('all');
+  const [dateRange, setDateRange] = useState('30');
   const [timeOfDay, setTimeOfDay] = useState('all');
 
   // Get active tab from URL, default to 'readings'
@@ -75,7 +75,14 @@ export default function BloodPressure({ onLogout }) {
       case 'readings':
         return <ReadingsTab readings={filteredReadings} />;
       case 'statistics':
-        return <StatisticsTab readings={filteredReadings} />;
+        return (
+          <StatisticsTab
+            readings={filteredReadings}
+            allReadings={readings}
+            dateRange={dateRange}
+            timeOfDay={timeOfDay}
+          />
+        );
       case 'charts':
         return <ChartsTab readings={filteredReadings} />;
       default:
@@ -144,11 +151,6 @@ export default function BloodPressure({ onLogout }) {
                 onDateRangeChange={setDateRange}
                 onTimeOfDayChange={setTimeOfDay}
               />
-              {filteredReadings.length !== readings.length && (
-                <p className="text-xs text-muted-foreground mt-2 -mb-1 text-center md:text-left">
-                  Showing {filteredReadings.length} of {readings.length} readings
-                </p>
-              )}
             </div>
 
             {/* Mobile: Tab-based view */}
@@ -214,13 +216,15 @@ export default function BloodPressure({ onLogout }) {
         )}
       </main>
 
-      {/* FAB Button - mobile only */}
-      <button
-        onClick={() => setShowForm(true)}
-        className="md:hidden fixed bottom-20 right-4 z-50 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors"
-      >
-        <Plus className="h-6 w-6" />
-      </button>
+      {/* FAB Button - mobile only, readings tab only */}
+      {activeTab === 'readings' && (
+        <button
+          onClick={() => setShowForm(true)}
+          className="md:hidden fixed bottom-20 right-4 z-50 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors"
+        >
+          <Plus className="h-6 w-6" />
+        </button>
+      )}
 
       {/* Bottom Navigation - mobile only */}
       <div className="md:hidden">
