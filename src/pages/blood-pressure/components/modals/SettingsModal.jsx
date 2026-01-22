@@ -1,9 +1,8 @@
-import { ArrowLeft, Check } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import Navbar from '@/components/Navbar';
+import { Check } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useSettings } from '@/lib/SettingsContext';
-import { BP_GUIDELINES, BP_CATEGORY_INFO } from '@/pages/blood-pressure/constants/bpGuidelines';
+import { BP_GUIDELINES, BP_CATEGORY_INFO } from '../../constants/bpGuidelines';
 
 function GuidelineOption({ guidelineKey, guideline, isSelected, onSelect }) {
   const categories = guideline.categories.map((cat) => BP_CATEGORY_INFO[cat]);
@@ -93,61 +92,49 @@ function ThresholdTable({ guideline }) {
   );
 }
 
-export default function Settings() {
-  const navigate = useNavigate();
-  const location = useLocation();
+export function SettingsModal({ open, onOpenChange }) {
   const { settings, updateSetting } = useSettings();
   const selectedGuideline = BP_GUIDELINES[settings.bpGuideline];
 
-  // Get the page we came from (passed via Link state), fallback to home
-  const fromPath = location.state?.from || '/';
-
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar
-        leftContent={
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => navigate(fromPath)}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        }
-      />
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-full h-full max-w-none sm:max-w-2xl sm:h-[85vh] flex flex-col p-0 gap-0 overflow-hidden rounded-none sm:rounded-lg">
+        <DialogHeader className="p-4 border-b">
+          <DialogTitle>Settings</DialogTitle>
+        </DialogHeader>
 
-      <main className="max-w-2xl mx-auto px-4 py-6">
-        <h1 className="text-2xl font-bold mb-2">Settings</h1>
+        <ScrollArea className="flex-1">
+          <div className="p-4 space-y-6">
+            <section>
+              <h2 className="text-lg font-semibold mb-1">Blood Pressure Classification</h2>
+              <p className="text-sm text-muted-foreground mb-4">
+                Choose which medical guideline to use for categorizing your blood pressure readings.
+              </p>
+              <div className="space-y-3">
+                {Object.entries(BP_GUIDELINES).map(([key, guideline]) => (
+                  <GuidelineOption
+                    key={key}
+                    guidelineKey={key}
+                    guideline={guideline}
+                    isSelected={settings.bpGuideline === key}
+                    onSelect={(key) => updateSetting('bpGuideline', key)}
+                  />
+                ))}
+              </div>
+            </section>
 
-        <section className="mb-8">
-          <h2 className="text-lg font-semibold mb-1">Blood Pressure Classification</h2>
-          <p className="text-sm text-muted-foreground mb-4">
-            Choose which medical guideline to use for categorizing your blood pressure readings.
-          </p>
-          <div className="space-y-3">
-            {Object.entries(BP_GUIDELINES).map(([key, guideline]) => (
-              <GuidelineOption
-                key={key}
-                guidelineKey={key}
-                guideline={guideline}
-                isSelected={settings.bpGuideline === key}
-                onSelect={(key) => updateSetting('bpGuideline', key)}
-              />
-            ))}
+            {selectedGuideline && (
+              <section>
+                <h2 className="text-lg font-semibold mb-1">{selectedGuideline.name} Thresholds</h2>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Reference table for the selected classification system
+                </p>
+                <ThresholdTable guideline={selectedGuideline} />
+              </section>
+            )}
           </div>
-        </section>
-
-        {selectedGuideline && (
-          <section>
-            <h2 className="text-lg font-semibold mb-1">{selectedGuideline.name} Thresholds</h2>
-            <p className="text-sm text-muted-foreground mb-2">
-              Reference table for the selected classification system
-            </p>
-            <ThresholdTable guideline={selectedGuideline} />
-          </section>
-        )}
-      </main>
-    </div>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
   );
 }

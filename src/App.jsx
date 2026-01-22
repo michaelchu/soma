@@ -4,7 +4,6 @@ import Auth from '@/views/Auth';
 import Launcher from '@/views/Launcher';
 import BloodTests from '@/pages/BloodTests';
 import BloodPressure from '@/pages/BloodPressure';
-import Settings from '@/pages/Settings';
 
 export default function App() {
   const { user, loading } = useAuth();
@@ -28,7 +27,6 @@ export default function App() {
       <Route path="/" element={<Launcher />} />
       <Route path="/blood-tests" element={<BloodTests />} />
       <Route path="/blood-pressure" element={<BloodPressure />} />
-      <Route path="/settings" element={<Settings />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

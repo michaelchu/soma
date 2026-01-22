@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Activity, AlertTriangle, Plus, Download } from 'lucide-react';
+import { Activity, AlertTriangle, Plus, Download, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import Navbar from '@/components/Navbar';
@@ -12,6 +12,7 @@ import { StatisticsTab } from './blood-pressure/components/tabs/StatisticsTab';
 import { ChartsTab } from './blood-pressure/components/tabs/ChartsTab';
 import { ReadingForm } from './blood-pressure/components/modals/ReadingForm';
 import { ExportModal } from './blood-pressure/components/modals/ExportModal';
+import { SettingsModal } from './blood-pressure/components/modals/SettingsModal';
 import { LatestReading } from './blood-pressure/components/ui/LatestReading';
 import { BackButton } from '@/components/ui/back-button';
 import { calculateStats } from './blood-pressure/utils/bpHelpers';
@@ -23,6 +24,7 @@ export default function BloodPressure({ onLogout }) {
   const { readings, loading, error } = useReadings();
   const [showForm, setShowForm] = useState(false);
   const [showExport, setShowExport] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [dateRange, setDateRange] = useState('30');
   const [timeOfDay, setTimeOfDay] = useState('all');
 
@@ -114,6 +116,15 @@ export default function BloodPressure({ onLogout }) {
               title="Export Data"
             >
               <Download className="h-4 w-4" />
+            </Button>
+            <Button
+              onClick={() => setShowSettings(true)}
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8"
+              title="Settings"
+            >
+              <Settings className="h-4 w-4" />
             </Button>
           </>
         }
@@ -228,6 +239,9 @@ export default function BloodPressure({ onLogout }) {
       {showExport && (
         <ExportModal readings={filteredReadings} onClose={() => setShowExport(false)} />
       )}
+
+      {/* Settings Modal */}
+      <SettingsModal open={showSettings} onOpenChange={setShowSettings} />
     </div>
   );
 }
