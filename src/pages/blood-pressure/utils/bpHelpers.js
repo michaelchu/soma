@@ -78,6 +78,7 @@ export function formatDateTime(datetime, options = {}) {
 
   return {
     date: date.toLocaleDateString('en-US', {
+      weekday: 'short',
       month: 'short',
       day: 'numeric',
       ...(isCurrentYear ? {} : { year: 'numeric' }),

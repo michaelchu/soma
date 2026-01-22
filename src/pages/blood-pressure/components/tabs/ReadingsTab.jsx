@@ -1,3 +1,4 @@
+import { StickyNote } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -6,8 +7,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { BPStatusBadge } from '../ui/BPStatusBadge';
-import { getBPCategory, formatDateTime } from '../../utils/bpHelpers';
+import { getBPCategory, getCategoryInfo, formatDateTime } from '../../utils/bpHelpers';
 
 export function ReadingsTab({ readings }) {
   if (!readings || readings.length === 0) {
@@ -25,42 +33,69 @@ export function ReadingsTab({ readings }) {
         {readings.map((reading, index) => {
           const { date, time } = formatDateTime(reading.datetime, { hideCurrentYear: true });
           const category = getBPCategory(reading.systolic, reading.diastolic);
+          const categoryInfo = getCategoryInfo(category);
           return (
             <div
               key={reading.id}
-              className={`flex items-center gap-3 px-3 sm:px-4 py-3 ${index !== readings.length - 1 ? 'border-b' : ''}`}
+              className={`flex items-stretch ${index !== readings.length - 1 ? 'border-b' : ''}`}
             >
-              {/* BP Reading - prominent */}
-              <div className="flex flex-col items-center min-w-[70px]">
-                <span className="font-mono text-xl font-bold leading-tight">
+              {/* BP Reading - colored background */}
+              <div
+                className={`flex flex-col items-center justify-center min-w-[70px] py-3 ${categoryInfo.bgClass}`}
+              >
+                <span
+                  className={`font-mono text-xl font-bold leading-tight ${categoryInfo.textClass}`}
+                >
                   {reading.systolic}
                 </span>
-                <div className="w-5 h-px bg-muted-foreground/30 my-0.5" />
-                <span className="font-mono text-xl font-bold leading-tight">
+                <div
+                  className={`w-5 h-px my-0.5 ${categoryInfo.textClass} opacity-30`}
+                  style={{ backgroundColor: 'currentColor' }}
+                />
+                <span
+                  className={`font-mono text-xl font-bold leading-tight ${categoryInfo.textClass}`}
+                >
                   {reading.diastolic}
                 </span>
               </div>
 
-              {/* Vertical divider */}
-              <div className="w-px h-10 bg-border" />
-
               {/* Details */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-sm text-muted-foreground">
-                    {date} · {time}
-                  </span>
-                  {reading.pulse && (
-                    <span className="text-sm text-muted-foreground">· {reading.pulse} bpm</span>
-                  )}
+              <div className="flex-1 min-w-0 px-3 sm:px-4 py-3">
+                <div className="text-sm text-muted-foreground">
+                  <div className="font-semibold text-foreground">{date}</div>
+                  <div className="flex items-center gap-1.5">
+                    <span>{time}</span>
+                    <span>·</span>
+                    <span>{reading.pulse ? `${reading.pulse} bpm` : '-- bpm'}</span>
+                  </div>
+                  <div
+                    className={`flex items-center gap-1.5 text-xs mt-0.5 ${categoryInfo.textClass}`}
+                  >
+                    <span>{categoryInfo.shortLabel || categoryInfo.label}</span>
+                    {reading.notes && (
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <button className="text-muted-foreground hover:text-foreground transition-colors">
+                            <StickyNote className="h-3.5 w-3.5" />
+                          </button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Note</DialogTitle>
+                          </DialogHeader>
+                          <p className="text-sm text-muted-foreground">{reading.notes}</p>
+                        </DialogContent>
+                      </Dialog>
+                    )}
+                  </div>
                 </div>
-                {reading.notes && (
-                  <p className="text-sm text-muted-foreground/80 truncate">{reading.notes}</p>
-                )}
               </div>
 
-              {/* Badge on right */}
-              <BPStatusBadge category={category} size="sm" />
+              {/* PP/MAP column */}
+              <div className="flex flex-col items-end justify-center min-w-[70px] py-3 pr-3 sm:pr-4 text-sm text-muted-foreground">
+                <div>PP: {reading.systolic - reading.diastolic} mmHg</div>
+                <div>MAP: {Math.round((reading.systolic + 2 * reading.diastolic) / 3)} mmHg</div>
+              </div>
             </div>
           );
         })}
