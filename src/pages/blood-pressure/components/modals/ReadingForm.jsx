@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Save, Loader2 } from 'lucide-react';
+import { Save, Loader2, Plus, X } from 'lucide-react';
 import { BPStatusBadge } from '../ui/BPStatusBadge';
 import { useBPSettings } from '../../hooks/useBPSettings';
 import { useReadings } from '../../hooks/useReadings';
@@ -21,6 +21,10 @@ function formatDatetimeForInput(isoString) {
   return date.toISOString().slice(0, 16);
 }
 
+function createEmptyBpRow() {
+  return { systolic: '', diastolic: '' };
+}
+
 // Inner form component that resets when key changes
 function ReadingFormContent({ reading, onOpenChange }) {
   const { addReading, updateReading } = useReadings();
@@ -30,24 +34,56 @@ function ReadingFormContent({ reading, onOpenChange }) {
   const [datetime, setDatetime] = useState(() =>
     reading ? formatDatetimeForInput(reading.datetime) : getDefaultDatetime()
   );
-  const [systolic, setSystolic] = useState(() => (reading ? String(reading.systolic) : ''));
-  const [diastolic, setDiastolic] = useState(() => (reading ? String(reading.diastolic) : ''));
+  const [bpRows, setBpRows] = useState(() =>
+    reading
+      ? [{ systolic: String(reading.systolic), diastolic: String(reading.diastolic) }]
+      : [createEmptyBpRow()]
+  );
   const [pulse, setPulse] = useState(() => (reading?.pulse ? String(reading.pulse) : ''));
   const [notes, setNotes] = useState(() => reading?.notes || '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
-  const category =
-    systolic && diastolic ? getCategory(parseInt(systolic), parseInt(diastolic)) : null;
+  const updateBpRow = (index, field, value) => {
+    setBpRows((rows) => rows.map((row, i) => (i === index ? { ...row, [field]: value } : row)));
+  };
 
-  const isValid =
-    datetime &&
-    systolic &&
-    diastolic &&
-    parseInt(systolic) >= 60 &&
-    parseInt(systolic) <= 250 &&
-    parseInt(diastolic) >= 40 &&
-    parseInt(diastolic) <= 150;
+  const addBpRow = () => {
+    setBpRows((rows) => [...rows, createEmptyBpRow()]);
+  };
+
+  const removeBpRow = (index) => {
+    setBpRows((rows) => rows.filter((_, i) => i !== index));
+  };
+
+  // Calculate averages from valid rows
+  const validRows = bpRows.filter(
+    (row) =>
+      row.systolic &&
+      row.diastolic &&
+      parseInt(row.systolic) >= 60 &&
+      parseInt(row.systolic) <= 250 &&
+      parseInt(row.diastolic) >= 40 &&
+      parseInt(row.diastolic) <= 150
+  );
+
+  const avgSystolic =
+    validRows.length > 0
+      ? Math.round(
+          validRows.reduce((sum, row) => sum + parseInt(row.systolic), 0) / validRows.length
+        )
+      : null;
+
+  const avgDiastolic =
+    validRows.length > 0
+      ? Math.round(
+          validRows.reduce((sum, row) => sum + parseInt(row.diastolic), 0) / validRows.length
+        )
+      : null;
+
+  const category = avgSystolic && avgDiastolic ? getCategory(avgSystolic, avgDiastolic) : null;
+
+  const isValid = datetime && validRows.length > 0;
 
   const handleSave = async () => {
     setError(null);
@@ -55,8 +91,8 @@ function ReadingFormContent({ reading, onOpenChange }) {
 
     const readingData = {
       datetime: new Date(datetime).toISOString(),
-      systolic: parseInt(systolic),
-      diastolic: parseInt(diastolic),
+      systolic: avgSystolic,
+      diastolic: avgDiastolic,
       pulse: pulse ? parseInt(pulse) : null,
       notes: notes || null,
     };
@@ -84,8 +120,7 @@ function ReadingFormContent({ reading, onOpenChange }) {
 
   const handleReset = () => {
     setDatetime(getDefaultDatetime());
-    setSystolic('');
-    setDiastolic('');
+    setBpRows([createEmptyBpRow()]);
     setPulse('');
     setNotes('');
     setError(null);
@@ -112,27 +147,51 @@ function ReadingFormContent({ reading, onOpenChange }) {
         {/* Blood Pressure */}
         <div className="space-y-2">
           <Label>Blood Pressure (mmHg)</Label>
-          <div className="flex items-center gap-2">
-            <Input
-              type="number"
-              placeholder="Systolic"
-              value={systolic}
-              onChange={(e) => setSystolic(e.target.value)}
-              min={60}
-              max={250}
-              className="text-center"
-            />
-            <span className="text-2xl text-muted-foreground">/</span>
-            <Input
-              type="number"
-              placeholder="Diastolic"
-              value={diastolic}
-              onChange={(e) => setDiastolic(e.target.value)}
-              min={40}
-              max={150}
-              className="text-center"
-            />
+          <div className="space-y-2">
+            {bpRows.map((row, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  placeholder="Systolic"
+                  value={row.systolic}
+                  onChange={(e) => updateBpRow(index, 'systolic', e.target.value)}
+                  min={60}
+                  max={250}
+                  className="text-center"
+                />
+                <span className="text-2xl text-muted-foreground">/</span>
+                <Input
+                  type="number"
+                  placeholder="Diastolic"
+                  value={row.diastolic}
+                  onChange={(e) => updateBpRow(index, 'diastolic', e.target.value)}
+                  min={40}
+                  max={150}
+                  className="text-center"
+                />
+                {bpRows.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 flex-shrink-0"
+                    onClick={() => removeBpRow(index)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            ))}
           </div>
+          <Button type="button" variant="outline" size="sm" className="w-full" onClick={addBpRow}>
+            <Plus className="h-4 w-4 mr-1" />
+            Add Row
+          </Button>
+          {validRows.length > 1 && (
+            <div className="text-sm text-muted-foreground">
+              Average: {avgSystolic}/{avgDiastolic} mmHg
+            </div>
+          )}
           {category && (
             <div className="pt-1">
               <BPStatusBadge category={category} showDescription />

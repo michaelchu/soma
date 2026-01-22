@@ -100,7 +100,7 @@ function getReferenceAreas(guidelineKey, categories, xMin, xMax, yMin, yMax) {
 }
 
 export function BPScatterChart({ readings, height = 280 }) {
-  const { getCategory, getCategoryInfo, guidelineKey, categories } = useBPSettings();
+  const { getCategory, getCategoryInfo, guidelineKey, guideline, categories } = useBPSettings();
 
   if (!readings || readings.length === 0) {
     return (
@@ -131,9 +131,9 @@ export function BPScatterChart({ readings, height = 280 }) {
   const systolicValues = chartData.map((d) => d.y);
 
   const xMin = Math.floor(Math.max(40, Math.min(...diastolicValues) - 10) / 10) * 10;
-  const xMax = Math.ceil(Math.min(130, Math.max(...diastolicValues) + 10) / 10) * 10;
+  const xMax = Math.max(130, Math.ceil((Math.max(...diastolicValues) + 10) / 10) * 10);
   const yMin = Math.floor(Math.max(70, Math.min(...systolicValues) - 10) / 10) * 10;
-  const yMax = Math.ceil(Math.min(200, Math.max(...systolicValues) + 15) / 10) * 10;
+  const yMax = Math.max(190, Math.ceil((Math.max(...systolicValues) + 15) / 10) * 10);
 
   // Generate tick arrays for intervals of 10
   const xTicks = Array.from({ length: (xMax - xMin) / 10 + 1 }, (_, i) => xMin + i * 10);
@@ -223,6 +223,10 @@ export function BPScatterChart({ readings, height = 280 }) {
           </span>
         ))}
       </div>
+
+      <p className="mt-6 text-xs text-muted-foreground text-center">
+        Classification: {guideline?.name}
+      </p>
     </div>
   );
 }

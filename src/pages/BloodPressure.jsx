@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Activity, AlertTriangle, Plus, ArrowLeft, Download } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Activity, AlertTriangle, Plus, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import Navbar from '@/components/Navbar';
@@ -13,12 +13,12 @@ import { ChartsTab } from './blood-pressure/components/tabs/ChartsTab';
 import { ReadingForm } from './blood-pressure/components/modals/ReadingForm';
 import { ExportModal } from './blood-pressure/components/modals/ExportModal';
 import { LatestReading } from './blood-pressure/components/ui/LatestReading';
+import { BackButton } from '@/components/ui/back-button';
 import { calculateStats } from './blood-pressure/utils/bpHelpers';
 
 const VALID_TABS = ['readings', 'statistics', 'charts'];
 
 export default function BloodPressure({ onLogout }) {
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { readings, loading, error } = useReadings();
   const [showForm, setShowForm] = useState(false);
@@ -94,17 +94,7 @@ export default function BloodPressure({ onLogout }) {
     <div className="min-h-screen flex flex-col bg-background pb-14 md:pb-0">
       <Navbar
         onLogout={onLogout}
-        leftContent={
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/')}
-            className="gap-1.5 text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span className="hidden sm:inline">Back</span>
-          </Button>
-        }
+        leftContent={<BackButton />}
         rightContent={
           <>
             <Button

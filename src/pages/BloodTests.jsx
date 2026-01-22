@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Activity,
   AlertTriangle,
   Calendar,
   Plus,
   Download,
-  ArrowLeft,
   ChevronDown,
   ChevronsDownUp,
   ChevronsUpDown,
@@ -30,9 +28,9 @@ import { getStatus } from './blood-tests/utils/statusHelpers';
 import { MetricChart } from './blood-tests/components/charts/MetricChart';
 import { ReportImporter } from './blood-tests/components/modals/ReportImporter';
 import { ExportModal } from './blood-tests/components/modals/ExportModal';
+import { BackButton } from '@/components/ui/back-button';
 
 export default function BloodTests() {
-  const navigate = useNavigate();
   const { reports, loading, error } = useReports();
   const [showImporter, setShowImporter] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
@@ -136,16 +134,7 @@ export default function BloodTests() {
     return (refA?.name || '').localeCompare(refB?.name || '');
   });
 
-  const leftContent = (
-    <Button
-      variant="ghost"
-      size="icon"
-      className="h-8 w-8 flex-shrink-0"
-      onClick={() => navigate('/')}
-    >
-      <ArrowLeft className="h-4 w-4" />
-    </Button>
-  );
+  const leftContent = <BackButton />;
 
   const rightContent = (
     <>

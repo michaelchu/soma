@@ -60,20 +60,30 @@ export function ReadingsTab({ readings }) {
               </div>
 
               {/* Details */}
-              <div className="flex-1 flex items-center justify-center gap-6 px-3 sm:px-4 py-3">
+              <div className="flex-1 flex items-center justify-between px-3 sm:px-4 py-3">
                 <div className="text-sm text-muted-foreground">
-                  <div className="font-semibold text-foreground">{date}</div>
+                  <div className="flex items-center gap-1.5 text-base font-semibold text-foreground">
+                    <span>{date}</span>
+                    {reading.notes && <StickyNote className="h-3.5 w-3.5 text-muted-foreground" />}
+                  </div>
                   <div className="flex items-center gap-1.5">
                     <span>{time}</span>
                     <span>·</span>
-                    <span>{reading.pulse ? `${reading.pulse} bpm` : '-- bpm'}</span>
+                    <span>
+                      {reading.pulse ? (
+                        `${reading.pulse} bpm`
+                      ) : (
+                        <span className={categoryInfo.textClass}>
+                          {categoryInfo.shortLabel || categoryInfo.label}
+                        </span>
+                      )}
+                    </span>
                   </div>
-                  <div
-                    className={`flex items-center gap-1.5 text-xs mt-0.5 ${categoryInfo.textClass}`}
-                  >
-                    <span>{categoryInfo.shortLabel || categoryInfo.label}</span>
-                    {reading.notes && <StickyNote className="h-3.5 w-3.5 text-muted-foreground" />}
-                  </div>
+                  {reading.pulse && (
+                    <div className={`text-xs mt-0.5 ${categoryInfo.textClass}`}>
+                      {categoryInfo.shortLabel || categoryInfo.label}
+                    </div>
+                  )}
                 </div>
 
                 {/* PP/MAP column */}
