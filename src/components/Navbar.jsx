@@ -1,5 +1,5 @@
 import { LogOut, Sun, Moon, HeartPulse, Settings } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/lib/theme';
 import { useAuth } from '@/lib/AuthContext';
@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/AuthContext';
 export default function Navbar({ leftContent, rightContent }) {
   const { theme, toggleTheme } = useTheme();
   const { signOut } = useAuth();
+  const location = useLocation();
 
   const handleLogout = async () => {
     await signOut();
@@ -29,7 +30,7 @@ export default function Navbar({ leftContent, rightContent }) {
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 flex-1 justify-end">
             {rightContent}
             <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Settings">
-              <Link to="/settings">
+              <Link to="/settings" state={{ from: location.pathname }}>
                 <Settings className="h-4 w-4" />
               </Link>
             </Button>

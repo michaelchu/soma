@@ -1,5 +1,5 @@
 import { ArrowLeft, Check } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import Navbar from '@/components/Navbar';
 import { useSettings } from '@/lib/SettingsContext';
@@ -95,14 +95,23 @@ function ThresholdTable({ guideline }) {
 
 export default function Settings() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { settings, updateSetting } = useSettings();
   const selectedGuideline = BP_GUIDELINES[settings.bpGuideline];
+
+  // Get the page we came from (passed via Link state), fallback to home
+  const fromPath = location.state?.from || '/';
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar
         leftContent={
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(-1)}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => navigate(fromPath)}
+          >
             <ArrowLeft className="h-4 w-4" />
           </Button>
         }
