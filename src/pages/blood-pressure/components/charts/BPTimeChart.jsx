@@ -8,7 +8,8 @@ import {
   Legend,
   CartesianGrid,
 } from 'recharts';
-import { getBPCategory, getCategoryInfo, formatDateTime } from '../../utils/bpHelpers';
+import { formatDateTime } from '../../utils/bpHelpers';
+import { useBPSettings } from '../../hooks/useBPSettings';
 
 // Calculate linear regression for a series of values
 function linearRegression(values) {
@@ -37,8 +38,8 @@ function linearRegression(values) {
   };
 }
 
-// Custom tooltip component - defined outside to avoid recreation during render
-function CustomTooltip({ active, payload, label }) {
+// Custom tooltip component
+function CustomTooltip({ active, payload, label, getCategoryInfo }) {
   if (!active || !payload || !payload.length) return null;
 
   const data = payload[0].payload;
@@ -69,8 +70,7 @@ function CustomTooltip({ active, payload, label }) {
 }
 
 // Custom dot renderer component
-function DotRenderer(props) {
-  const { cx, cy, payload } = props;
+function DotRenderer({ cx, cy, payload, getCategoryInfo }) {
   if (!cx || !cy) return null;
 
   const info = getCategoryInfo(payload.category);
@@ -79,7 +79,7 @@ function DotRenderer(props) {
   return (
     <g>
       <circle cx={cx} cy={cy} r={5} fill={color} stroke="#fff" strokeWidth={2} />
-      {payload.category !== 'normal' && (
+      {payload.category !== 'normal' && payload.category !== 'optimal' && (
         <circle cx={cx} cy={cy} r={9} fill="none" stroke={color} strokeWidth={2} opacity={0.3} />
       )}
     </g>
@@ -87,6 +87,8 @@ function DotRenderer(props) {
 }
 
 export function BPTimeChart({ readings, height = 280, showTrendline = true, showMarkers = true }) {
+  const { getCategory, getCategoryInfo } = useBPSettings();
+
   if (!readings || readings.length === 0) {
     return (
       <div className="h-40 flex items-center justify-center text-sm text-muted-foreground bg-muted rounded-lg">
@@ -100,8 +102,8 @@ export function BPTimeChart({ readings, height = 280, showTrendline = true, show
 
   // Transform data for chart
   const chartData = sortedReadings.map((r) => {
-    const { date } = formatDateTime(r.datetime);
-    const category = getBPCategory(r.systolic, r.diastolic);
+    const { date } = formatDateTime(r.datetime, { hideWeekday: true });
+    const category = getCategory(r.systolic, r.diastolic);
     return {
       date,
       datetime: r.datetime,
@@ -140,6 +142,10 @@ export function BPTimeChart({ readings, height = 280, showTrendline = true, show
     );
   }
 
+  // Create bound versions of the components with getCategoryInfo
+  const renderDot = (props) => <DotRenderer {...props} getCategoryInfo={getCategoryInfo} />;
+  const renderTooltip = (props) => <CustomTooltip {...props} getCategoryInfo={getCategoryInfo} />;
+
   return (
     <div className="w-full">
       <ResponsiveContainer width="100%" height={height}>
@@ -171,7 +177,7 @@ export function BPTimeChart({ readings, height = 280, showTrendline = true, show
             }}
           />
 
-          <RechartsTooltip content={<CustomTooltip />} />
+          <RechartsTooltip content={renderTooltip} />
 
           <Legend
             verticalAlign="top"
@@ -186,7 +192,7 @@ export function BPTimeChart({ readings, height = 280, showTrendline = true, show
             name="Systolic"
             stroke="#f43f5e"
             strokeWidth={2}
-            dot={showMarkers ? DotRenderer : false}
+            dot={showMarkers ? renderDot : false}
             activeDot={
               showMarkers ? { r: 7, stroke: '#f43f5e', strokeWidth: 2, fill: '#fff' } : false
             }
@@ -199,7 +205,7 @@ export function BPTimeChart({ readings, height = 280, showTrendline = true, show
             name="Diastolic"
             stroke="#3b82f6"
             strokeWidth={2}
-            dot={showMarkers ? DotRenderer : false}
+            dot={showMarkers ? renderDot : false}
             activeDot={
               showMarkers ? { r: 7, stroke: '#3b82f6', strokeWidth: 2, fill: '#fff' } : false
             }

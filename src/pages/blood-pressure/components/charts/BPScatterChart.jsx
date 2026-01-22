@@ -8,11 +8,11 @@ import {
   ReferenceArea,
   Cell,
 } from 'recharts';
-import { getBPCategory, getCategoryInfo, formatDateTime } from '../../utils/bpHelpers';
-import { BP_CATEGORIES } from '../../constants/bpCategories';
+import { formatDateTime } from '../../utils/bpHelpers';
+import { useBPSettings } from '../../hooks/useBPSettings';
 
-// Custom tooltip component - defined outside to avoid recreation during render
-function CustomTooltip({ active, payload }) {
+// Custom tooltip component
+function CustomTooltip({ active, payload, getCategoryInfo }) {
   if (!active || !payload || !payload.length) return null;
 
   const data = payload[0].payload;
@@ -35,7 +35,73 @@ function CustomTooltip({ active, payload }) {
   );
 }
 
+// Generate reference areas based on guideline
+function getReferenceAreas(guidelineKey, categories, xMin, xMax, yMin, yMax) {
+  // For simplicity, we'll generate zones based on the guideline's categories
+  // This is a simplified version - complex guidelines might need custom handling
+
+  if (guidelineKey === 'simple') {
+    // Simple: just normal and hypertension
+    return [
+      { x1: xMin, x2: 80, y1: yMin, y2: 120, category: 'normal' },
+      { x1: xMin, x2: 80, y1: 120, y2: yMax, category: 'hypertension' },
+      { x1: 80, x2: xMax, y1: yMin, y2: yMax, category: 'hypertension' },
+    ];
+  }
+
+  if (guidelineKey === 'jnc7') {
+    return [
+      { x1: xMin, x2: 80, y1: yMin, y2: 120, category: 'normal' },
+      { x1: xMin, x2: 80, y1: 120, y2: 140, category: 'prehypertension' },
+      { x1: 80, x2: 90, y1: yMin, y2: 140, category: 'prehypertension' },
+      { x1: xMin, x2: 90, y1: 140, y2: 160, category: 'hypertension1' },
+      { x1: 90, x2: 100, y1: yMin, y2: 160, category: 'hypertension1' },
+      { x1: xMin, x2: 100, y1: 160, y2: yMax, category: 'hypertension2' },
+      { x1: 100, x2: xMax, y1: yMin, y2: yMax, category: 'hypertension2' },
+    ];
+  }
+
+  if (guidelineKey === 'esc2018') {
+    return [
+      { x1: xMin, x2: 80, y1: yMin, y2: 120, category: 'optimal' },
+      { x1: xMin, x2: 80, y1: 120, y2: 130, category: 'normal' },
+      { x1: 80, x2: 85, y1: yMin, y2: 130, category: 'normal' },
+      { x1: xMin, x2: 85, y1: 130, y2: 140, category: 'highNormal' },
+      { x1: 85, x2: 90, y1: yMin, y2: 140, category: 'highNormal' },
+      { x1: xMin, x2: 90, y1: 140, y2: 160, category: 'hypertension1' },
+      { x1: 90, x2: 100, y1: yMin, y2: 160, category: 'hypertension1' },
+      { x1: xMin, x2: 100, y1: 160, y2: 180, category: 'hypertension2' },
+      { x1: 100, x2: 110, y1: yMin, y2: 180, category: 'hypertension2' },
+      { x1: xMin, x2: 110, y1: 180, y2: yMax, category: 'hypertension3' },
+      { x1: 110, x2: xMax, y1: yMin, y2: yMax, category: 'hypertension3' },
+    ];
+  }
+
+  if (guidelineKey === 'htnCanada2025') {
+    // HTN Canada 2025: Normal <130/80, HTN 130-139/80-89, HTN (Treat) ≥140/90
+    return [
+      { x1: xMin, x2: 80, y1: yMin, y2: 130, category: 'normal' },
+      { x1: xMin, x2: 80, y1: 130, y2: 140, category: 'hypertensionCanada' },
+      { x1: 80, x2: 90, y1: yMin, y2: 140, category: 'hypertensionCanada' },
+      { x1: xMin, x2: 90, y1: 140, y2: yMax, category: 'hypertensionTreat' },
+      { x1: 90, x2: xMax, y1: yMin, y2: yMax, category: 'hypertensionTreat' },
+    ];
+  }
+
+  // Default: AHA 2017
+  return [
+    { x1: xMin, x2: 80, y1: yMin, y2: 120, category: 'normal' },
+    { x1: xMin, x2: 80, y1: 120, y2: 130, category: 'elevated' },
+    { x1: xMin, x2: 80, y1: 130, y2: 140, category: 'hypertension1' },
+    { x1: 80, x2: 90, y1: yMin, y2: 140, category: 'hypertension1' },
+    { x1: xMin, x2: 90, y1: 140, y2: yMax, category: 'hypertension2' },
+    { x1: 90, x2: xMax, y1: yMin, y2: yMax, category: 'hypertension2' },
+  ];
+}
+
 export function BPScatterChart({ readings, height = 280 }) {
+  const { getCategory, getCategoryInfo, guidelineKey, categories } = useBPSettings();
+
   if (!readings || readings.length === 0) {
     return (
       <div className="h-40 flex items-center justify-center text-sm text-muted-foreground bg-muted rounded-lg">
@@ -46,7 +112,7 @@ export function BPScatterChart({ readings, height = 280 }) {
 
   // Transform data for scatter chart
   const chartData = readings.map((r) => {
-    const category = getBPCategory(r.systolic, r.diastolic);
+    const category = getCategory(r.systolic, r.diastolic);
     const { full } = formatDateTime(r.datetime);
     return {
       x: r.diastolic, // X-axis: diastolic
@@ -60,84 +126,50 @@ export function BPScatterChart({ readings, height = 280 }) {
     };
   });
 
-  // Calculate axis domains with padding
+  // Calculate axis domains with padding, rounded to intervals of 10
   const diastolicValues = chartData.map((d) => d.x);
   const systolicValues = chartData.map((d) => d.y);
 
-  const xMin = Math.max(40, Math.min(...diastolicValues) - 10);
-  const xMax = Math.min(130, Math.max(...diastolicValues) + 10);
-  const yMin = Math.max(70, Math.min(...systolicValues) - 10);
-  const yMax = Math.min(200, Math.max(...systolicValues) + 15);
+  const xMin = Math.floor(Math.max(40, Math.min(...diastolicValues) - 10) / 10) * 10;
+  const xMax = Math.ceil(Math.min(130, Math.max(...diastolicValues) + 10) / 10) * 10;
+  const yMin = Math.floor(Math.max(70, Math.min(...systolicValues) - 10) / 10) * 10;
+  const yMax = Math.ceil(Math.min(200, Math.max(...systolicValues) + 15) / 10) * 10;
+
+  // Generate tick arrays for intervals of 10
+  const xTicks = Array.from({ length: (xMax - xMin) / 10 + 1 }, (_, i) => xMin + i * 10);
+  const yTicks = Array.from({ length: (yMax - yMin) / 10 + 1 }, (_, i) => yMin + i * 10);
+
+  // Get reference areas for the current guideline
+  const referenceAreas = getReferenceAreas(guidelineKey, categories, xMin, xMax, yMin, yMax);
+
+  // Create tooltip renderer
+  const renderTooltip = (props) => <CustomTooltip {...props} getCategoryInfo={getCategoryInfo} />;
 
   return (
     <div className="w-full">
       <ResponsiveContainer width="100%" height={height}>
         <ScatterChart margin={{ top: 10, right: 30, bottom: 20, left: 10 }}>
           {/* Background zones - colored regions for each BP category */}
-          {/* Normal zone: systolic < 120 AND diastolic < 80 */}
-          <ReferenceArea
-            x1={xMin}
-            x2={80}
-            y1={yMin}
-            y2={120}
-            fill={BP_CATEGORIES.normal.chartColor}
-            fillOpacity={0.15}
-          />
-
-          {/* Elevated zone: systolic 120-129 AND diastolic < 80 */}
-          <ReferenceArea
-            x1={xMin}
-            x2={80}
-            y1={120}
-            y2={130}
-            fill={BP_CATEGORIES.elevated.chartColor}
-            fillOpacity={0.15}
-          />
-
-          {/* Hypertension 1 zones */}
-          {/* Systolic 130-139, diastolic < 80 */}
-          <ReferenceArea
-            x1={xMin}
-            x2={80}
-            y1={130}
-            y2={140}
-            fill={BP_CATEGORIES.hypertension1.chartColor}
-            fillOpacity={0.15}
-          />
-          {/* Diastolic 80-89, any systolic below 140 */}
-          <ReferenceArea
-            x1={80}
-            x2={90}
-            y1={yMin}
-            y2={140}
-            fill={BP_CATEGORIES.hypertension1.chartColor}
-            fillOpacity={0.15}
-          />
-
-          {/* Hypertension 2 zones */}
-          {/* Systolic >= 140, diastolic < 90 */}
-          <ReferenceArea
-            x1={xMin}
-            x2={90}
-            y1={140}
-            y2={yMax}
-            fill={BP_CATEGORIES.hypertension2.chartColor}
-            fillOpacity={0.15}
-          />
-          {/* Diastolic >= 90, any systolic */}
-          <ReferenceArea
-            x1={90}
-            x2={xMax}
-            y1={yMin}
-            y2={yMax}
-            fill={BP_CATEGORIES.hypertension2.chartColor}
-            fillOpacity={0.15}
-          />
+          {referenceAreas.map((area, index) => {
+            const info = getCategoryInfo(area.category);
+            return (
+              <ReferenceArea
+                key={index}
+                x1={area.x1}
+                x2={area.x2}
+                y1={area.y1}
+                y2={area.y2}
+                fill={info.chartColor}
+                fillOpacity={0.15}
+              />
+            );
+          })}
 
           <XAxis
             type="number"
             dataKey="x"
             domain={[xMin, xMax]}
+            ticks={xTicks}
             tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
             stroke="hsl(var(--muted-foreground))"
             axisLine={false}
@@ -154,6 +186,7 @@ export function BPScatterChart({ readings, height = 280 }) {
             type="number"
             dataKey="y"
             domain={[yMin, yMax]}
+            ticks={yTicks}
             tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
             stroke="hsl(var(--muted-foreground))"
             width={55}
@@ -169,7 +202,7 @@ export function BPScatterChart({ readings, height = 280 }) {
             }}
           />
 
-          <RechartsTooltip content={<CustomTooltip />} />
+          <RechartsTooltip content={renderTooltip} />
 
           <Scatter data={chartData} fill="#8884d8">
             {chartData.map((entry, index) => {
@@ -182,35 +215,13 @@ export function BPScatterChart({ readings, height = 280 }) {
         </ScatterChart>
       </ResponsiveContainer>
 
-      <div className="mt-1 flex justify-center gap-4 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <span
-            className="w-3 h-3 rounded-full"
-            style={{ backgroundColor: BP_CATEGORIES.normal.chartColor }}
-          />
-          Normal
-        </span>
-        <span className="flex items-center gap-1">
-          <span
-            className="w-3 h-3 rounded-full"
-            style={{ backgroundColor: BP_CATEGORIES.elevated.chartColor }}
-          />
-          Elevated
-        </span>
-        <span className="flex items-center gap-1">
-          <span
-            className="w-3 h-3 rounded-full"
-            style={{ backgroundColor: BP_CATEGORIES.hypertension1.chartColor }}
-          />
-          Stage 1
-        </span>
-        <span className="flex items-center gap-1">
-          <span
-            className="w-3 h-3 rounded-full"
-            style={{ backgroundColor: BP_CATEGORIES.hypertension2.chartColor }}
-          />
-          Stage 2
-        </span>
+      <div className="mt-1 flex justify-center gap-4 text-xs text-muted-foreground flex-wrap">
+        {categories.map((cat) => (
+          <span key={cat.key} className="flex items-center gap-1">
+            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.chartColor }} />
+            {cat.shortLabel || cat.label}
+          </span>
+        ))}
       </div>
     </div>
   );
