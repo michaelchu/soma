@@ -67,11 +67,21 @@ export function calculateStats(readings) {
 
 /**
  * Format datetime for display
+ * @param {string} datetime - ISO datetime string
+ * @param {Object} options - Formatting options
+ * @param {boolean} options.hideCurrentYear - Hide year if it's the current year (default: false)
  */
-export function formatDateTime(datetime) {
+export function formatDateTime(datetime, options = {}) {
   const date = new Date(datetime);
+  const { hideCurrentYear = false } = options;
+  const isCurrentYear = hideCurrentYear && date.getFullYear() === new Date().getFullYear();
+
   return {
-    date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    date: date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      ...(isCurrentYear ? {} : { year: 'numeric' }),
+    }),
     time: date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
     full: date.toLocaleDateString('en-US', {
       month: 'short',
