@@ -1,0 +1,57 @@
+import { useState } from 'react';
+import { LineChart, ScatterChart } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { BPTimeChart } from '../charts/BPTimeChart';
+import { BPScatterChart } from '../charts/BPScatterChart';
+
+export function ChartsTab({ readings }) {
+  const [showTrendline, setShowTrendline] = useState(true);
+  const [showMarkers, setShowMarkers] = useState(false);
+
+  if (!readings || readings.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-40 text-muted-foreground">
+        No readings yet
+      </div>
+    );
+  }
+
+  return (
+    <Tabs defaultValue="timeline" className="w-full pt-4">
+      <div className="flex justify-center">
+        <TabsList className="mb-4">
+          <TabsTrigger value="timeline" className="gap-1.5">
+            <LineChart className="h-4 w-4" />
+            Timeline
+          </TabsTrigger>
+          <TabsTrigger value="scatter" className="gap-1.5">
+            <ScatterChart className="h-4 w-4" />
+            Distribution
+          </TabsTrigger>
+        </TabsList>
+      </div>
+      <TabsContent value="timeline" className="w-full">
+        <BPTimeChart readings={readings} showTrendline={showTrendline} showMarkers={showMarkers} />
+        <div className="flex justify-center gap-6 mt-4">
+          <div className="flex items-center gap-2">
+            <Switch id="trendline" checked={showTrendline} onCheckedChange={setShowTrendline} />
+            <Label htmlFor="trendline" className="text-sm cursor-pointer">
+              Trendline
+            </Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch id="markers" checked={showMarkers} onCheckedChange={setShowMarkers} />
+            <Label htmlFor="markers" className="text-sm cursor-pointer">
+              Data Point Marker
+            </Label>
+          </div>
+        </div>
+      </TabsContent>
+      <TabsContent value="scatter" className="w-full">
+        <BPScatterChart readings={readings} />
+      </TabsContent>
+    </Tabs>
+  );
+}
