@@ -57,7 +57,7 @@ export function ReadingsTab({ readings }) {
               </div>
 
               {/* Details */}
-              <div className="flex-1 min-w-0 px-3 sm:px-4 py-3">
+              <div className="flex-1 flex items-center justify-center gap-6 px-3 sm:px-4 py-3">
                 <div className="text-sm text-muted-foreground">
                   <div className="font-semibold text-foreground">{date}</div>
                   <div className="flex items-center gap-1.5">
@@ -72,12 +72,12 @@ export function ReadingsTab({ readings }) {
                     {reading.notes && <StickyNote className="h-3.5 w-3.5 text-muted-foreground" />}
                   </div>
                 </div>
-              </div>
 
-              {/* PP/MAP column */}
-              <div className="flex flex-col items-end justify-center min-w-[70px] py-3 pr-3 sm:pr-4 text-sm text-muted-foreground">
-                <div>PP: {reading.systolic - reading.diastolic} mmHg</div>
-                <div>MAP: {Math.round((reading.systolic + 2 * reading.diastolic) / 3)} mmHg</div>
+                {/* PP/MAP column */}
+                <div className="flex flex-col items-end justify-center text-sm text-muted-foreground">
+                  <div>PP: {reading.systolic - reading.diastolic} mmHg</div>
+                  <div>MAP: {Math.round((reading.systolic + 2 * reading.diastolic) / 3)} mmHg</div>
+                </div>
               </div>
             </div>
           );
