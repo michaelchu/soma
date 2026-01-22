@@ -100,6 +100,103 @@ export function calculateStats(readings) {
 }
 
 /**
+ * Calculate full statistics including PP and MAP
+ */
+export function calculateFullStats(readings) {
+  if (!readings || readings.length === 0) return null;
+
+  const systolics = readings.map((r) => r.systolic);
+  const diastolics = readings.map((r) => r.diastolic);
+  const pulses = readings.filter((r) => r.pulse).map((r) => r.pulse);
+
+  // Calculate PP (Pulse Pressure) = Systolic - Diastolic
+  const pps = readings.map((r) => r.systolic - r.diastolic);
+
+  // Calculate MAP (Mean Arterial Pressure) = Diastolic + (1/3 * PP)
+  const maps = readings.map((r) => {
+    const pp = r.systolic - r.diastolic;
+    return Math.round(r.diastolic + pp / 3);
+  });
+
+  const avg = (arr) => (arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : null);
+
+  return {
+    systolic: {
+      min: Math.min(...systolics),
+      max: Math.max(...systolics),
+      avg: avg(systolics),
+    },
+    diastolic: {
+      min: Math.min(...diastolics),
+      max: Math.max(...diastolics),
+      avg: avg(diastolics),
+    },
+    pulse: {
+      min: pulses.length > 0 ? Math.min(...pulses) : null,
+      max: pulses.length > 0 ? Math.max(...pulses) : null,
+      avg: avg(pulses),
+    },
+    pp: {
+      min: Math.min(...pps),
+      max: Math.max(...pps),
+      avg: avg(pps),
+    },
+    map: {
+      min: Math.min(...maps),
+      max: Math.max(...maps),
+      avg: avg(maps),
+    },
+    count: readings.length,
+  };
+}
+
+/**
+ * Get readings for the previous equivalent period
+ * e.g., if current is "last 7 days", previous is "7-14 days ago"
+ */
+export function getPreviousPeriodReadings(allReadings, dateRange, timeOfDay) {
+  if (!allReadings || dateRange === 'all') return [];
+
+  const days = parseInt(dateRange, 10);
+  const now = new Date();
+
+  // Previous period: from (days*2) ago to (days) ago
+  const previousStart = new Date();
+  previousStart.setDate(now.getDate() - days * 2);
+
+  const previousEnd = new Date();
+  previousEnd.setDate(now.getDate() - days);
+
+  let filtered = allReadings.filter((r) => {
+    const date = new Date(r.datetime);
+    return date >= previousStart && date < previousEnd;
+  });
+
+  // Apply time of day filter
+  if (timeOfDay !== 'all') {
+    filtered = filtered.filter((r) => {
+      const hour = new Date(r.datetime).getHours();
+      switch (timeOfDay) {
+        case 'am':
+          return hour < 12;
+        case 'pm':
+          return hour >= 12;
+        case 'morning':
+          return hour >= 6 && hour < 12;
+        case 'afternoon':
+          return hour >= 12 && hour < 18;
+        case 'evening':
+          return hour >= 18 || hour < 6;
+        default:
+          return true;
+      }
+    });
+  }
+
+  return filtered;
+}
+
+/**
  * Format datetime for display
  * @param {string} datetime - ISO datetime string
  * @param {Object} options - Formatting options
