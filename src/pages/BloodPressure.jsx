@@ -21,7 +21,7 @@ const VALID_TABS = ['readings', 'statistics', 'charts'];
 
 export default function BloodPressure({ onLogout }) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { readings, loading, error } = useReadings();
+  const { readings, loading, error, addReading, updateReading, deleteReading } = useReadings();
   const [showForm, setShowForm] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -75,7 +75,13 @@ export default function BloodPressure({ onLogout }) {
   const renderMobileTabContent = () => {
     switch (activeTab) {
       case 'readings':
-        return <ReadingsTab readings={filteredReadings} />;
+        return (
+          <ReadingsTab
+            readings={filteredReadings}
+            updateReading={updateReading}
+            deleteReading={deleteReading}
+          />
+        );
       case 'statistics':
         return (
           <StatisticsTab
@@ -88,7 +94,13 @@ export default function BloodPressure({ onLogout }) {
       case 'charts':
         return <ChartsTab readings={filteredReadings} />;
       default:
-        return <ReadingsTab readings={filteredReadings} />;
+        return (
+          <ReadingsTab
+            readings={filteredReadings}
+            updateReading={updateReading}
+            deleteReading={deleteReading}
+          />
+        );
     }
   };
 
@@ -211,7 +223,11 @@ export default function BloodPressure({ onLogout }) {
               </div>
 
               {/* Readings Table */}
-              <ReadingsTab readings={filteredReadings} />
+              <ReadingsTab
+                readings={filteredReadings}
+                updateReading={updateReading}
+                deleteReading={deleteReading}
+              />
             </div>
           </>
         )}
@@ -233,7 +249,13 @@ export default function BloodPressure({ onLogout }) {
       </div>
 
       {/* Add Reading Modal */}
-      <ReadingForm open={showForm} onOpenChange={setShowForm} />
+      <ReadingForm
+        open={showForm}
+        onOpenChange={setShowForm}
+        addReading={addReading}
+        updateReading={updateReading}
+        deleteReading={deleteReading}
+      />
 
       {/* Export Modal */}
       {showExport && (

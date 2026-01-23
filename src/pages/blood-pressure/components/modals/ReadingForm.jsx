@@ -4,10 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Save, Loader2, Plus, X } from 'lucide-react';
+import { Save, Loader2, Plus, X, Trash2 } from 'lucide-react';
 import { BPStatusBadge } from '../ui/BPStatusBadge';
 import { useBPSettings } from '../../hooks/useBPSettings';
-import { useReadings } from '../../hooks/useReadings';
 
 function getDefaultDatetime() {
   const now = new Date();
@@ -26,8 +25,7 @@ function createEmptyBpRow() {
 }
 
 // Inner form component that resets when key changes
-function ReadingFormContent({ reading, onOpenChange }) {
-  const { addReading, updateReading } = useReadings();
+function ReadingFormContent({ reading, onOpenChange, addReading, updateReading, deleteReading }) {
   const { getCategory } = useBPSettings();
   const isEditing = !!reading;
 
@@ -42,6 +40,8 @@ function ReadingFormContent({ reading, onOpenChange }) {
   const [pulse, setPulse] = useState(() => (reading?.pulse ? String(reading.pulse) : ''));
   const [notes, setNotes] = useState(() => reading?.notes || '');
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState(null);
 
   const updateBpRow = (index, field, value) => {
@@ -124,6 +124,29 @@ function ReadingFormContent({ reading, onOpenChange }) {
     setPulse('');
     setNotes('');
     setError(null);
+    setConfirmDelete(false);
+  };
+
+  const handleDelete = async () => {
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+
+    setError(null);
+    setDeleting(true);
+
+    const { error: deleteError } = await deleteReading(reading.id);
+
+    setDeleting(false);
+
+    if (deleteError) {
+      setError(deleteError.message || 'Failed to delete reading');
+      setConfirmDelete(false);
+      return;
+    }
+
+    onOpenChange(false);
   };
 
   return (
@@ -237,10 +260,32 @@ function ReadingFormContent({ reading, onOpenChange }) {
 
         {/* Actions */}
         <div className="flex gap-2 pt-2">
-          <Button variant="outline" onClick={handleReset} className="flex-1" disabled={saving}>
+          {isEditing && deleteReading && (
+            <Button
+              variant={confirmDelete ? 'destructive' : 'outline'}
+              onClick={handleDelete}
+              disabled={saving || deleting}
+              className="flex-shrink-0"
+            >
+              {deleting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4" />
+                  {confirmDelete && <span className="ml-2">Confirm</span>}
+                </>
+              )}
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            onClick={handleReset}
+            className="flex-1"
+            disabled={saving || deleting}
+          >
             Reset
           </Button>
-          <Button onClick={handleSave} disabled={!isValid || saving} className="flex-1">
+          <Button onClick={handleSave} disabled={!isValid || saving || deleting} className="flex-1">
             {saving ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -259,7 +304,14 @@ function ReadingFormContent({ reading, onOpenChange }) {
   );
 }
 
-export function ReadingForm({ open, onOpenChange, reading = null }) {
+export function ReadingForm({
+  open,
+  onOpenChange,
+  reading = null,
+  addReading,
+  updateReading,
+  deleteReading,
+}) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full h-full max-w-none sm:max-w-md sm:h-auto flex flex-col rounded-none sm:rounded-lg">
@@ -267,6 +319,9 @@ export function ReadingForm({ open, onOpenChange, reading = null }) {
           key={reading?.id || 'new'}
           reading={reading}
           onOpenChange={onOpenChange}
+          addReading={addReading}
+          updateReading={updateReading}
+          deleteReading={deleteReading}
         />
       </DialogContent>
     </Dialog>
