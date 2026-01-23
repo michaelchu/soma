@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Activity, AlertTriangle, Plus, Download, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -14,12 +14,12 @@ import { ReadingForm } from './blood-pressure/components/modals/ReadingForm';
 import { ExportModal } from './blood-pressure/components/modals/ExportModal';
 import { SettingsModal } from './blood-pressure/components/modals/SettingsModal';
 import { LatestReading } from './blood-pressure/components/ui/LatestReading';
-import { BackButton } from '@/components/ui/back-button';
 import { calculateStats } from './blood-pressure/utils/bpHelpers';
 
 const VALID_TABS = ['readings', 'statistics', 'charts'];
 
 export default function BloodPressure({ onLogout }) {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { readings, loading, error, addSession, updateSession, deleteSession } = useReadings();
   const [showForm, setShowForm] = useState(false);
@@ -110,7 +110,16 @@ export default function BloodPressure({ onLogout }) {
     <div className="min-h-screen flex flex-col bg-background pb-14 md:pb-0">
       <Navbar
         onLogout={onLogout}
-        leftContent={<BackButton />}
+        leftContent={
+          <button
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+            title="Go to Home"
+          >
+            <Activity className="h-6 w-6 text-foreground" strokeWidth={2.5} />
+            <span className="text-xl font-bold">Soma</span>
+          </button>
+        }
         rightContent={
           <>
             <Button
@@ -126,7 +135,7 @@ export default function BloodPressure({ onLogout }) {
               onClick={() => setShowExport(true)}
               size="icon"
               variant="ghost"
-              className="hidden md:flex h-8 w-8"
+              className="h-8 w-8"
               title="Export Data"
             >
               <Download className="h-4 w-4" />

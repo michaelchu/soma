@@ -17,7 +17,7 @@ export default function AppIcon({ app, onClick }) {
       >
         {app.icon}
       </div>
-      <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors text-center max-w-[80px] truncate">
+      <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors text-center max-w-[80px]">
         {app.name}
       </span>
     </button>

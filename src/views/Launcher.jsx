@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { Activity } from 'lucide-react';
 import AppIcon from '@/components/AppIcon';
 import Navbar from '@/components/Navbar';
 import apps from '@/config/apps.json';
@@ -16,7 +17,14 @@ export default function Launcher() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <Navbar />
+      <Navbar
+        leftContent={
+          <div className="flex items-center gap-2">
+            <Activity className="h-6 w-6 text-foreground" strokeWidth={2.5} />
+            <span className="text-xl font-bold">Soma</span>
+          </div>
+        }
+      />
 
       {/* Main Content */}
       <main className="flex-1 flex items-center justify-center p-8">

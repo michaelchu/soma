@@ -1,4 +1,4 @@
-import { LogOut, Sun, Moon, HeartPulse } from 'lucide-react';
+import { LogOut, Sun, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/lib/theme';
 import { useAuth } from '@/lib/AuthContext';
@@ -13,19 +13,13 @@ export default function Navbar({ leftContent, rightContent }) {
 
   return (
     <header className="bg-card border-b sticky top-0 z-10">
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2">
+      <div className="max-w-7xl mx-auto px-5 sm:px-6 py-2">
         <div className="flex justify-between items-center gap-2">
           {/* Left: Page-specific content */}
-          <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1">{leftContent}</div>
-
-          {/* Center: Branding */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <HeartPulse className="h-7 w-7 text-red-500" strokeWidth={2.5} />
-            <span className="text-xl font-bold hidden sm:inline">Soma</span>
-          </div>
+          <div className="flex items-center gap-1 sm:gap-2 min-w-0">{leftContent}</div>
 
           {/* Right: Page actions + theme + logout */}
-          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 flex-1 justify-end">
+          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             {rightContent}
             <Button
               variant="ghost"

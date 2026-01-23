@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Activity,
   AlertTriangle,
@@ -26,9 +27,9 @@ import { getStatus } from './blood-tests/utils/statusHelpers';
 import { MetricChart } from './blood-tests/components/charts/MetricChart';
 import { ReportImporter } from './blood-tests/components/modals/ReportImporter';
 import { ExportModal } from './blood-tests/components/modals/ExportModal';
-import { BackButton } from '@/components/ui/back-button';
 
 export default function BloodTests() {
+  const navigate = useNavigate();
   const { reports, loading, error } = useReports();
   const [showImporter, setShowImporter] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
@@ -132,7 +133,16 @@ export default function BloodTests() {
     return (refA?.name || '').localeCompare(refB?.name || '');
   });
 
-  const leftContent = <BackButton />;
+  const leftContent = (
+    <button
+      onClick={() => navigate('/')}
+      className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+      title="Go to Home"
+    >
+      <Activity className="h-6 w-6 text-foreground" strokeWidth={2.5} />
+      <span className="text-xl font-bold">Soma</span>
+    </button>
+  );
 
   const rightContent = (
     <>
@@ -161,10 +171,10 @@ export default function BloodTests() {
     <div className="min-h-screen bg-background">
       <Navbar leftContent={leftContent} rightContent={rightContent} />
 
-      <main className="max-w-7xl mx-auto px-3 sm:px-4 pb-3 sm:pb-4">
+      <main className="max-w-7xl mx-auto px-5 sm:px-6 pb-3 sm:pb-4">
         <div>
           <div
-            className={`flex gap-2 pb-3 overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0 sm:overflow-visible sticky top-[49px] z-10 bg-background py-2 ${isScrolled ? 'border-b' : ''}`}
+            className={`flex gap-2 pb-3 overflow-x-auto -mx-5 px-5 sm:-mx-6 sm:px-6 sm:overflow-visible sticky top-[49px] z-10 bg-background py-2 ${isScrolled ? 'border-b' : ''}`}
           >
             <div className="flex rounded-lg border bg-card overflow-hidden text-xs font-medium h-8 flex-shrink-0">
               <button

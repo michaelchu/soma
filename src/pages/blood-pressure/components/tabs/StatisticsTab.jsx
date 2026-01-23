@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Minus } from 'lucide-react';
 import { calculateFullStats, getPreviousPeriodReadings } from '../../utils/bpHelpers';
 import { useSettings } from '@/lib/SettingsContext';
 import { BP_GUIDELINES, DEFAULT_GUIDELINE } from '../../constants/bpGuidelines';
@@ -49,7 +49,7 @@ function getChangeColor(current, previous, config) {
 
 function ChangeIndicator({ current, previous, config, disabled = false }) {
   if (disabled || current === null || previous === null) {
-    return <span className="text-muted-foreground flex justify-end">—</span>;
+    return <span className="text-muted-foreground flex justify-center">—</span>;
   }
 
   const diff = current - previous;
@@ -57,7 +57,7 @@ function ChangeIndicator({ current, previous, config, disabled = false }) {
 
   if (diff === 0) {
     return (
-      <span className="flex items-center justify-end gap-1 text-muted-foreground">
+      <span className="flex items-center justify-center gap-1 text-muted-foreground">
         <Minus className="h-3 w-3" />
         <span>0</span>
       </span>
@@ -73,13 +73,13 @@ function ChangeIndicator({ current, previous, config, disabled = false }) {
         ? 'text-red-600 dark:text-red-400'
         : 'text-muted-foreground';
 
-  const Icon = diff > 0 ? TrendingUp : TrendingDown;
   const sign = diff > 0 ? '+' : '';
   const roundedDiff = diff.toFixed(1);
 
   return (
-    <span className={`flex items-center justify-end gap-1 ${colorClass}`}>
-      <Icon className="h-3 w-3" />
+    <span
+      className={`inline-flex items-center justify-center gap-0.5 whitespace-nowrap ${colorClass}`}
+    >
       <span className="font-medium">
         {sign}
         {roundedDiff}
@@ -135,15 +135,15 @@ function StatsTable({ currentStats, previousStats, dateRange, normalThresholds }
   ];
 
   return (
-    <div className="overflow-x-hidden">
+    <div>
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b">
             <th className="text-left py-2 pr-3 font-medium text-muted-foreground">Metric</th>
-            <th className="text-right py-2 px-3 font-medium text-muted-foreground">Min</th>
-            <th className="text-right py-2 px-3 font-medium text-muted-foreground">Max</th>
-            <th className="text-right py-2 px-3 font-medium text-muted-foreground">Avg</th>
-            <th className="text-right py-2 pl-3 font-medium text-muted-foreground">vs Prev.</th>
+            <th className="text-center py-2 px-3 font-medium text-muted-foreground">Min</th>
+            <th className="text-center py-2 px-3 font-medium text-muted-foreground">Max</th>
+            <th className="text-center py-2 px-3 font-medium text-muted-foreground">Avg</th>
+            <th className="text-center py-2 pl-3 font-medium text-muted-foreground">vs Prev.</th>
           </tr>
         </thead>
         <tbody>
@@ -163,16 +163,16 @@ function StatsTable({ currentStats, previousStats, dateRange, normalThresholds }
                     {row.label}
                   </span>
                 </td>
-                <td className="py-3 px-3 text-right font-mono">
+                <td className="py-3 px-3 text-center font-mono">
                   {current?.min != null ? Math.round(current.min) : '—'}
                 </td>
-                <td className="py-3 px-3 text-right font-mono">
+                <td className="py-3 px-3 text-center font-mono">
                   {current?.max != null ? Math.round(current.max) : '—'}
                 </td>
-                <td className="py-3 px-3 text-right font-mono font-semibold">
+                <td className="py-3 px-3 text-center font-mono font-semibold">
                   {current?.avg != null ? Math.round(current.avg) : '—'}
                 </td>
-                <td className="py-3 pl-3 text-right">
+                <td className="py-3 pl-3 text-center">
                   <ChangeIndicator
                     current={current?.avg}
                     previous={previous?.avg}
