@@ -306,10 +306,8 @@ export function ReadingsTab({ readings, addSession, updateSession, deleteSession
                     {/* PP/MAP column + expand indicator */}
                     <div className="flex items-center gap-2">
                       <div className="flex flex-col items-end justify-center text-sm text-muted-foreground">
-                        <div>PP: {session.systolic - session.diastolic} mmHg</div>
-                        <div>
-                          MAP: {Math.round((session.systolic + 2 * session.diastolic) / 3)} mmHg
-                        </div>
+                        <div>PP: {session.systolic - session.diastolic}</div>
+                        <div>MAP: {Math.round((session.systolic + 2 * session.diastolic) / 3)}</div>
                       </div>
                       {session.readingCount > 1 && (
                         <div
@@ -359,9 +357,7 @@ export function ReadingsTab({ readings, addSession, updateSession, deleteSession
                               </span>
                             )}
                           </div>
-                          <span className={`text-xs ${readingCategoryInfo.textClass}`}>
-                            {readingCategoryInfo.shortLabel || readingCategoryInfo.label}
-                          </span>
+                          <BPStatusBadge category={readingCategory} size="sm" />
                         </div>
                       </div>
                     );
