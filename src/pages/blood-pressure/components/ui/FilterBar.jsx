@@ -25,9 +25,9 @@ const TIME_OF_DAY = [
 
 export function FilterBar({ dateRange, timeOfDay, onDateRangeChange, onTimeOfDayChange }) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-col xs:flex-row gap-2 xs:justify-center md:justify-start">
       <Select value={dateRange} onValueChange={onDateRangeChange}>
-        <SelectTrigger className="w-[140px] h-8">
+        <SelectTrigger className="w-full xs:w-[140px] h-8">
           <SelectValue placeholder="Date range" />
         </SelectTrigger>
         <SelectContent>
@@ -40,7 +40,7 @@ export function FilterBar({ dateRange, timeOfDay, onDateRangeChange, onTimeOfDay
       </Select>
 
       <Select value={timeOfDay} onValueChange={onTimeOfDayChange}>
-        <SelectTrigger className="w-[160px] h-8">
+        <SelectTrigger className="w-full xs:w-[160px] h-8">
           <SelectValue placeholder="Time of day" />
         </SelectTrigger>
         <SelectContent>
