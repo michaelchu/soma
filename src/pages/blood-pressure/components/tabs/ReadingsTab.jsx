@@ -127,16 +127,20 @@ function SwipeableRow({ children, onDelete, onLongPress, onTap, onExpandTap, isL
       className={`relative overflow-hidden ${!isLast ? 'border-b' : ''}`}
       style={{ opacity: isDeleting ? 0 : 1, transition: isDeleting ? 'opacity 0.2s' : undefined }}
     >
-      {/* Delete background */}
-      <div className="absolute inset-y-0 right-0 flex items-center justify-end bg-red-500">
-        <button
-          onClick={handleDeleteClick}
-          className="h-full px-6 flex items-center justify-center text-white"
+      {/* Delete background - only render when swiping */}
+      {offsetX < 0 && (
+        <div
+          className="absolute top-0 bottom-0 right-0 flex items-center justify-end bg-red-500"
           style={{ width: Math.max(SWIPE_THRESHOLD, Math.abs(offsetX)) }}
         >
-          <Trash2 className="h-5 w-5" />
-        </button>
-      </div>
+          <button
+            onClick={handleDeleteClick}
+            className="h-full w-full flex items-center justify-center text-white"
+          >
+            <Trash2 className="h-5 w-5" />
+          </button>
+        </div>
+      )}
 
       {/* Swipeable content */}
       <div
