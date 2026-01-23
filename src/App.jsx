@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'sonner';
 import { useAuth } from '@/lib/AuthContext';
 import Auth from '@/views/Auth';
 import Launcher from '@/views/Launcher';
@@ -23,11 +24,24 @@ export default function App() {
   }
 
   return (
-    <Routes>
-      <Route path="/" element={<Launcher />} />
-      <Route path="/blood-tests" element={<BloodTests />} />
-      <Route path="/blood-pressure" element={<BloodPressure />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/" element={<Launcher />} />
+        <Route path="/blood-tests" element={<BloodTests />} />
+        <Route path="/blood-pressure" element={<BloodPressure />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+      <Toaster
+        position="bottom-center"
+        toastOptions={{
+          className: 'bg-background text-foreground border border-border shadow-lg',
+          style: {
+            background: 'hsl(var(--background))',
+            color: 'hsl(var(--foreground))',
+            border: '1px solid hsl(var(--border))',
+          },
+        }}
+      />
+    </>
   );
 }

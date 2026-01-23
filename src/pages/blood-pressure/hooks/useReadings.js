@@ -77,6 +77,13 @@ export function useReadings() {
   }, []);
 
   const deleteReading = useCallback(async (id) => {
+    // Find the reading before deleting so we can return it for undo
+    let deletedReading = null;
+    setReadings((prev) => {
+      deletedReading = prev.find((r) => r.id === id);
+      return prev;
+    });
+
     const { error: deleteError } = await deleteReadingDb(id);
 
     if (deleteError) {
@@ -87,7 +94,7 @@ export function useReadings() {
     // Remove from local state
     setReadings((prev) => prev.filter((r) => r.id !== id));
 
-    return { error: null };
+    return { error: null, deletedReading };
   }, []);
 
   const refetch = useCallback(() => {

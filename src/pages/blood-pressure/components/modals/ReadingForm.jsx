@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -113,6 +114,8 @@ function ReadingFormContent({ reading, onOpenChange, addReading, updateReading, 
       return;
     }
 
+    toast.success(isEditing ? 'Reading updated' : 'Reading added');
+
     // Reset form and close
     handleReset();
     onOpenChange(false);
@@ -136,7 +139,7 @@ function ReadingFormContent({ reading, onOpenChange, addReading, updateReading, 
     setError(null);
     setDeleting(true);
 
-    const { error: deleteError } = await deleteReading(reading.id);
+    const { error: deleteError, deletedReading } = await deleteReading(reading.id);
 
     setDeleting(false);
 
@@ -145,6 +148,19 @@ function ReadingFormContent({ reading, onOpenChange, addReading, updateReading, 
       setConfirmDelete(false);
       return;
     }
+
+    toast('Reading deleted', {
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          if (deletedReading) {
+            const { id: _, ...readingData } = deletedReading;
+            addReading(readingData);
+          }
+        },
+      },
+      duration: 5000,
+    });
 
     onOpenChange(false);
   };

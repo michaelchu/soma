@@ -78,6 +78,7 @@ export default function BloodPressure({ onLogout }) {
         return (
           <ReadingsTab
             readings={filteredReadings}
+            addReading={addReading}
             updateReading={updateReading}
             deleteReading={deleteReading}
           />
@@ -97,6 +98,7 @@ export default function BloodPressure({ onLogout }) {
         return (
           <ReadingsTab
             readings={filteredReadings}
+            addReading={addReading}
             updateReading={updateReading}
             deleteReading={deleteReading}
           />
@@ -225,6 +227,7 @@ export default function BloodPressure({ onLogout }) {
               {/* Readings Table */}
               <ReadingsTab
                 readings={filteredReadings}
+                addReading={addReading}
                 updateReading={updateReading}
                 deleteReading={deleteReading}
               />

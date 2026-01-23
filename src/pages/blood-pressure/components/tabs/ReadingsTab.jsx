@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { toast } from 'sonner';
 import { StickyNote, Trash2 } from 'lucide-react';
 import {
   Table,
@@ -135,9 +136,27 @@ function SwipeableRow({ children, onDelete, onLongPress, isLast }) {
   );
 }
 
-export function ReadingsTab({ readings, updateReading, deleteReading }) {
+export function ReadingsTab({ readings, addReading, updateReading, deleteReading }) {
   const [editingReading, setEditingReading] = useState(null);
   const { getCategory, getCategoryInfo } = useBPSettings();
+
+  const handleDelete = async (id) => {
+    const { error, deletedReading } = await deleteReading(id);
+    if (error) return;
+
+    toast('Reading deleted', {
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          if (deletedReading) {
+            const { id: _, ...readingData } = deletedReading;
+            addReading(readingData);
+          }
+        },
+      },
+      duration: 5000,
+    });
+  };
 
   if (!readings || readings.length === 0) {
     return (
@@ -158,7 +177,7 @@ export function ReadingsTab({ readings, updateReading, deleteReading }) {
           return (
             <SwipeableRow
               key={reading.id}
-              onDelete={() => deleteReading(reading.id)}
+              onDelete={() => handleDelete(reading.id)}
               onLongPress={() => setEditingReading(reading)}
               isLast={index === readings.length - 1}
             >
