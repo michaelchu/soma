@@ -21,7 +21,7 @@ const VALID_TABS = ['readings', 'statistics', 'charts'];
 
 export default function BloodPressure({ onLogout }) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { readings, loading, error, addReading, updateReading, deleteReading } = useReadings();
+  const { readings, loading, error, addSession, updateSession, deleteSession } = useReadings();
   const [showForm, setShowForm] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -78,9 +78,9 @@ export default function BloodPressure({ onLogout }) {
         return (
           <ReadingsTab
             readings={filteredReadings}
-            addReading={addReading}
-            updateReading={updateReading}
-            deleteReading={deleteReading}
+            addSession={addSession}
+            updateSession={updateSession}
+            deleteSession={deleteSession}
           />
         );
       case 'statistics':
@@ -98,9 +98,9 @@ export default function BloodPressure({ onLogout }) {
         return (
           <ReadingsTab
             readings={filteredReadings}
-            addReading={addReading}
-            updateReading={updateReading}
-            deleteReading={deleteReading}
+            addSession={addSession}
+            updateSession={updateSession}
+            deleteSession={deleteSession}
           />
         );
     }
@@ -227,9 +227,9 @@ export default function BloodPressure({ onLogout }) {
               {/* Readings Table */}
               <ReadingsTab
                 readings={filteredReadings}
-                addReading={addReading}
-                updateReading={updateReading}
-                deleteReading={deleteReading}
+                addSession={addSession}
+                updateSession={updateSession}
+                deleteSession={deleteSession}
               />
             </div>
           </>
@@ -255,9 +255,9 @@ export default function BloodPressure({ onLogout }) {
       <ReadingForm
         open={showForm}
         onOpenChange={setShowForm}
-        addReading={addReading}
-        updateReading={updateReading}
-        deleteReading={deleteReading}
+        addSession={addSession}
+        updateSession={updateSession}
+        deleteSession={deleteSession}
       />
 
       {/* Export Modal */}

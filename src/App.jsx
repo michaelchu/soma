@@ -32,7 +32,8 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <Toaster
-        position="bottom-center"
+        position="top-center"
+        duration={3000}
         toastOptions={{
           className: 'bg-background text-foreground border border-border shadow-lg',
           style: {

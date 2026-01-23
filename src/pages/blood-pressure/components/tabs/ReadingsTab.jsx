@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { toast } from 'sonner';
-import { StickyNote, Trash2 } from 'lucide-react';
+import { StickyNote, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -9,6 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { BPStatusBadge } from '../ui/BPStatusBadge';
 import { formatDateTime } from '../../utils/bpHelpers';
 import { useBPSettings } from '../../hooks/useBPSettings';
@@ -18,7 +19,7 @@ const SWIPE_THRESHOLD = 80;
 const DELETE_THRESHOLD = 150;
 const LONG_PRESS_DURATION = 500;
 
-function SwipeableRow({ children, onDelete, onLongPress, isLast }) {
+function SwipeableRow({ children, onDelete, onLongPress, onTap, onExpandTap, isLast }) {
   const [offsetX, setOffsetX] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -27,6 +28,8 @@ function SwipeableRow({ children, onDelete, onLongPress, isLast }) {
   const currentX = useRef(0);
   const isHorizontalSwipe = useRef(null);
   const longPressTimer = useRef(null);
+  const hasMoved = useRef(false);
+  const longPressTriggered = useRef(false);
 
   const clearLongPressTimer = () => {
     if (longPressTimer.current) {
@@ -35,12 +38,19 @@ function SwipeableRow({ children, onDelete, onLongPress, isLast }) {
     }
   };
 
+  const touchTarget = useRef(null);
+
   const handleTouchStart = (e) => {
     startX.current = e.touches[0].clientX;
     startY.current = e.touches[0].clientY;
     currentX.current = offsetX;
     setIsDragging(true);
     isHorizontalSwipe.current = null;
+    hasMoved.current = false;
+    longPressTriggered.current = false;
+
+    // Check if touch started on expand button
+    touchTarget.current = e.target.closest('[data-expand-button]') ? 'expand' : 'row';
 
     // Start long press timer
     longPressTimer.current = setTimeout(() => {
@@ -48,6 +58,7 @@ function SwipeableRow({ children, onDelete, onLongPress, isLast }) {
       if (navigator.vibrate) {
         navigator.vibrate(50);
       }
+      longPressTriggered.current = true;
       onLongPress?.();
     }, LONG_PRESS_DURATION);
   };
@@ -61,6 +72,7 @@ function SwipeableRow({ children, onDelete, onLongPress, isLast }) {
     // Cancel long press if user moves
     if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
       clearLongPressTimer();
+      hasMoved.current = true;
     }
 
     // Determine swipe direction on first significant movement
@@ -92,6 +104,14 @@ function SwipeableRow({ children, onDelete, onLongPress, isLast }) {
     } else {
       // Snap back
       setOffsetX(0);
+      // Handle tap if no movement and no long press
+      if (!hasMoved.current && !longPressTriggered.current) {
+        if (touchTarget.current === 'expand') {
+          onExpandTap?.();
+        } else {
+          onTap?.();
+        }
+      }
     }
   };
 
@@ -136,26 +156,74 @@ function SwipeableRow({ children, onDelete, onLongPress, isLast }) {
   );
 }
 
-export function ReadingsTab({ readings, addReading, updateReading, deleteReading }) {
-  const [editingReading, setEditingReading] = useState(null);
+function NotesModal({ open, onOpenChange, session }) {
+  if (!session) return null;
+
+  const { date, time } = formatDateTime(session.datetime, { hideCurrentYear: true });
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>
+            Notes - {date} {time}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="py-2">
+          {session.notes ? (
+            <p className="text-sm text-foreground whitespace-pre-wrap">{session.notes}</p>
+          ) : (
+            <p className="text-sm text-muted-foreground italic">No notes for this reading</p>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function ReadingsTab({ readings, addSession, updateSession, deleteSession }) {
+  const [editingSession, setEditingSession] = useState(null);
+  const [expandedSessionId, setExpandedSessionId] = useState(null);
+  const [notesSession, setNotesSession] = useState(null);
   const { getCategory, getCategoryInfo } = useBPSettings();
 
-  const handleDelete = async (id) => {
-    const { error, deletedReading } = await deleteReading(id);
+  const handleDelete = async (sessionId) => {
+    const { error, deletedSession } = await deleteSession(sessionId);
     if (error) return;
 
     toast('Reading deleted', {
       action: {
         label: 'Undo',
         onClick: () => {
-          if (deletedReading) {
-            const { id: _, ...readingData } = deletedReading;
-            addReading(readingData);
+          if (deletedSession) {
+            addSession({
+              datetime: deletedSession.datetime,
+              readings: deletedSession.readings.map((r) => ({
+                systolic: r.systolic,
+                diastolic: r.diastolic,
+                arm: r.arm,
+              })),
+              pulse: deletedSession.pulse,
+              notes: deletedSession.notes,
+            });
           }
         },
       },
-      duration: 5000,
+      duration: 4000,
     });
+  };
+
+  const handleTap = (session) => {
+    // Show notes modal if notes exist
+    if (session.notes) {
+      setNotesSession(session);
+    }
+  };
+
+  const handleExpandToggle = (session) => {
+    if (session.readingCount > 1) {
+      setExpandedSessionId(expandedSessionId === session.sessionId ? null : session.sessionId);
+    }
   };
 
   if (!readings || readings.length === 0) {
@@ -170,77 +238,138 @@ export function ReadingsTab({ readings, addReading, updateReading, deleteReading
     <>
       {/* Mobile: List layout */}
       <div className="md:hidden -mx-5 sm:-mx-6">
-        {readings.map((reading, index) => {
-          const { date, time } = formatDateTime(reading.datetime, { hideCurrentYear: true });
-          const category = getCategory(reading.systolic, reading.diastolic);
+        {readings.map((session, index) => {
+          const { date, time } = formatDateTime(session.datetime, { hideCurrentYear: true });
+          const category = getCategory(session.systolic, session.diastolic);
           const categoryInfo = getCategoryInfo(category);
-          return (
-            <SwipeableRow
-              key={reading.id}
-              onDelete={() => handleDelete(reading.id)}
-              onLongPress={() => setEditingReading(reading)}
-              isLast={index === readings.length - 1}
-            >
-              <div className="flex items-stretch select-none">
-                {/* BP Reading - colored background */}
-                <div
-                  className={`flex flex-col items-center justify-center min-w-[70px] py-3 ${categoryInfo.bgClass}`}
-                >
-                  <span
-                    className={`font-mono text-xl font-bold leading-tight ${categoryInfo.textClass}`}
-                  >
-                    {reading.systolic}
-                  </span>
-                  <div
-                    className={`w-5 h-px my-0.5 ${categoryInfo.textClass} opacity-30`}
-                    style={{ backgroundColor: 'currentColor' }}
-                  />
-                  <span
-                    className={`font-mono text-xl font-bold leading-tight ${categoryInfo.textClass}`}
-                  >
-                    {reading.diastolic}
-                  </span>
-                </div>
+          const isExpanded = expandedSessionId === session.sessionId;
 
-                {/* Details */}
-                <div className="flex-1 flex items-center justify-between px-3 sm:px-4 py-3">
-                  <div className="text-sm text-muted-foreground">
-                    <div className="flex items-center gap-1.5 text-base font-semibold text-foreground">
-                      <span>{date}</span>
-                      {reading.notes && (
-                        <StickyNote className="h-3.5 w-3.5 text-muted-foreground" />
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span>{time}</span>
-                      <span>·</span>
-                      <span>
-                        {reading.pulse ? (
-                          `${reading.pulse} bpm`
-                        ) : (
-                          <span className={categoryInfo.textClass}>
-                            {categoryInfo.shortLabel || categoryInfo.label}
+          return (
+            <div key={session.sessionId}>
+              <SwipeableRow
+                onDelete={() => handleDelete(session.sessionId)}
+                onLongPress={() => setEditingSession(session)}
+                onTap={() => handleTap(session)}
+                onExpandTap={() => handleExpandToggle(session)}
+                isLast={index === readings.length - 1 && !isExpanded}
+              >
+                <div className="flex items-stretch select-none">
+                  {/* BP Reading - colored background */}
+                  <div
+                    className={`flex flex-col items-center justify-center min-w-[70px] py-3 ${categoryInfo.bgClass}`}
+                  >
+                    <span
+                      className={`font-mono text-xl font-bold leading-tight ${categoryInfo.textClass}`}
+                    >
+                      {session.systolic}
+                    </span>
+                    <div
+                      className={`w-5 h-px my-0.5 ${categoryInfo.textClass} opacity-30`}
+                      style={{ backgroundColor: 'currentColor' }}
+                    />
+                    <span
+                      className={`font-mono text-xl font-bold leading-tight ${categoryInfo.textClass}`}
+                    >
+                      {session.diastolic}
+                    </span>
+                  </div>
+
+                  {/* Details */}
+                  <div className="flex-1 flex items-center justify-between pl-3 sm:pl-4 pr-5 sm:pr-6 py-3">
+                    <div className="text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1.5 text-base font-semibold text-foreground">
+                        <span>{date}</span>
+                        {session.notes && (
+                          <StickyNote className="h-3.5 w-3.5 text-muted-foreground" />
+                        )}
+                        {session.readingCount > 1 && (
+                          <span className="text-xs font-normal text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                            {session.readingCount}x
                           </span>
                         )}
-                      </span>
-                    </div>
-                    {reading.pulse && (
-                      <div className={`text-xs mt-0.5 ${categoryInfo.textClass}`}>
-                        {categoryInfo.shortLabel || categoryInfo.label}
                       </div>
-                    )}
-                  </div>
+                      <div className="flex items-center gap-1.5">
+                        <span>{time}</span>
+                        {session.pulse && (
+                          <>
+                            <span>·</span>
+                            <span>{session.pulse} bpm</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
 
-                  {/* PP/MAP column */}
-                  <div className="flex flex-col items-end justify-center text-sm text-muted-foreground">
-                    <div>PP: {reading.systolic - reading.diastolic} mmHg</div>
-                    <div>
-                      MAP: {Math.round((reading.systolic + 2 * reading.diastolic) / 3)} mmHg
+                    {/* PP/MAP column + expand indicator */}
+                    <div className="flex items-center gap-2">
+                      <div className="flex flex-col items-end justify-center text-sm text-muted-foreground">
+                        <div>PP: {session.systolic - session.diastolic} mmHg</div>
+                        <div>
+                          MAP: {Math.round((session.systolic + 2 * session.diastolic) / 3)} mmHg
+                        </div>
+                      </div>
+                      {session.readingCount > 1 && (
+                        <div
+                          className="p-2 -m-2 text-muted-foreground active:bg-muted rounded"
+                          data-expand-button="true"
+                        >
+                          {isExpanded ? (
+                            <ChevronUp className="h-5 w-5" />
+                          ) : (
+                            <ChevronDown className="h-5 w-5" />
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
-              </div>
-            </SwipeableRow>
+              </SwipeableRow>
+
+              {/* Expanded individual readings */}
+              {isExpanded && session.readings && (
+                <div className="bg-muted/30 border-b">
+                  {session.readings.map((reading, readingIndex) => {
+                    const readingCategory = getCategory(reading.systolic, reading.diastolic);
+                    const readingCategoryInfo = getCategoryInfo(readingCategory);
+                    return (
+                      <div
+                        key={reading.id}
+                        className={`flex items-center px-5 sm:px-6 py-2 ${
+                          readingIndex !== session.readings.length - 1
+                            ? 'border-b border-border/50'
+                            : ''
+                        }`}
+                      >
+                        <div className="w-[70px] flex items-center justify-center">
+                          <span className="text-xs text-muted-foreground">#{readingIndex + 1}</span>
+                        </div>
+                        <div className="flex-1 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span
+                              className={`font-mono text-sm font-medium ${readingCategoryInfo.textClass}`}
+                            >
+                              {reading.systolic}/{reading.diastolic}
+                            </span>
+                            {reading.arm && (
+                              <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                                {reading.arm}
+                              </span>
+                            )}
+                          </div>
+                          <span className={`text-xs ${readingCategoryInfo.textClass}`}>
+                            {readingCategoryInfo.shortLabel || readingCategoryInfo.label}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {session.notes && (
+                    <div className="px-5 sm:px-6 py-2 border-t border-border/50">
+                      <p className="text-sm text-muted-foreground">{session.notes}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           );
         })}
       </div>
@@ -253,30 +382,34 @@ export function ReadingsTab({ readings, addReading, updateReading, deleteReading
               <TableHead>Date</TableHead>
               <TableHead>Time</TableHead>
               <TableHead className="text-right">BP</TableHead>
+              <TableHead className="text-center">Readings</TableHead>
               <TableHead className="text-right">Pulse</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Notes</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {readings.map((reading) => {
-              const { date, time } = formatDateTime(reading.datetime);
-              const category = getCategory(reading.systolic, reading.diastolic);
+            {readings.map((session) => {
+              const { date, time } = formatDateTime(session.datetime);
+              const category = getCategory(session.systolic, session.diastolic);
               return (
-                <TableRow key={reading.id}>
+                <TableRow key={session.sessionId}>
                   <TableCell className="font-medium">{date}</TableCell>
                   <TableCell className="text-muted-foreground">{time}</TableCell>
                   <TableCell className="text-right font-mono">
-                    {reading.systolic}/{reading.diastolic}
+                    {session.systolic}/{session.diastolic}
+                  </TableCell>
+                  <TableCell className="text-center text-muted-foreground">
+                    {session.readingCount > 1 ? `${session.readingCount}x` : '—'}
                   </TableCell>
                   <TableCell className="text-right text-muted-foreground">
-                    {reading.pulse || '—'}
+                    {session.pulse || '—'}
                   </TableCell>
                   <TableCell>
                     <BPStatusBadge category={category} size="sm" />
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm truncate max-w-[200px]">
-                    {reading.notes || '—'}
+                    {session.notes || '—'}
                   </TableCell>
                 </TableRow>
               );
@@ -285,13 +418,21 @@ export function ReadingsTab({ readings, addReading, updateReading, deleteReading
         </Table>
       </div>
 
-      {/* Edit Reading Dialog */}
+      {/* Notes Modal */}
+      <NotesModal
+        open={!!notesSession}
+        onOpenChange={(open) => !open && setNotesSession(null)}
+        session={notesSession}
+      />
+
+      {/* Edit Session Dialog */}
       <ReadingForm
-        open={!!editingReading}
-        onOpenChange={(open) => !open && setEditingReading(null)}
-        reading={editingReading}
-        updateReading={updateReading}
-        deleteReading={deleteReading}
+        open={!!editingSession}
+        onOpenChange={(open) => !open && setEditingSession(null)}
+        session={editingSession}
+        addSession={addSession}
+        updateSession={updateSession}
+        deleteSession={deleteSession}
       />
     </>
   );

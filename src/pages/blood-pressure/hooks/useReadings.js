@@ -1,32 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   getReadings,
-  addReading as addReadingDb,
-  updateReading as updateReadingDb,
-  deleteReading as deleteReadingDb,
+  addSession as addSessionDb,
+  updateSession as updateSessionDb,
+  deleteSession as deleteSessionDb,
 } from '../../../lib/db/bloodPressure';
 
 /**
- * Custom hook to load and manage blood pressure readings from Supabase
+ * Custom hook to load and manage blood pressure sessions from Supabase
+ * Each session contains one or more individual readings taken in one sitting
  */
 export function useReadings() {
-  const [readings, setReadings] = useState([]);
+  const [readings, setReadings] = useState([]); // These are actually sessions now
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  const fetchReadings = useCallback(async () => {
-    setLoading(true);
-    const { data, error: fetchError } = await getReadings();
-
-    if (fetchError) {
-      setError('Failed to load blood pressure readings');
-      console.error('Error fetching readings:', fetchError);
-    } else {
-      setReadings(data || []);
-      setError(null);
-    }
-    setLoading(false);
-  }, []);
 
   useEffect(() => {
     const loadReadings = async () => {
@@ -45,11 +32,11 @@ export function useReadings() {
     loadReadings();
   }, []);
 
-  const addReading = useCallback(async (reading) => {
-    const { data, error: addError } = await addReadingDb(reading);
+  const addSession = useCallback(async (session) => {
+    const { data, error: addError } = await addSessionDb(session);
 
     if (addError) {
-      console.error('Error adding reading:', addError);
+      console.error('Error adding session:', addError);
       return { error: addError };
     }
 
@@ -62,52 +49,62 @@ export function useReadings() {
     return { data };
   }, []);
 
-  const updateReading = useCallback(async (id, updates) => {
-    const { data, error: updateError } = await updateReadingDb(id, updates);
+  const updateSession = useCallback(async (sessionId, session) => {
+    const { data, error: updateError } = await updateSessionDb(sessionId, session);
 
     if (updateError) {
-      console.error('Error updating reading:', updateError);
+      console.error('Error updating session:', updateError);
       return { error: updateError };
     }
 
     // Update local state
-    setReadings((prev) => prev.map((r) => (r.id === id ? data : r)));
+    setReadings((prev) => prev.map((s) => (s.sessionId === sessionId ? data : s)));
 
     return { data };
   }, []);
 
-  const deleteReading = useCallback(async (id) => {
-    // Find the reading before deleting so we can return it for undo
-    let deletedReading = null;
+  const deleteSession = useCallback(async (sessionId) => {
+    // Find the session before deleting so we can return it for undo
+    let deletedSession = null;
     setReadings((prev) => {
-      deletedReading = prev.find((r) => r.id === id);
+      deletedSession = prev.find((s) => s.sessionId === sessionId);
       return prev;
     });
 
-    const { error: deleteError } = await deleteReadingDb(id);
+    const { error: deleteError } = await deleteSessionDb(sessionId);
 
     if (deleteError) {
-      console.error('Error deleting reading:', deleteError);
+      console.error('Error deleting session:', deleteError);
       return { error: deleteError };
     }
 
     // Remove from local state
-    setReadings((prev) => prev.filter((r) => r.id !== id));
+    setReadings((prev) => prev.filter((s) => s.sessionId !== sessionId));
 
-    return { error: null, deletedReading };
+    return { error: null, deletedSession };
   }, []);
 
-  const refetch = useCallback(() => {
-    fetchReadings();
-  }, [fetchReadings]);
+  const refetch = useCallback(async () => {
+    setLoading(true);
+    const { data, error: fetchError } = await getReadings();
+
+    if (fetchError) {
+      setError('Failed to load blood pressure readings');
+      console.error('Error fetching readings:', fetchError);
+    } else {
+      setReadings(data || []);
+      setError(null);
+    }
+    setLoading(false);
+  }, []);
 
   return {
-    readings,
+    readings, // Sessions with computed averages
     loading,
     error,
-    addReading,
-    updateReading,
-    deleteReading,
+    addSession,
+    updateSession,
+    deleteSession,
     refetch,
   };
 }

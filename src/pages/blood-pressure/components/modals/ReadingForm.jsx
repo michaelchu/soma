@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -6,8 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Save, Loader2, Plus, X, Trash2 } from 'lucide-react';
-import { BPStatusBadge } from '../ui/BPStatusBadge';
-import { useBPSettings } from '../../hooks/useBPSettings';
 
 function getDefaultDatetime() {
   const now = new Date();
@@ -22,31 +20,55 @@ function formatDatetimeForInput(isoString) {
 }
 
 function createEmptyBpRow() {
-  return { systolic: '', diastolic: '' };
+  return { systolic: '', diastolic: '', arm: null };
 }
 
 // Inner form component that resets when key changes
-function ReadingFormContent({ reading, onOpenChange, addReading, updateReading, deleteReading }) {
-  const { getCategory } = useBPSettings();
-  const isEditing = !!reading;
+function ReadingFormContent({ session, onOpenChange, addSession, updateSession, deleteSession }) {
+  const isEditing = !!session;
 
   const [datetime, setDatetime] = useState(() =>
-    reading ? formatDatetimeForInput(reading.datetime) : getDefaultDatetime()
+    session ? formatDatetimeForInput(session.datetime) : getDefaultDatetime()
   );
   const [bpRows, setBpRows] = useState(() =>
-    reading
-      ? [{ systolic: String(reading.systolic), diastolic: String(reading.diastolic) }]
+    session?.readings
+      ? session.readings.map((r) => ({
+          systolic: String(r.systolic),
+          diastolic: String(r.diastolic),
+          arm: r.arm || null,
+        }))
       : [createEmptyBpRow()]
   );
-  const [pulse, setPulse] = useState(() => (reading?.pulse ? String(reading.pulse) : ''));
-  const [notes, setNotes] = useState(() => reading?.notes || '');
+  const [pulse, setPulse] = useState(() => (session?.pulse ? String(session.pulse) : ''));
+  const [notes, setNotes] = useState(() => session?.notes || '');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState(null);
 
+  // Refs for auto-focus: inputRefs[rowIndex][field] where field is 'systolic' or 'diastolic'
+  const inputRefs = useRef({});
+
+  const setInputRef = useCallback((rowIndex, field, el) => {
+    if (!inputRefs.current[rowIndex]) {
+      inputRefs.current[rowIndex] = {};
+    }
+    inputRefs.current[rowIndex][field] = el;
+  }, []);
+
   const updateBpRow = (index, field, value) => {
     setBpRows((rows) => rows.map((row, i) => (i === index ? { ...row, [field]: value } : row)));
+
+    // Auto-focus to next field after 3 digits
+    if (value.length === 3) {
+      if (field === 'systolic') {
+        // Move to diastolic in same row
+        inputRefs.current[index]?.diastolic?.focus();
+      } else if (field === 'diastolic') {
+        // Move to systolic in next row if available
+        inputRefs.current[index + 1]?.systolic?.focus();
+      }
+    }
   };
 
   const addBpRow = () => {
@@ -82,28 +104,32 @@ function ReadingFormContent({ reading, onOpenChange, addReading, updateReading, 
         )
       : null;
 
-  const category = avgSystolic && avgDiastolic ? getCategory(avgSystolic, avgDiastolic) : null;
-
   const isValid = datetime && validRows.length > 0;
 
   const handleSave = async () => {
     setError(null);
     setSaving(true);
 
-    const readingData = {
+    // Convert valid rows to readings array with parsed integers
+    const readings = validRows.map((row) => ({
+      systolic: parseInt(row.systolic),
+      diastolic: parseInt(row.diastolic),
+      arm: row.arm,
+    }));
+
+    const sessionData = {
       datetime: new Date(datetime).toISOString(),
-      systolic: avgSystolic,
-      diastolic: avgDiastolic,
+      readings,
       pulse: pulse ? parseInt(pulse) : null,
       notes: notes || null,
     };
 
     let saveError;
     if (isEditing) {
-      const result = await updateReading(reading.id, readingData);
+      const result = await updateSession(session.sessionId, sessionData);
       saveError = result.error;
     } else {
-      const result = await addReading(readingData);
+      const result = await addSession(sessionData);
       saveError = result.error;
     }
 
@@ -139,7 +165,7 @@ function ReadingFormContent({ reading, onOpenChange, addReading, updateReading, 
     setError(null);
     setDeleting(true);
 
-    const { error: deleteError, deletedReading } = await deleteReading(reading.id);
+    const { error: deleteError, deletedSession } = await deleteSession(session.sessionId);
 
     setDeleting(false);
 
@@ -153,13 +179,22 @@ function ReadingFormContent({ reading, onOpenChange, addReading, updateReading, 
       action: {
         label: 'Undo',
         onClick: () => {
-          if (deletedReading) {
-            const { id: _, ...readingData } = deletedReading;
-            addReading(readingData);
+          if (deletedSession) {
+            // Re-add the session with its readings
+            addSession({
+              datetime: deletedSession.datetime,
+              readings: deletedSession.readings.map((r) => ({
+                systolic: r.systolic,
+                diastolic: r.diastolic,
+                arm: r.arm,
+              })),
+              pulse: deletedSession.pulse,
+              notes: deletedSession.notes,
+            });
           }
         },
       },
-      duration: 5000,
+      duration: 4000,
     });
 
     onOpenChange(false);
@@ -186,12 +221,13 @@ function ReadingFormContent({ reading, onOpenChange, addReading, updateReading, 
         {/* Blood Pressure */}
         <div className="space-y-2">
           <Label>Blood Pressure (mmHg)</Label>
-          <div className="max-h-40 overflow-y-auto space-y-2 pr-1">
+          <div className="max-h-40 overflow-y-auto -mx-1">
             {bpRows.map((row, index) => (
-              <div key={index} className="flex items-center gap-2">
+              <div key={index} className="flex items-center gap-2 px-1 py-1">
                 <Input
+                  ref={(el) => setInputRef(index, 'systolic', el)}
                   type="number"
-                  placeholder="Systolic"
+                  placeholder="Sys"
                   value={row.systolic}
                   onChange={(e) => updateBpRow(index, 'systolic', e.target.value)}
                   min={60}
@@ -200,14 +236,40 @@ function ReadingFormContent({ reading, onOpenChange, addReading, updateReading, 
                 />
                 <span className="text-2xl text-muted-foreground">/</span>
                 <Input
+                  ref={(el) => setInputRef(index, 'diastolic', el)}
                   type="number"
-                  placeholder="Diastolic"
+                  placeholder="Dia"
                   value={row.diastolic}
                   onChange={(e) => updateBpRow(index, 'diastolic', e.target.value)}
                   min={40}
                   max={150}
                   className="text-center"
                 />
+                {/* Arm selector */}
+                <div className="flex h-9 rounded-md border border-input overflow-hidden flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => updateBpRow(index, 'arm', row.arm === 'L' ? null : 'L')}
+                    className={`px-2.5 text-sm font-medium transition-colors ${
+                      row.arm === 'L'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-background text-muted-foreground hover:bg-muted'
+                    }`}
+                  >
+                    L
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => updateBpRow(index, 'arm', row.arm === 'R' ? null : 'R')}
+                    className={`px-2.5 text-sm font-medium border-l border-input transition-colors ${
+                      row.arm === 'R'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-background text-muted-foreground hover:bg-muted'
+                    }`}
+                  >
+                    R
+                  </button>
+                </div>
                 {bpRows.length > 1 && (
                   <Button
                     type="button"
@@ -229,11 +291,6 @@ function ReadingFormContent({ reading, onOpenChange, addReading, updateReading, 
           {validRows.length > 1 && (
             <div className="text-sm text-muted-foreground">
               Average: {avgSystolic}/{avgDiastolic} mmHg
-            </div>
-          )}
-          {category && (
-            <div className="pt-1">
-              <BPStatusBadge category={category} showDescription />
             </div>
           )}
         </div>
@@ -276,7 +333,7 @@ function ReadingFormContent({ reading, onOpenChange, addReading, updateReading, 
 
         {/* Actions */}
         <div className="flex gap-2 pt-2">
-          {isEditing && deleteReading && (
+          {isEditing && deleteSession && (
             <Button
               variant={confirmDelete ? 'destructive' : 'outline'}
               onClick={handleDelete}
@@ -323,21 +380,21 @@ function ReadingFormContent({ reading, onOpenChange, addReading, updateReading, 
 export function ReadingForm({
   open,
   onOpenChange,
-  reading = null,
-  addReading,
-  updateReading,
-  deleteReading,
+  session = null,
+  addSession,
+  updateSession,
+  deleteSession,
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full h-full max-w-none sm:max-w-md sm:h-auto flex flex-col rounded-none sm:rounded-lg">
         <ReadingFormContent
-          key={reading?.id || 'new'}
-          reading={reading}
+          key={session?.sessionId || 'new'}
+          session={session}
           onOpenChange={onOpenChange}
-          addReading={addReading}
-          updateReading={updateReading}
-          deleteReading={deleteReading}
+          addSession={addSession}
+          updateSession={updateSession}
+          deleteSession={deleteSession}
         />
       </DialogContent>
     </Dialog>
