@@ -346,7 +346,7 @@ export function MetricChart({ metricKey, reports, collapsed = false, onLongPress
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="h-16 flex items-center justify-center text-sm text-muted-foreground bg-muted rounded-lg">
+            <div className="h-16 flex items-center justify-center text-sm text-muted-foreground bg-muted rounded-lg text-center px-4">
               Single data point — add more reports to see trends
             </div>
           )}
