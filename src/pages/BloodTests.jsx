@@ -53,6 +53,7 @@ export default function BloodTests() {
     isIgnored: false,
   });
   const [reportsDropdownOpen, setReportsDropdownOpen] = useState(false);
+  const [expandedMobileMetric, setExpandedMobileMetric] = useState(null); // Track individually expanded metric on mobile
   const dropdownTouchStartRef = useRef({ x: 0, y: 0 });
   const dropdownTouchMovedRef = useRef(false);
 
@@ -163,6 +164,11 @@ export default function BloodTests() {
       metricName: ref?.name || metricKey,
       isIgnored: isIgnored(metricKey),
     });
+  };
+
+  const handleMetricTap = (metricKey) => {
+    // Toggle expanded state for this metric on mobile
+    setExpandedMobileMetric((prev) => (prev === metricKey ? null : metricKey));
   };
 
   const handleIgnoreConfirm = () => {
@@ -408,6 +414,8 @@ export default function BloodTests() {
                               ...prev,
                               [category]: !prev[category],
                             }));
+                            // Reset individual metric expansion when using category button
+                            setExpandedMobileMetric(null);
                           }}
                           className="flex items-center justify-center h-7 w-7 rounded border bg-card text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
                           title={chartsExpanded ? 'Collapse charts' : 'Expand charts'}
@@ -421,16 +429,22 @@ export default function BloodTests() {
                       )}
                     </div>
                     {!isCollapsed && (
-                      <div className="p-3 sm:p-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                          {metrics.map((key) => (
-                            <MetricChart
+                      <div className="md:p-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 md:gap-4">
+                          {metrics.map((key, index) => (
+                            <div
                               key={key}
-                              metricKey={key}
-                              reports={filteredReports}
-                              collapsed={!chartsExpanded}
-                              onLongPress={handleMetricLongPress}
-                            />
+                              className={`py-3 px-4 md:p-0 ${index < metrics.length - 1 ? 'border-b md:border-b-0' : ''}`}
+                            >
+                              <MetricChart
+                                metricKey={key}
+                                reports={filteredReports}
+                                collapsed={!chartsExpanded}
+                                mobileExpanded={expandedMobileMetric === key}
+                                onTap={handleMetricTap}
+                                onLongPress={handleMetricLongPress}
+                              />
+                            </div>
                           ))}
                         </div>
                       </div>
