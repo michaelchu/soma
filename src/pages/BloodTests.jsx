@@ -53,6 +53,7 @@ export default function BloodTests() {
     isIgnored: false,
   });
   const [reportsDropdownOpen, setReportsDropdownOpen] = useState(false);
+  const [expandedMobileMetric, setExpandedMobileMetric] = useState(null); // Track individually expanded metric on mobile
   const dropdownTouchStartRef = useRef({ x: 0, y: 0 });
   const dropdownTouchMovedRef = useRef(false);
 
@@ -163,6 +164,11 @@ export default function BloodTests() {
       metricName: ref?.name || metricKey,
       isIgnored: isIgnored(metricKey),
     });
+  };
+
+  const handleMetricTap = (metricKey) => {
+    // Toggle expanded state for this metric on mobile
+    setExpandedMobileMetric((prev) => (prev === metricKey ? null : metricKey));
   };
 
   const handleIgnoreConfirm = () => {
@@ -432,6 +438,8 @@ export default function BloodTests() {
                                 metricKey={key}
                                 reports={filteredReports}
                                 collapsed={!chartsExpanded}
+                                mobileExpanded={expandedMobileMetric === key}
+                                onTap={handleMetricTap}
                                 onLongPress={handleMetricLongPress}
                               />
                             </div>

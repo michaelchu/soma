@@ -21,10 +21,18 @@ import { TrendIndicator } from '../ui/TrendIndicator';
 const LONG_PRESS_DURATION = 600; // ms
 const MOVE_THRESHOLD = 10; // pixels - cancel long press if moved more than this
 
-export function MetricChart({ metricKey, reports, collapsed = false, onLongPress }) {
+export function MetricChart({
+  metricKey,
+  reports,
+  collapsed = false,
+  mobileExpanded = false,
+  onTap,
+  onLongPress,
+}) {
   const longPressTimerRef = useRef(null);
   const isLongPressRef = useRef(false);
   const startPosRef = useRef({ x: 0, y: 0 });
+  const didMoveRef = useRef(false);
 
   const cancelLongPress = useCallback(() => {
     if (longPressTimerRef.current) {
@@ -36,6 +44,7 @@ export function MetricChart({ metricKey, reports, collapsed = false, onLongPress
   const startLongPress = useCallback(
     (e) => {
       isLongPressRef.current = false;
+      didMoveRef.current = false;
 
       // Store initial position
       if (e.touches) {
@@ -60,8 +69,6 @@ export function MetricChart({ metricKey, reports, collapsed = false, onLongPress
 
   const handleMove = useCallback(
     (e) => {
-      if (!longPressTimerRef.current) return;
-
       let currentX, currentY;
       if (e.touches) {
         currentX = e.touches[0].clientX;
@@ -76,11 +83,20 @@ export function MetricChart({ metricKey, reports, collapsed = false, onLongPress
 
       // Cancel if moved beyond threshold (user is scrolling)
       if (deltaX > MOVE_THRESHOLD || deltaY > MOVE_THRESHOLD) {
+        didMoveRef.current = true;
         cancelLongPress();
       }
     },
     [cancelLongPress]
   );
+
+  const handleEnd = useCallback(() => {
+    cancelLongPress();
+    // If it wasn't a long press and user didn't move, treat as a tap
+    if (!isLongPressRef.current && !didMoveRef.current && onTap) {
+      onTap(metricKey);
+    }
+  }, [cancelLongPress, metricKey, onTap]);
 
   const handleContextMenu = useCallback(
     (e) => {
@@ -140,15 +156,15 @@ export function MetricChart({ metricKey, reports, collapsed = false, onLongPress
           : hasHistoricalAbnormal
             ? 'md:border-muted-foreground/30'
             : 'md:border-border'
-      } ${onLongPress ? 'cursor-pointer active:scale-[0.98]' : ''}`}
-      onMouseDown={onLongPress ? startLongPress : undefined}
-      onMouseUp={onLongPress ? cancelLongPress : undefined}
-      onMouseMove={onLongPress ? handleMove : undefined}
-      onMouseLeave={onLongPress ? cancelLongPress : undefined}
-      onTouchStart={onLongPress ? startLongPress : undefined}
-      onTouchEnd={onLongPress ? cancelLongPress : undefined}
-      onTouchMove={onLongPress ? handleMove : undefined}
-      onTouchCancel={onLongPress ? cancelLongPress : undefined}
+      } ${onLongPress || onTap ? 'cursor-pointer active:scale-[0.98]' : ''}`}
+      onMouseDown={onLongPress || onTap ? startLongPress : undefined}
+      onMouseUp={onLongPress || onTap ? handleEnd : undefined}
+      onMouseMove={onLongPress || onTap ? handleMove : undefined}
+      onMouseLeave={onLongPress || onTap ? cancelLongPress : undefined}
+      onTouchStart={onLongPress || onTap ? startLongPress : undefined}
+      onTouchEnd={onLongPress || onTap ? handleEnd : undefined}
+      onTouchMove={onLongPress || onTap ? handleMove : undefined}
+      onTouchCancel={onLongPress || onTap ? cancelLongPress : undefined}
       onContextMenu={handleContextMenu}
     >
       <div className="flex justify-between items-start mb-1 gap-2">
@@ -189,8 +205,11 @@ export function MetricChart({ metricKey, reports, collapsed = false, onLongPress
         optimalMax={metric.optimalMax}
       />
 
-      {!collapsed && (
-        <>
+      {/* Expanded content: visible on mobile when mobileExpanded, on desktop when not collapsed */}
+      {(mobileExpanded || !collapsed) && (
+        <div
+          className={`${mobileExpanded ? '' : 'hidden'} ${!collapsed ? 'md:block' : 'md:hidden'}`}
+        >
           <div className="flex items-center justify-between mt-2 mb-3">
             <div className="flex items-center gap-2">
               <StatusBadge status={status} />
@@ -360,7 +379,7 @@ export function MetricChart({ metricKey, reports, collapsed = false, onLongPress
               ? `1 reading · ${data[0].date}`
               : `${data.length} readings · ${data[0].date} → ${data[data.length - 1].date}`}
           </div>
-        </>
+        </div>
       )}
     </div>
   );
