@@ -1,3 +1,4 @@
+import { useRef, useCallback } from 'react';
 import {
   Line,
   XAxis,
@@ -17,7 +18,42 @@ import { StatusBadge } from '../ui/StatusBadge';
 import { RangeBar } from '../ui/RangeBar';
 import { TrendIndicator } from '../ui/TrendIndicator';
 
-export function MetricChart({ metricKey, reports, collapsed = false }) {
+const LONG_PRESS_DURATION = 500; // ms
+
+export function MetricChart({ metricKey, reports, collapsed = false, onLongPress }) {
+  const longPressTimerRef = useRef(null);
+  const isLongPressRef = useRef(false);
+
+  const startLongPress = useCallback(() => {
+    isLongPressRef.current = false;
+    longPressTimerRef.current = setTimeout(() => {
+      isLongPressRef.current = true;
+      if (onLongPress) {
+        // Trigger haptic feedback on supported devices
+        if (navigator.vibrate) {
+          navigator.vibrate(50);
+        }
+        onLongPress(metricKey);
+      }
+    }, LONG_PRESS_DURATION);
+  }, [metricKey, onLongPress]);
+
+  const cancelLongPress = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, []);
+
+  const handleContextMenu = useCallback(
+    (e) => {
+      // Prevent context menu on long press
+      if (onLongPress) {
+        e.preventDefault();
+      }
+    },
+    [onLongPress]
+  );
   const ref = REFERENCE_RANGES[metricKey];
   const data = reports
     .sort((a, b) => new Date(a.date) - new Date(b.date))
@@ -61,13 +97,20 @@ export function MetricChart({ metricKey, reports, collapsed = false }) {
 
   return (
     <div
-      className={`bg-card rounded-xl border-2 p-3 sm:p-4 transition-all ${
+      className={`bg-card rounded-xl border-2 p-3 sm:p-4 transition-all select-none ${
         status !== 'normal'
           ? 'border-amber-300 dark:border-amber-700 bg-gradient-to-br from-amber-50/50 to-transparent dark:from-amber-950/20'
           : hasHistoricalAbnormal
             ? 'border-muted-foreground/30'
             : 'border-border'
-      }`}
+      } ${onLongPress ? 'cursor-pointer active:scale-[0.98]' : ''}`}
+      onMouseDown={onLongPress ? startLongPress : undefined}
+      onMouseUp={onLongPress ? cancelLongPress : undefined}
+      onMouseLeave={onLongPress ? cancelLongPress : undefined}
+      onTouchStart={onLongPress ? startLongPress : undefined}
+      onTouchEnd={onLongPress ? cancelLongPress : undefined}
+      onTouchCancel={onLongPress ? cancelLongPress : undefined}
+      onContextMenu={handleContextMenu}
     >
       <div className="flex justify-between items-start mb-1 gap-2">
         <div className="flex-1 min-w-0">
