@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Activity,
@@ -52,6 +52,35 @@ export default function BloodTests() {
     metricName: '',
     isIgnored: false,
   });
+  const [reportsDropdownOpen, setReportsDropdownOpen] = useState(false);
+  const dropdownTouchStartRef = useRef({ x: 0, y: 0 });
+  const dropdownTouchMovedRef = useRef(false);
+
+  const handleDropdownTouchStart = useCallback((e) => {
+    dropdownTouchStartRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+    };
+    dropdownTouchMovedRef.current = false;
+  }, []);
+
+  const handleDropdownTouchMove = useCallback((e) => {
+    const deltaX = Math.abs(e.touches[0].clientX - dropdownTouchStartRef.current.x);
+    const deltaY = Math.abs(e.touches[0].clientY - dropdownTouchStartRef.current.y);
+    if (deltaX > 10 || deltaY > 10) {
+      dropdownTouchMovedRef.current = true;
+    }
+  }, []);
+
+  const handleDropdownClick = useCallback((e) => {
+    // On touch devices, prevent opening if user was scrolling
+    if (dropdownTouchMovedRef.current) {
+      e.preventDefault();
+      dropdownTouchMovedRef.current = false;
+      return;
+    }
+    setReportsDropdownOpen((prev) => !prev);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 8);
@@ -249,13 +278,16 @@ export default function BloodTests() {
                 {ignoredCount > 0 && <span className="text-xs opacity-70">({ignoredCount})</span>}
               </button>
             </div>
-            <DropdownMenu>
+            <DropdownMenu open={reportsDropdownOpen} onOpenChange={setReportsDropdownOpen}>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
                   size="sm"
                   className="flex items-center gap-1 sm:gap-2 h-8 flex-shrink-0"
                   title="Select Reports"
+                  onTouchStart={handleDropdownTouchStart}
+                  onTouchMove={handleDropdownTouchMove}
+                  onClick={handleDropdownClick}
                 >
                   <Calendar size={16} />
                   <span className="hidden sm:inline">Reports</span>
