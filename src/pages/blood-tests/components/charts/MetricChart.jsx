@@ -92,11 +92,17 @@ export function MetricChart({
 
   const handleEnd = useCallback(() => {
     cancelLongPress();
-    // If it wasn't a long press and user didn't move, treat as a tap
-    if (!isLongPressRef.current && !didMoveRef.current && onTap) {
+  }, [cancelLongPress]);
+
+  const handleClick = useCallback(() => {
+    // If it was a long press or user moved, don't treat as tap
+    if (isLongPressRef.current || didMoveRef.current) {
+      return;
+    }
+    if (onTap) {
       onTap(metricKey);
     }
-  }, [cancelLongPress, metricKey, onTap]);
+  }, [metricKey, onTap]);
 
   const handleContextMenu = useCallback(
     (e) => {
@@ -157,14 +163,17 @@ export function MetricChart({
             ? 'md:border-muted-foreground/30'
             : 'md:border-border'
       } ${onLongPress || onTap ? 'cursor-pointer active:scale-[0.98]' : ''}`}
-      onMouseDown={onLongPress || onTap ? startLongPress : undefined}
-      onMouseUp={onLongPress || onTap ? handleEnd : undefined}
-      onMouseMove={onLongPress || onTap ? handleMove : undefined}
-      onMouseLeave={onLongPress || onTap ? cancelLongPress : undefined}
+      onClick={onTap ? handleClick : undefined}
+      onMouseDown={onLongPress ? startLongPress : undefined}
+      onMouseUp={onLongPress ? handleEnd : undefined}
+      onMouseMove={onLongPress ? handleMove : undefined}
+      onMouseLeave={onLongPress ? cancelLongPress : undefined}
       onTouchStart={onLongPress || onTap ? startLongPress : undefined}
       onTouchEnd={onLongPress || onTap ? handleEnd : undefined}
       onTouchMove={onLongPress || onTap ? handleMove : undefined}
       onTouchCancel={onLongPress || onTap ? cancelLongPress : undefined}
+      role={onTap ? 'button' : undefined}
+      tabIndex={onTap ? 0 : undefined}
       onContextMenu={handleContextMenu}
     >
       <div className="flex justify-between items-start mb-1 gap-2">
