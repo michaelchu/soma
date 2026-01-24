@@ -217,7 +217,7 @@ export function MetricChart({
       {/* Expanded content: visible on mobile when mobileExpanded, on desktop when not collapsed */}
       {(mobileExpanded || !collapsed) && (
         <div
-          className={`${mobileExpanded ? '' : 'hidden'} ${!collapsed ? 'md:block' : 'md:hidden'}`}
+          className={`${mobileExpanded || !collapsed ? '' : 'hidden'} ${collapsed ? 'md:hidden' : ''}`}
         >
           <div className="flex items-center justify-between mt-2 mb-3">
             <div className="flex items-center gap-2">
