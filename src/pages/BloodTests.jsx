@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Activity,
@@ -9,6 +9,9 @@ import {
   ChevronDown,
   ChevronsDownUp,
   ChevronsUpDown,
+  EyeOff,
+  Beaker,
+  SearchX,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,6 +30,8 @@ import { getStatus } from './blood-tests/utils/statusHelpers';
 import { MetricChart } from './blood-tests/components/charts/MetricChart';
 import { ReportImporter } from './blood-tests/components/modals/ReportImporter';
 import { ExportModal } from './blood-tests/components/modals/ExportModal';
+import { IgnoreMetricDialog } from './blood-tests/components/modals/IgnoreMetricDialog';
+import { useIgnoredMetrics } from './blood-tests/hooks/useIgnoredMetrics';
 
 export default function BloodTests() {
   const navigate = useNavigate();
@@ -40,6 +45,45 @@ export default function BloodTests() {
   // Track which categories have their charts expanded (default all collapsed)
   const [expandedChartCategories, setExpandedChartCategories] = useState({});
   const [isScrolled, setIsScrolled] = useState(false);
+  const { ignoredMetrics, ignoreMetric, unignoreMetric, isIgnored } = useIgnoredMetrics();
+  const [ignoreDialogState, setIgnoreDialogState] = useState({
+    open: false,
+    metricKey: null,
+    metricName: '',
+    isIgnored: false,
+  });
+  const [reportsDropdownOpen, setReportsDropdownOpen] = useState(false);
+  const dropdownTouchStartRef = useRef({ x: 0, y: 0 });
+  const dropdownTouchMovedRef = useRef(false);
+
+  const handleDropdownPointerDown = useCallback((e) => {
+    if (e.pointerType === 'touch') {
+      // For touch, we'll handle opening manually via pointerUp
+      e.preventDefault();
+      dropdownTouchStartRef.current = { x: e.clientX, y: e.clientY };
+      dropdownTouchMovedRef.current = false;
+    }
+  }, []);
+
+  const handleDropdownPointerMove = useCallback((e) => {
+    if (e.pointerType === 'touch' && !dropdownTouchMovedRef.current) {
+      const deltaX = Math.abs(e.clientX - dropdownTouchStartRef.current.x);
+      const deltaY = Math.abs(e.clientY - dropdownTouchStartRef.current.y);
+      if (deltaX > 10 || deltaY > 10) {
+        dropdownTouchMovedRef.current = true;
+      }
+    }
+  }, []);
+
+  const handleDropdownPointerUp = useCallback((e) => {
+    if (e.pointerType === 'touch') {
+      // Only open if user didn't scroll
+      if (!dropdownTouchMovedRef.current) {
+        setReportsDropdownOpen((prev) => !prev);
+      }
+      dropdownTouchMovedRef.current = false;
+    }
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 8);
@@ -111,11 +155,49 @@ export default function BloodTests() {
   const selectAllReports = () => setSelectedReportIds(null);
   const selectedCount = selectedReportIds === null ? reports.length : selectedReportIds.size;
 
+  const handleMetricLongPress = (metricKey) => {
+    const ref = REFERENCE_RANGES[metricKey];
+    setIgnoreDialogState({
+      open: true,
+      metricKey,
+      metricName: ref?.name || metricKey,
+      isIgnored: isIgnored(metricKey),
+    });
+  };
+
+  const handleIgnoreConfirm = () => {
+    if (ignoreDialogState.isIgnored) {
+      unignoreMetric(ignoreDialogState.metricKey);
+    } else {
+      ignoreMetric(ignoreDialogState.metricKey);
+    }
+  };
+
+  // Count ignored metrics that have data
+  const ignoredCount = Array.from(allMetrics).filter((key) => {
+    const ref = REFERENCE_RANGES[key];
+    if (!ref) return false;
+    const reportsWithMetric = filteredReports.filter((r) => r.metrics[key]);
+    if (reportsWithMetric.length === 0) return false;
+    return isIgnored(key);
+  }).length;
+
   const filteredMetrics = Array.from(allMetrics).filter((key) => {
     const ref = REFERENCE_RANGES[key];
     if (!ref) return false;
     const reportsWithMetric = filteredReports.filter((r) => r.metrics[key]);
     if (reportsWithMetric.length === 0) return false;
+
+    const metricIsIgnored = isIgnored(key);
+
+    // In "ignored" tab, only show ignored metrics
+    if (filter === 'ignored') {
+      return metricIsIgnored;
+    }
+
+    // In "all" and "abnormal" tabs, exclude ignored metrics
+    if (metricIsIgnored) return false;
+
     if (filter === 'abnormal')
       return reportsWithMetric.some((r) => {
         const metric = r.metrics[key];
@@ -174,7 +256,7 @@ export default function BloodTests() {
       <main className="max-w-7xl mx-auto px-5 sm:px-6 pb-3 sm:pb-4">
         <div>
           <div
-            className={`flex gap-2 pb-3 overflow-x-auto -mx-5 px-5 sm:-mx-6 sm:px-6 sm:overflow-visible sticky top-[49px] z-10 bg-background py-2 ${isScrolled ? 'border-b' : ''}`}
+            className={`flex gap-2 pb-3 overflow-x-auto scrollbar-hide -mx-5 px-5 sm:-mx-6 sm:px-6 sm:overflow-visible sticky top-[49px] z-10 bg-background py-2 ${isScrolled ? 'border-b' : ''}`}
           >
             <div className="flex rounded-lg border bg-card overflow-hidden text-xs font-medium h-8 flex-shrink-0">
               <button
@@ -190,14 +272,25 @@ export default function BloodTests() {
                 <AlertTriangle size={14} />
                 Abnormal
               </button>
+              <button
+                onClick={() => setFilter('ignored')}
+                className={`px-2.5 sm:px-4 flex items-center gap-1 ${filter === 'ignored' ? 'bg-muted text-muted-foreground' : 'text-muted-foreground hover:bg-accent'}`}
+              >
+                <EyeOff size={14} />
+                Ignored
+                {ignoredCount > 0 && <span className="text-xs opacity-70">({ignoredCount})</span>}
+              </button>
             </div>
-            <DropdownMenu>
+            <DropdownMenu open={reportsDropdownOpen} onOpenChange={setReportsDropdownOpen}>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
                   size="sm"
                   className="flex items-center gap-1 sm:gap-2 h-8 flex-shrink-0"
                   title="Select Reports"
+                  onPointerDown={handleDropdownPointerDown}
+                  onPointerMove={handleDropdownPointerMove}
+                  onPointerUp={handleDropdownPointerUp}
                 >
                   <Calendar size={16} />
                   <span className="hidden sm:inline">Reports</span>
@@ -336,6 +429,7 @@ export default function BloodTests() {
                               metricKey={key}
                               reports={filteredReports}
                               collapsed={!chartsExpanded}
+                              onLongPress={handleMetricLongPress}
                             />
                           ))}
                         </div>
@@ -346,8 +440,32 @@ export default function BloodTests() {
               })}
             </div>
           ) : (
-            <div className="bg-card rounded-xl border p-8 text-center">
-              <p className="text-muted-foreground">No metrics match your filters.</p>
+            <div className="bg-card rounded-xl border p-12 text-center">
+              {filter === 'ignored' ? (
+                <>
+                  <EyeOff className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                  <p className="text-muted-foreground font-medium mb-2">No hidden metrics</p>
+                  <p className="text-sm text-muted-foreground/70">
+                    Long-press any metric card to hide it from view
+                  </p>
+                </>
+              ) : filter === 'abnormal' ? (
+                <>
+                  <Beaker className="h-12 w-12 text-green-500/50 mx-auto mb-4" />
+                  <p className="text-muted-foreground font-medium mb-2">All metrics are normal</p>
+                  <p className="text-sm text-muted-foreground/70">
+                    Great news! All your blood test values are within reference ranges
+                  </p>
+                </>
+              ) : (
+                <>
+                  <SearchX className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                  <p className="text-muted-foreground font-medium mb-2">No metrics found</p>
+                  <p className="text-sm text-muted-foreground/70">
+                    Import a blood test report to see your metrics here
+                  </p>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -362,7 +480,20 @@ export default function BloodTests() {
       </button>
 
       {showImporter && <ReportImporter onClose={() => setShowImporter(false)} />}
-      {showExportModal && <ExportModal onClose={() => setShowExportModal(false)} />}
+      {showExportModal && (
+        <ExportModal
+          onClose={() => setShowExportModal(false)}
+          reports={filteredReports}
+          ignoredMetrics={ignoredMetrics}
+        />
+      )}
+      <IgnoreMetricDialog
+        open={ignoreDialogState.open}
+        onOpenChange={(open) => setIgnoreDialogState((prev) => ({ ...prev, open }))}
+        metricName={ignoreDialogState.metricName}
+        isIgnored={ignoreDialogState.isIgnored}
+        onConfirm={handleIgnoreConfirm}
+      />
     </div>
   );
 }

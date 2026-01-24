@@ -1,3 +1,4 @@
+import { useRef, useCallback } from 'react';
 import {
   Line,
   XAxis,
@@ -17,7 +18,79 @@ import { StatusBadge } from '../ui/StatusBadge';
 import { RangeBar } from '../ui/RangeBar';
 import { TrendIndicator } from '../ui/TrendIndicator';
 
-export function MetricChart({ metricKey, reports, collapsed = false }) {
+const LONG_PRESS_DURATION = 600; // ms
+const MOVE_THRESHOLD = 10; // pixels - cancel long press if moved more than this
+
+export function MetricChart({ metricKey, reports, collapsed = false, onLongPress }) {
+  const longPressTimerRef = useRef(null);
+  const isLongPressRef = useRef(false);
+  const startPosRef = useRef({ x: 0, y: 0 });
+
+  const cancelLongPress = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, []);
+
+  const startLongPress = useCallback(
+    (e) => {
+      isLongPressRef.current = false;
+
+      // Store initial position
+      if (e.touches) {
+        startPosRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      } else {
+        startPosRef.current = { x: e.clientX, y: e.clientY };
+      }
+
+      longPressTimerRef.current = setTimeout(() => {
+        isLongPressRef.current = true;
+        if (onLongPress) {
+          // Trigger haptic feedback on supported devices
+          if (navigator.vibrate) {
+            navigator.vibrate(50);
+          }
+          onLongPress(metricKey);
+        }
+      }, LONG_PRESS_DURATION);
+    },
+    [metricKey, onLongPress]
+  );
+
+  const handleMove = useCallback(
+    (e) => {
+      if (!longPressTimerRef.current) return;
+
+      let currentX, currentY;
+      if (e.touches) {
+        currentX = e.touches[0].clientX;
+        currentY = e.touches[0].clientY;
+      } else {
+        currentX = e.clientX;
+        currentY = e.clientY;
+      }
+
+      const deltaX = Math.abs(currentX - startPosRef.current.x);
+      const deltaY = Math.abs(currentY - startPosRef.current.y);
+
+      // Cancel if moved beyond threshold (user is scrolling)
+      if (deltaX > MOVE_THRESHOLD || deltaY > MOVE_THRESHOLD) {
+        cancelLongPress();
+      }
+    },
+    [cancelLongPress]
+  );
+
+  const handleContextMenu = useCallback(
+    (e) => {
+      // Prevent context menu on long press
+      if (onLongPress) {
+        e.preventDefault();
+      }
+    },
+    [onLongPress]
+  );
   const ref = REFERENCE_RANGES[metricKey];
   const data = reports
     .sort((a, b) => new Date(a.date) - new Date(b.date))
@@ -61,13 +134,22 @@ export function MetricChart({ metricKey, reports, collapsed = false }) {
 
   return (
     <div
-      className={`bg-card rounded-xl border-2 p-3 sm:p-4 transition-all ${
+      className={`bg-card rounded-xl border-2 p-3 sm:p-4 transition-all select-none ${
         status !== 'normal'
           ? 'border-amber-300 dark:border-amber-700 bg-gradient-to-br from-amber-50/50 to-transparent dark:from-amber-950/20'
           : hasHistoricalAbnormal
             ? 'border-muted-foreground/30'
             : 'border-border'
-      }`}
+      } ${onLongPress ? 'cursor-pointer active:scale-[0.98]' : ''}`}
+      onMouseDown={onLongPress ? startLongPress : undefined}
+      onMouseUp={onLongPress ? cancelLongPress : undefined}
+      onMouseMove={onLongPress ? handleMove : undefined}
+      onMouseLeave={onLongPress ? cancelLongPress : undefined}
+      onTouchStart={onLongPress ? startLongPress : undefined}
+      onTouchEnd={onLongPress ? cancelLongPress : undefined}
+      onTouchMove={onLongPress ? handleMove : undefined}
+      onTouchCancel={onLongPress ? cancelLongPress : undefined}
+      onContextMenu={handleContextMenu}
     >
       <div className="flex justify-between items-start mb-1 gap-2">
         <div className="flex-1 min-w-0">
@@ -114,17 +196,21 @@ export function MetricChart({ metricKey, reports, collapsed = false }) {
               <StatusBadge status={status} />
               <TrendIndicator data={data} min={metric.min} max={metric.max} />
             </div>
-            <div className="text-xs text-muted-foreground">
-              {metric.min !== null && metric.max !== null
-                ? `Ref: ${metric.min}–${metric.max}`
-                : metric.min !== null
-                  ? `Ref: ≥${metric.min}`
-                  : metric.max !== null
-                    ? `Ref: ≤${metric.max}`
-                    : ''}
-              {metric.optimalMin !== null &&
-                metric.optimalMax !== null &&
-                ` · Optimal: ${metric.optimalMin}–${metric.optimalMax}`}
+            <div className="text-xs text-muted-foreground text-right">
+              {metric.min !== null && metric.max !== null ? (
+                <div>
+                  Ref: {metric.min}–{metric.max}
+                </div>
+              ) : metric.min !== null ? (
+                <div>Ref: ≥{metric.min}</div>
+              ) : metric.max !== null ? (
+                <div>Ref: ≤{metric.max}</div>
+              ) : null}
+              {metric.optimalMin !== null && metric.optimalMax !== null && (
+                <div>
+                  Optimal: {metric.optimalMin}–{metric.optimalMax}
+                </div>
+              )}
             </div>
           </div>
 
@@ -264,7 +350,7 @@ export function MetricChart({ metricKey, reports, collapsed = false }) {
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="h-16 flex items-center justify-center text-sm text-muted-foreground bg-muted rounded-lg">
+            <div className="h-16 flex items-center justify-center text-sm text-muted-foreground bg-muted rounded-lg text-center px-4">
               Single data point — add more reports to see trends
             </div>
           )}

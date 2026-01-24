@@ -9,9 +9,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useReports } from '../../hooks/useReports';
 
-function generateMarkdown(reports) {
+function generateMarkdown(reports, ignoredMetrics = new Set()) {
   let md = '# Blood Test Reports\n\n';
 
   for (const report of reports) {
@@ -21,15 +20,17 @@ function generateMarkdown(reports) {
     if (report.orderedBy) md += `**Ordered By:** ${report.orderedBy}\n`;
     md += '\n';
 
-    // Group metrics by category
+    // Group metrics by category, excluding ignored ones
     const byCategory = {};
     for (const [key, metric] of Object.entries(report.metrics)) {
+      if (ignoredMetrics.has(key)) continue;
       const cat = metric.category || 'Other';
       if (!byCategory[cat]) byCategory[cat] = [];
       byCategory[cat].push({ key, ...metric });
     }
 
     for (const [category, metrics] of Object.entries(byCategory)) {
+      if (metrics.length === 0) continue;
       md += `### ${category}\n\n`;
       md += '| Metric | Value | Reference | Unit |\n';
       md += '|--------|-------|-----------|------|\n';
@@ -53,7 +54,7 @@ function generateMarkdown(reports) {
   return md;
 }
 
-function generateCSV(reports) {
+function generateCSV(reports, ignoredMetrics = new Set()) {
   const rows = [
     [
       'Date',
@@ -69,6 +70,7 @@ function generateCSV(reports) {
 
   for (const report of reports) {
     for (const [key, metric] of Object.entries(report.metrics)) {
+      if (ignoredMetrics.has(key)) continue;
       rows.push([
         report.date,
         report.orderNumber || '',
@@ -85,12 +87,14 @@ function generateCSV(reports) {
   return rows.map((row) => row.map((cell) => `"${cell}"`).join(',')).join('\n');
 }
 
-export function ExportModal({ onClose }) {
-  const { reports } = useReports();
+export function ExportModal({ onClose, reports, ignoredMetrics = new Set() }) {
   const [copied, setCopied] = useState(false);
   const [format, setFormat] = useState('markdown');
 
-  const content = format === 'markdown' ? generateMarkdown(reports) : generateCSV(reports);
+  const content =
+    format === 'markdown'
+      ? generateMarkdown(reports, ignoredMetrics)
+      : generateCSV(reports, ignoredMetrics);
 
   const handleCopy = async () => {
     try {
