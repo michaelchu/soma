@@ -267,11 +267,11 @@ export function ReportImporter({ onClose }) {
           </div>
         </ScrollArea>
 
-        <DialogFooter className="p-3 border-t bg-muted flex-row justify-end">
-          <Button variant="outline" onClick={onClose} disabled={saving}>
+        <DialogFooter className="p-3 border-t bg-muted flex-row justify-end gap-3">
+          <Button variant="outline" onClick={onClose} disabled={saving} className="min-w-[100px]">
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={!canSave || saving}>
+          <Button onClick={handleSave} disabled={!canSave || saving} className="min-w-[100px]">
             {saving ? (
               <>
                 <Loader2 size={16} className="animate-spin" />
