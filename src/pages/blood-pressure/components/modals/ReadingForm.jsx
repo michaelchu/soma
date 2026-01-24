@@ -1,11 +1,11 @@
 import { useState, useRef, useCallback } from 'react';
-import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Save, Loader2, Plus, X, Trash2 } from 'lucide-react';
+import { showError, showSuccess, showWithUndo } from '@/lib/toast';
 
 function getDefaultDatetime() {
   const now = new Date();
@@ -44,7 +44,6 @@ function ReadingFormContent({ session, onOpenChange, addSession, updateSession, 
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [error, setError] = useState(null);
 
   // Refs for auto-focus: inputRefs[rowIndex][field] where field is 'systolic' or 'diastolic'
   const inputRefs = useRef({});
@@ -107,7 +106,6 @@ function ReadingFormContent({ session, onOpenChange, addSession, updateSession, 
   const isValid = datetime && validRows.length > 0;
 
   const handleSave = async () => {
-    setError(null);
     setSaving(true);
 
     // Convert valid rows to readings array with parsed integers
@@ -136,11 +134,11 @@ function ReadingFormContent({ session, onOpenChange, addSession, updateSession, 
     setSaving(false);
 
     if (saveError) {
-      setError(saveError.message || 'Failed to save reading');
+      showError(saveError.message || 'Failed to save reading');
       return;
     }
 
-    toast.success(isEditing ? 'Reading updated' : 'Reading added');
+    showSuccess(isEditing ? 'Reading updated' : 'Reading added');
 
     // Reset form and close
     handleReset();
@@ -152,7 +150,6 @@ function ReadingFormContent({ session, onOpenChange, addSession, updateSession, 
     setBpRows([createEmptyBpRow()]);
     setPulse('');
     setNotes('');
-    setError(null);
     setConfirmDelete(false);
   };
 
@@ -162,7 +159,6 @@ function ReadingFormContent({ session, onOpenChange, addSession, updateSession, 
       return;
     }
 
-    setError(null);
     setDeleting(true);
 
     const { error: deleteError, deletedSession } = await deleteSession(session.sessionId);
@@ -170,31 +166,25 @@ function ReadingFormContent({ session, onOpenChange, addSession, updateSession, 
     setDeleting(false);
 
     if (deleteError) {
-      setError(deleteError.message || 'Failed to delete reading');
+      showError(deleteError.message || 'Failed to delete reading');
       setConfirmDelete(false);
       return;
     }
 
-    toast('Reading deleted', {
-      action: {
-        label: 'Undo',
-        onClick: () => {
-          if (deletedSession) {
-            // Re-add the session with its readings
-            addSession({
-              datetime: deletedSession.datetime,
-              readings: deletedSession.readings.map((r) => ({
-                systolic: r.systolic,
-                diastolic: r.diastolic,
-                arm: r.arm,
-              })),
-              pulse: deletedSession.pulse,
-              notes: deletedSession.notes,
-            });
-          }
-        },
-      },
-      duration: 4000,
+    showWithUndo('Reading deleted', () => {
+      if (deletedSession) {
+        // Re-add the session with its readings
+        addSession({
+          datetime: deletedSession.datetime,
+          readings: deletedSession.readings.map((r) => ({
+            systolic: r.systolic,
+            diastolic: r.diastolic,
+            arm: r.arm,
+          })),
+          pulse: deletedSession.pulse,
+          notes: deletedSession.notes,
+        });
+      }
     });
 
     onOpenChange(false);
@@ -324,12 +314,6 @@ function ReadingFormContent({ session, onOpenChange, addSession, updateSession, 
             rows={2}
           />
         </div>
-
-        {error && (
-          <div className="bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm">
-            {error}
-          </div>
-        )}
 
         {/* Actions */}
         <div className="flex gap-2 pt-2">
