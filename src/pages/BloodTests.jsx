@@ -45,7 +45,7 @@ export default function BloodTests() {
   // Track which categories have their charts expanded (default all collapsed)
   const [expandedChartCategories, setExpandedChartCategories] = useState({});
   const [isScrolled, setIsScrolled] = useState(false);
-  const { ignoreMetric, unignoreMetric, isIgnored } = useIgnoredMetrics();
+  const { ignoredMetrics, ignoreMetric, unignoreMetric, isIgnored } = useIgnoredMetrics();
   const [ignoreDialogState, setIgnoreDialogState] = useState({
     open: false,
     metricKey: null,
@@ -445,7 +445,13 @@ export default function BloodTests() {
       </button>
 
       {showImporter && <ReportImporter onClose={() => setShowImporter(false)} />}
-      {showExportModal && <ExportModal onClose={() => setShowExportModal(false)} />}
+      {showExportModal && (
+        <ExportModal
+          onClose={() => setShowExportModal(false)}
+          reports={filteredReports}
+          ignoredMetrics={ignoredMetrics}
+        />
+      )}
       <IgnoreMetricDialog
         open={ignoreDialogState.open}
         onOpenChange={(open) => setIgnoreDialogState((prev) => ({ ...prev, open }))}
