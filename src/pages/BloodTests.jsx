@@ -56,30 +56,33 @@ export default function BloodTests() {
   const dropdownTouchStartRef = useRef({ x: 0, y: 0 });
   const dropdownTouchMovedRef = useRef(false);
 
-  const handleDropdownTouchStart = useCallback((e) => {
-    dropdownTouchStartRef.current = {
-      x: e.touches[0].clientX,
-      y: e.touches[0].clientY,
-    };
-    dropdownTouchMovedRef.current = false;
-  }, []);
-
-  const handleDropdownTouchMove = useCallback((e) => {
-    const deltaX = Math.abs(e.touches[0].clientX - dropdownTouchStartRef.current.x);
-    const deltaY = Math.abs(e.touches[0].clientY - dropdownTouchStartRef.current.y);
-    if (deltaX > 10 || deltaY > 10) {
-      dropdownTouchMovedRef.current = true;
-    }
-  }, []);
-
-  const handleDropdownClick = useCallback((e) => {
-    // On touch devices, prevent opening if user was scrolling
-    if (dropdownTouchMovedRef.current) {
+  const handleDropdownPointerDown = useCallback((e) => {
+    if (e.pointerType === 'touch') {
+      // For touch, we'll handle opening manually via pointerUp
       e.preventDefault();
+      dropdownTouchStartRef.current = { x: e.clientX, y: e.clientY };
       dropdownTouchMovedRef.current = false;
-      return;
     }
-    setReportsDropdownOpen((prev) => !prev);
+  }, []);
+
+  const handleDropdownPointerMove = useCallback((e) => {
+    if (e.pointerType === 'touch' && !dropdownTouchMovedRef.current) {
+      const deltaX = Math.abs(e.clientX - dropdownTouchStartRef.current.x);
+      const deltaY = Math.abs(e.clientY - dropdownTouchStartRef.current.y);
+      if (deltaX > 10 || deltaY > 10) {
+        dropdownTouchMovedRef.current = true;
+      }
+    }
+  }, []);
+
+  const handleDropdownPointerUp = useCallback((e) => {
+    if (e.pointerType === 'touch') {
+      // Only open if user didn't scroll
+      if (!dropdownTouchMovedRef.current) {
+        setReportsDropdownOpen((prev) => !prev);
+      }
+      dropdownTouchMovedRef.current = false;
+    }
   }, []);
 
   useEffect(() => {
@@ -285,9 +288,9 @@ export default function BloodTests() {
                   size="sm"
                   className="flex items-center gap-1 sm:gap-2 h-8 flex-shrink-0"
                   title="Select Reports"
-                  onTouchStart={handleDropdownTouchStart}
-                  onTouchMove={handleDropdownTouchMove}
-                  onClick={handleDropdownClick}
+                  onPointerDown={handleDropdownPointerDown}
+                  onPointerMove={handleDropdownPointerMove}
+                  onPointerUp={handleDropdownPointerUp}
                 >
                   <Calendar size={16} />
                   <span className="hidden sm:inline">Reports</span>
