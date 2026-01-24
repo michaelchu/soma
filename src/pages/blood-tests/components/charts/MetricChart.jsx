@@ -196,17 +196,21 @@ export function MetricChart({ metricKey, reports, collapsed = false, onLongPress
               <StatusBadge status={status} />
               <TrendIndicator data={data} min={metric.min} max={metric.max} />
             </div>
-            <div className="text-xs text-muted-foreground">
-              {metric.min !== null && metric.max !== null
-                ? `Ref: ${metric.min}–${metric.max}`
-                : metric.min !== null
-                  ? `Ref: ≥${metric.min}`
-                  : metric.max !== null
-                    ? `Ref: ≤${metric.max}`
-                    : ''}
-              {metric.optimalMin !== null &&
-                metric.optimalMax !== null &&
-                ` · Optimal: ${metric.optimalMin}–${metric.optimalMax}`}
+            <div className="text-xs text-muted-foreground text-right">
+              {metric.min !== null && metric.max !== null ? (
+                <div>
+                  Ref: {metric.min}–{metric.max}
+                </div>
+              ) : metric.min !== null ? (
+                <div>Ref: ≥{metric.min}</div>
+              ) : metric.max !== null ? (
+                <div>Ref: ≤{metric.max}</div>
+              ) : null}
+              {metric.optimalMin !== null && metric.optimalMax !== null && (
+                <div>
+                  Optimal: {metric.optimalMin}–{metric.optimalMax}
+                </div>
+              )}
             </div>
           </div>
 
