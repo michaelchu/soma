@@ -134,12 +134,12 @@ export function MetricChart({ metricKey, reports, collapsed = false, onLongPress
 
   return (
     <div
-      className={`bg-card rounded-xl border-2 p-3 sm:p-4 transition-all select-none ${
+      className={`transition-all select-none md:bg-card md:rounded-xl md:border-2 md:p-4 ${
         status !== 'normal'
-          ? 'border-amber-300 dark:border-amber-700 bg-gradient-to-br from-amber-50/50 to-transparent dark:from-amber-950/20'
+          ? 'md:border-amber-300 md:dark:border-amber-700 md:bg-gradient-to-br md:from-amber-50/50 md:to-transparent md:dark:from-amber-950/20'
           : hasHistoricalAbnormal
-            ? 'border-muted-foreground/30'
-            : 'border-border'
+            ? 'md:border-muted-foreground/30'
+            : 'md:border-border'
       } ${onLongPress ? 'cursor-pointer active:scale-[0.98]' : ''}`}
       onMouseDown={onLongPress ? startLongPress : undefined}
       onMouseUp={onLongPress ? cancelLongPress : undefined}

@@ -421,16 +421,20 @@ export default function BloodTests() {
                       )}
                     </div>
                     {!isCollapsed && (
-                      <div className="p-3 sm:p-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                          {metrics.map((key) => (
-                            <MetricChart
+                      <div className="md:p-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 md:gap-4">
+                          {metrics.map((key, index) => (
+                            <div
                               key={key}
-                              metricKey={key}
-                              reports={filteredReports}
-                              collapsed={!chartsExpanded}
-                              onLongPress={handleMetricLongPress}
-                            />
+                              className={`py-3 px-4 md:p-0 ${index < metrics.length - 1 ? 'border-b md:border-b-0' : ''}`}
+                            >
+                              <MetricChart
+                                metricKey={key}
+                                reports={filteredReports}
+                                collapsed={!chartsExpanded}
+                                onLongPress={handleMetricLongPress}
+                              />
+                            </div>
                           ))}
                         </div>
                       </div>
