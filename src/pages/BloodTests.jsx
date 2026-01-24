@@ -414,6 +414,8 @@ export default function BloodTests() {
                               ...prev,
                               [category]: !prev[category],
                             }));
+                            // Reset individual metric expansion when using category button
+                            setExpandedMobileMetric(null);
                           }}
                           className="flex items-center justify-center h-7 w-7 rounded border bg-card text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
                           title={chartsExpanded ? 'Collapse charts' : 'Expand charts'}
