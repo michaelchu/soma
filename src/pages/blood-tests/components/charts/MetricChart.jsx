@@ -18,25 +18,13 @@ import { StatusBadge } from '../ui/StatusBadge';
 import { RangeBar } from '../ui/RangeBar';
 import { TrendIndicator } from '../ui/TrendIndicator';
 
-const LONG_PRESS_DURATION = 500; // ms
+const LONG_PRESS_DURATION = 600; // ms
+const MOVE_THRESHOLD = 10; // pixels - cancel long press if moved more than this
 
 export function MetricChart({ metricKey, reports, collapsed = false, onLongPress }) {
   const longPressTimerRef = useRef(null);
   const isLongPressRef = useRef(false);
-
-  const startLongPress = useCallback(() => {
-    isLongPressRef.current = false;
-    longPressTimerRef.current = setTimeout(() => {
-      isLongPressRef.current = true;
-      if (onLongPress) {
-        // Trigger haptic feedback on supported devices
-        if (navigator.vibrate) {
-          navigator.vibrate(50);
-        }
-        onLongPress(metricKey);
-      }
-    }, LONG_PRESS_DURATION);
-  }, [metricKey, onLongPress]);
+  const startPosRef = useRef({ x: 0, y: 0 });
 
   const cancelLongPress = useCallback(() => {
     if (longPressTimerRef.current) {
@@ -44,6 +32,55 @@ export function MetricChart({ metricKey, reports, collapsed = false, onLongPress
       longPressTimerRef.current = null;
     }
   }, []);
+
+  const startLongPress = useCallback(
+    (e) => {
+      isLongPressRef.current = false;
+
+      // Store initial position
+      if (e.touches) {
+        startPosRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      } else {
+        startPosRef.current = { x: e.clientX, y: e.clientY };
+      }
+
+      longPressTimerRef.current = setTimeout(() => {
+        isLongPressRef.current = true;
+        if (onLongPress) {
+          // Trigger haptic feedback on supported devices
+          if (navigator.vibrate) {
+            navigator.vibrate(50);
+          }
+          onLongPress(metricKey);
+        }
+      }, LONG_PRESS_DURATION);
+    },
+    [metricKey, onLongPress]
+  );
+
+  const handleMove = useCallback(
+    (e) => {
+      if (!longPressTimerRef.current) return;
+
+      let currentX, currentY;
+      if (e.touches) {
+        currentX = e.touches[0].clientX;
+        currentY = e.touches[0].clientY;
+      } else {
+        currentX = e.clientX;
+        currentY = e.clientY;
+      }
+
+      const deltaX = Math.abs(currentX - startPosRef.current.x);
+      const deltaY = Math.abs(currentY - startPosRef.current.y);
+
+      // Cancel if moved beyond threshold (user is scrolling)
+      if (deltaX > MOVE_THRESHOLD || deltaY > MOVE_THRESHOLD) {
+        cancelLongPress();
+      }
+    },
+    [cancelLongPress]
+  );
 
   const handleContextMenu = useCallback(
     (e) => {
@@ -106,9 +143,11 @@ export function MetricChart({ metricKey, reports, collapsed = false, onLongPress
       } ${onLongPress ? 'cursor-pointer active:scale-[0.98]' : ''}`}
       onMouseDown={onLongPress ? startLongPress : undefined}
       onMouseUp={onLongPress ? cancelLongPress : undefined}
+      onMouseMove={onLongPress ? handleMove : undefined}
       onMouseLeave={onLongPress ? cancelLongPress : undefined}
       onTouchStart={onLongPress ? startLongPress : undefined}
       onTouchEnd={onLongPress ? cancelLongPress : undefined}
+      onTouchMove={onLongPress ? handleMove : undefined}
       onTouchCancel={onLongPress ? cancelLongPress : undefined}
       onContextMenu={handleContextMenu}
     >
