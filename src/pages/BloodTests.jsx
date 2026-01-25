@@ -4,16 +4,17 @@ import {
   Activity,
   AlertTriangle,
   Calendar,
-  Plus,
   Download,
   ChevronDown,
   ChevronsDownUp,
   ChevronsUpDown,
   EyeOff,
   Beaker,
+  Plus,
   SearchX,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { FabButton } from '@/components/ui/fab-button';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -508,12 +509,7 @@ export default function BloodTests() {
       </main>
 
       {/* FAB Button - mobile only */}
-      <button
-        onClick={() => setShowImporter(true)}
-        className="sm:hidden fixed bottom-4 right-4 z-50 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors"
-      >
-        <Plus className="h-6 w-6" />
-      </button>
+      <FabButton onClick={() => setShowImporter(true)} hideAbove="sm" className="bottom-4" />
 
       {showImporter && <ReportImporter onClose={() => setShowImporter(false)} />}
       {showExportModal && (
