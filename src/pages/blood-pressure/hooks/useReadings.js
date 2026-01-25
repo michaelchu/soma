@@ -55,6 +55,9 @@ export function useReadings() {
   const addSession = useCallback(async (session) => {
     const { data, error: addError } = await addSessionDb(session);
 
+    // Check if still mounted after async operation
+    if (!isMountedRef.current) return { error: null };
+
     if (addError) {
       console.error('Error adding session:', addError);
       return { error: addError };
@@ -72,6 +75,9 @@ export function useReadings() {
   const updateSession = useCallback(async (sessionId, session) => {
     const { data, error: updateError } = await updateSessionDb(sessionId, session);
 
+    // Check if still mounted after async operation
+    if (!isMountedRef.current) return { error: null };
+
     if (updateError) {
       console.error('Error updating session:', updateError);
       return { error: updateError };
@@ -88,6 +94,9 @@ export function useReadings() {
     const deletedSession = readingsRef.current.find((s) => s.sessionId === sessionId);
 
     const { error: deleteError } = await deleteSessionDb(sessionId);
+
+    // Check if still mounted after async operation
+    if (!isMountedRef.current) return { error: null, deletedSession };
 
     if (deleteError) {
       console.error('Error deleting session:', deleteError);

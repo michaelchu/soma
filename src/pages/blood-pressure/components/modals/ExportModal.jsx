@@ -19,7 +19,13 @@ function generateMarkdown(readings, stats, getCategory, getCategoryInfo) {
   }
 
   // Calculate actual date range from data (don't assume sort order)
-  const timestamps = readings.map((r) => new Date(r.datetime).getTime());
+  // Filter out invalid timestamps to prevent Math.min/max returning Infinity/NaN
+  const timestamps = readings.map((r) => new Date(r.datetime).getTime()).filter((t) => !isNaN(t));
+
+  if (timestamps.length === 0) {
+    return '# Blood Pressure Summary\n\nNo valid readings available.';
+  }
+
   const minDate = new Date(Math.min(...timestamps));
   const maxDate = new Date(Math.max(...timestamps));
 

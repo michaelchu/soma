@@ -161,10 +161,10 @@ function ReadingFormContent({ session, onOpenChange, addSession, updateSession, 
       return;
     }
 
-    showWithUndo('Reading deleted', () => {
+    showWithUndo('Reading deleted', async () => {
       if (deletedSession) {
         // Re-add the session with its readings
-        addSession({
+        const { error: undoError } = await addSession({
           datetime: deletedSession.datetime,
           readings: deletedSession.readings.map((r) => ({
             systolic: r.systolic,
@@ -174,6 +174,9 @@ function ReadingFormContent({ session, onOpenChange, addSession, updateSession, 
           pulse: deletedSession.pulse,
           notes: deletedSession.notes,
         });
+        if (undoError) {
+          showError('Failed to restore reading');
+        }
       }
     });
 

@@ -94,6 +94,9 @@ export function useReports() {
       // Refetch to get enriched data
       await fetchReports();
 
+      // Check again after async operation
+      if (!isMountedRef.current) return { error: null };
+
       return { data };
     },
     [fetchReports]
@@ -112,6 +115,9 @@ export function useReports() {
 
       // Refetch to get enriched data
       await fetchReports();
+
+      // Check again after async operation
+      if (!isMountedRef.current) return { error: null };
 
       return { data };
     },
