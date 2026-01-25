@@ -83,6 +83,10 @@ export function calculateStats(readings) {
   const diastolics = readings.map((r) => r.diastolic);
   const pulses = readings.filter((r) => r.pulse).map((r) => r.pulse);
 
+  // Get latest reading (arrays are guaranteed non-empty at this point due to early return)
+  const latestSystolic = systolics[systolics.length - 1];
+  const latestDiastolic = diastolics[diastolics.length - 1];
+
   return {
     avgSystolic: Math.round(systolics.reduce((a, b) => a + b, 0) / systolics.length),
     avgDiastolic: Math.round(diastolics.reduce((a, b) => a + b, 0) / diastolics.length),
@@ -93,10 +97,7 @@ export function calculateStats(readings) {
     minDiastolic: Math.min(...diastolics),
     maxDiastolic: Math.max(...diastolics),
     count: readings.length,
-    latestCategory: getBPCategory(
-      systolics[systolics.length - 1],
-      diastolics[diastolics.length - 1]
-    ),
+    latestCategory: getBPCategory(latestSystolic, latestDiastolic),
   };
 }
 

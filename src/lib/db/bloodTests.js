@@ -12,6 +12,15 @@ import { validateBloodTestReport, sanitizeString } from '../validation';
  * @returns {Promise<{data: Array, error: Error|null}>}
  */
 export async function getReports() {
+  // Get current user for explicit filtering (defense in depth alongside RLS)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { data: null, error: new Error('Not authenticated') };
+  }
+
   // Fetch reports with their metrics in a single query (fixes N+1 problem)
   const { data: reports, error } = await supabase
     .from('blood_test_reports')
@@ -21,6 +30,7 @@ export async function getReports() {
       blood_test_metrics (*)
     `
     )
+    .eq('user_id', user.id)
     .order('report_date', { ascending: false });
 
   if (error) {
@@ -155,6 +165,15 @@ export async function addReport(report) {
  * @returns {Promise<{data: Object|null, error: Error|null}>}
  */
 export async function updateReport(id, updates) {
+  // Get current user for explicit filtering (defense in depth alongside RLS)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { data: null, error: new Error('Not authenticated') };
+  }
+
   const updateData = {};
   if (updates.date !== undefined) updateData.report_date = updates.date;
   if (updates.orderNumber !== undefined)
@@ -167,6 +186,7 @@ export async function updateReport(id, updates) {
     .from('blood_test_reports')
     .update(updateData)
     .eq('id', id)
+    .eq('user_id', user.id)
     .select()
     .single();
 
@@ -192,7 +212,20 @@ export async function updateReport(id, updates) {
  * @returns {Promise<{error: Error|null}>}
  */
 export async function deleteReport(id) {
-  const { error } = await supabase.from('blood_test_reports').delete().eq('id', id);
+  // Get current user for explicit filtering (defense in depth alongside RLS)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: new Error('Not authenticated') };
+  }
+
+  const { error } = await supabase
+    .from('blood_test_reports')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', user.id);
 
   if (error) {
     console.error('Error deleting blood test report:', error);

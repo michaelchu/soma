@@ -226,10 +226,16 @@ function ReadingFormContent({ session, onOpenChange, addSession, updateSession, 
                   className="text-center"
                 />
                 {/* Arm selector */}
-                <div className="flex h-9 rounded-md border border-input overflow-hidden flex-shrink-0">
+                <div
+                  className="flex h-9 rounded-md border border-input overflow-hidden flex-shrink-0"
+                  role="group"
+                  aria-label="Arm selection"
+                >
                   <button
                     type="button"
                     onClick={() => updateBpRow(index, 'arm', row.arm === 'L' ? null : 'L')}
+                    aria-label="Left arm"
+                    aria-pressed={row.arm === 'L'}
                     className={`px-2.5 text-sm font-medium transition-colors ${
                       row.arm === 'L'
                         ? 'bg-primary text-primary-foreground'
@@ -241,6 +247,8 @@ function ReadingFormContent({ session, onOpenChange, addSession, updateSession, 
                   <button
                     type="button"
                     onClick={() => updateBpRow(index, 'arm', row.arm === 'R' ? null : 'R')}
+                    aria-label="Right arm"
+                    aria-pressed={row.arm === 'R'}
                     className={`px-2.5 text-sm font-medium border-l border-input transition-colors ${
                       row.arm === 'R'
                         ? 'bg-primary text-primary-foreground'

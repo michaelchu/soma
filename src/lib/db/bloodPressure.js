@@ -25,9 +25,19 @@ const cuffToArm = (cuff) => {
  * @returns {Promise<{data: Array, error: Error|null}>}
  */
 export async function getReadings() {
+  // Get current user for explicit filtering (defense in depth alongside RLS)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { data: null, error: new Error('Not authenticated') };
+  }
+
   const { data, error } = await supabase
     .from('blood_pressure_readings')
     .select('*')
+    .eq('user_id', user.id)
     .order('recorded_at', { ascending: false });
 
   if (error) {
@@ -213,22 +223,24 @@ export async function updateSession(sessionId, session) {
   // Sanitize notes
   const sanitizedNotes = session.notes ? sanitizeString(session.notes) : null;
 
-  // First, fetch existing readings for rollback capability
+  // First, fetch existing readings for rollback capability (filter by user_id for security)
   const { data: existingReadings, error: fetchError } = await supabase
     .from('blood_pressure_readings')
     .select('*')
-    .eq('session_id', sessionId);
+    .eq('session_id', sessionId)
+    .eq('user_id', user.id);
 
   if (fetchError) {
     console.error('Error fetching existing readings for backup:', fetchError);
     return { data: null, error: fetchError };
   }
 
-  // Delete existing readings in this session
+  // Delete existing readings in this session (filter by user_id for security)
   const { error: deleteError } = await supabase
     .from('blood_pressure_readings')
     .delete()
-    .eq('session_id', sessionId);
+    .eq('session_id', sessionId)
+    .eq('user_id', user.id);
 
   if (deleteError) {
     console.error('Error deleting old session readings:', deleteError);
@@ -263,6 +275,13 @@ export async function updateSession(sessionId, session) {
 
       if (rollbackError) {
         console.error('Rollback failed - data may be lost:', rollbackError);
+        // Return a more descriptive error that includes rollback failure
+        return {
+          data: null,
+          error: new Error(
+            'Update failed and data recovery failed. Your previous reading may be lost. Please refresh and re-enter if needed.'
+          ),
+        };
       } else {
         console.log('Rollback successful - original data restored');
       }
@@ -311,10 +330,20 @@ export async function updateSession(sessionId, session) {
  * @returns {Promise<{error: Error|null}>}
  */
 export async function deleteSession(sessionId) {
+  // Get current user for explicit filtering (defense in depth alongside RLS)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: new Error('Not authenticated') };
+  }
+
   const { error } = await supabase
     .from('blood_pressure_readings')
     .delete()
-    .eq('session_id', sessionId);
+    .eq('session_id', sessionId)
+    .eq('user_id', user.id);
 
   if (error) {
     console.error('Error deleting blood pressure session:', error);

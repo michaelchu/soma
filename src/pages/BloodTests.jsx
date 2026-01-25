@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Activity,
@@ -92,6 +92,79 @@ export default function BloodTests() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Memoize expensive computations (must be before early returns)
+  const allMetrics = useMemo(() => {
+    if (!reports) return new Set();
+    const metrics = new Set();
+    reports.forEach((r) => Object.keys(r.metrics).forEach((k) => metrics.add(k)));
+    return metrics;
+  }, [reports]);
+
+  const sortedReports = useMemo(
+    () => (reports ? [...reports].sort((a, b) => new Date(b.date) - new Date(a.date)) : []),
+    [reports]
+  );
+
+  // Filter reports based on checkbox selection
+  const filteredReports = useMemo(
+    () =>
+      !reports
+        ? []
+        : selectedReportIds === null
+          ? reports
+          : reports.filter((r) => selectedReportIds.has(r.id)),
+    [reports, selectedReportIds]
+  );
+
+  // Count ignored metrics that have data (memoized)
+  const ignoredCount = useMemo(
+    () =>
+      Array.from(allMetrics).filter((key) => {
+        const ref = REFERENCE_RANGES[key];
+        if (!ref) return false;
+        const reportsWithMetric = filteredReports.filter((r) => r.metrics[key]);
+        if (reportsWithMetric.length === 0) return false;
+        return isIgnored(key);
+      }).length,
+    [allMetrics, filteredReports, isIgnored]
+  );
+
+  // Filter and sort metrics (memoized)
+  const sortedMetrics = useMemo(() => {
+    const filtered = Array.from(allMetrics).filter((key) => {
+      const ref = REFERENCE_RANGES[key];
+      if (!ref) return false;
+      const reportsWithMetric = filteredReports.filter((r) => r.metrics[key]);
+      if (reportsWithMetric.length === 0) return false;
+
+      const metricIsIgnored = isIgnored(key);
+
+      // In "ignored" tab, only show ignored metrics
+      if (filter === 'ignored') {
+        return metricIsIgnored;
+      }
+
+      // In "all" and "abnormal" tabs, exclude ignored metrics
+      if (metricIsIgnored) return false;
+
+      if (filter === 'abnormal')
+        return reportsWithMetric.some((r) => {
+          const metric = r.metrics[key];
+          return getStatus(metric.value, metric.min, metric.max) !== 'normal';
+        });
+      return true;
+    });
+
+    // Sort by category, then by name within category
+    return filtered.sort((a, b) => {
+      const refA = REFERENCE_RANGES[a],
+        refB = REFERENCE_RANGES[b];
+      const catCompare = (refA?.category || '').localeCompare(refB?.category || '');
+      if (catCompare !== 0) return catCompare;
+      return (refA?.name || '').localeCompare(refB?.name || '');
+    });
+  }, [allMetrics, filteredReports, filter, isIgnored]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -114,15 +187,6 @@ export default function BloodTests() {
       </div>
     );
   }
-
-  const allMetrics = new Set();
-  reports.forEach((r) => Object.keys(r.metrics).forEach((k) => allMetrics.add(k)));
-
-  const sortedReports = [...reports].sort((a, b) => new Date(b.date) - new Date(a.date));
-
-  // Filter reports based on checkbox selection
-  const filteredReports =
-    selectedReportIds === null ? reports : reports.filter((r) => selectedReportIds.has(r.id));
 
   const isReportSelected = (reportId) =>
     selectedReportIds === null || selectedReportIds.has(reportId);
@@ -178,48 +242,6 @@ export default function BloodTests() {
       ignoreMetric(ignoreDialogState.metricKey);
     }
   };
-
-  // Count ignored metrics that have data
-  const ignoredCount = Array.from(allMetrics).filter((key) => {
-    const ref = REFERENCE_RANGES[key];
-    if (!ref) return false;
-    const reportsWithMetric = filteredReports.filter((r) => r.metrics[key]);
-    if (reportsWithMetric.length === 0) return false;
-    return isIgnored(key);
-  }).length;
-
-  const filteredMetrics = Array.from(allMetrics).filter((key) => {
-    const ref = REFERENCE_RANGES[key];
-    if (!ref) return false;
-    const reportsWithMetric = filteredReports.filter((r) => r.metrics[key]);
-    if (reportsWithMetric.length === 0) return false;
-
-    const metricIsIgnored = isIgnored(key);
-
-    // In "ignored" tab, only show ignored metrics
-    if (filter === 'ignored') {
-      return metricIsIgnored;
-    }
-
-    // In "all" and "abnormal" tabs, exclude ignored metrics
-    if (metricIsIgnored) return false;
-
-    if (filter === 'abnormal')
-      return reportsWithMetric.some((r) => {
-        const metric = r.metrics[key];
-        return getStatus(metric.value, metric.min, metric.max) !== 'normal';
-      });
-    return true;
-  });
-
-  // Always sort by category, then by name within category
-  const sortedMetrics = filteredMetrics.sort((a, b) => {
-    const refA = REFERENCE_RANGES[a],
-      refB = REFERENCE_RANGES[b];
-    const catCompare = (refA?.category || '').localeCompare(refB?.category || '');
-    if (catCompare !== 0) return catCompare;
-    return (refA?.name || '').localeCompare(refB?.name || '');
-  });
 
   const leftContent = (
     <button

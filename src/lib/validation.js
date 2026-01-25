@@ -51,7 +51,14 @@ export function validateBPReading(reading) {
     );
   }
 
-  if (systolic && diastolic && systolic <= diastolic) {
+  // Only check systolic > diastolic if both values passed type validation
+  if (
+    typeof systolic === 'number' &&
+    !isNaN(systolic) &&
+    typeof diastolic === 'number' &&
+    !isNaN(diastolic) &&
+    systolic <= diastolic
+  ) {
     errors.push('Systolic must be greater than diastolic');
   }
 
