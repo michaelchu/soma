@@ -118,7 +118,8 @@ export function calculateFullStats(readings) {
     return Math.round(r.diastolic + pp / 3);
   });
 
-  const avg = (arr) => (arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : null);
+  const avg = (arr) =>
+    arr.length > 0 ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
 
   return {
     systolic: {
@@ -224,19 +225,6 @@ export function formatDateTime(datetime, options = {}) {
       minute: '2-digit',
     }),
   };
-}
-
-/**
- * Format datetime for markdown ID
- */
-export function formatDatetimeForId(datetime) {
-  const date = new Date(datetime);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  return `${year}-${month}-${day} ${hours}:${minutes}`;
 }
 
 /**

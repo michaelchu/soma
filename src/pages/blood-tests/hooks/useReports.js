@@ -8,6 +8,23 @@ import {
 import { enrichReportMetrics } from '../utils/metricCalculations';
 
 /**
+ * Process and update reports state
+ */
+function processReportsData(data, setReports, setError, setLoading) {
+  if (!data || data.length === 0) {
+    setReports([]);
+    setError(null);
+    setLoading(false);
+    return;
+  }
+
+  const enrichedReports = enrichReportMetrics(data);
+  setReports(enrichedReports);
+  setError(null);
+  setLoading(false);
+}
+
+/**
  * Custom hook for managing blood test reports
  * Loads reports from Supabase and enriches them with reference range data
  */
@@ -16,6 +33,34 @@ export function useReports() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Initial data load
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadReports = async () => {
+      setLoading(true);
+      const { data, error: fetchError } = await getReports();
+
+      if (!isMounted) return;
+
+      if (fetchError) {
+        setError('Failed to load reports');
+        console.error('Error fetching reports:', fetchError);
+        setLoading(false);
+        return;
+      }
+
+      processReportsData(data, setReports, setError, setLoading);
+    };
+
+    loadReports();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Refetch function for manual refresh and after mutations
   const fetchReports = useCallback(async () => {
     setLoading(true);
     const { data, error: fetchError } = await getReports();
@@ -27,56 +72,7 @@ export function useReports() {
       return;
     }
 
-    if (!data || data.length === 0) {
-      setReports([]);
-      setError(null);
-      setLoading(false);
-      return;
-    }
-
-    // Enrich reports with reference range data from constants
-    const enrichedReports = enrichReportMetrics(data);
-    setReports(enrichedReports);
-    setError(null);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadReports = async () => {
-      setLoading(true);
-      const { data, error: fetchError } = await getReports();
-
-      // Only update state if component is still mounted
-      if (!isMounted) return;
-
-      if (fetchError) {
-        setError('Failed to load reports');
-        console.error('Error fetching reports:', fetchError);
-        setLoading(false);
-        return;
-      }
-
-      if (!data || data.length === 0) {
-        setReports([]);
-        setError(null);
-        setLoading(false);
-        return;
-      }
-
-      // Enrich reports with reference range data from constants
-      const enrichedReports = enrichReportMetrics(data);
-      setReports(enrichedReports);
-      setError(null);
-      setLoading(false);
-    };
-
-    loadReports();
-
-    return () => {
-      isMounted = false;
-    };
+    processReportsData(data, setReports, setError, setLoading);
   }, []);
 
   const addReport = useCallback(

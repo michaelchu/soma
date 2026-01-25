@@ -5,10 +5,10 @@ import {
   calculateStats,
   calculateFullStats,
   formatDateTime,
-  formatDatetimeForId,
   getTrend,
   getPreviousPeriodReadings,
 } from './bpHelpers';
+import { formatDatetimeForId } from '../../../lib/dateUtils';
 
 describe('bpHelpers', () => {
   describe('getBPCategory', () => {

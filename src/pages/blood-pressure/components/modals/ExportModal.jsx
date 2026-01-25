@@ -18,8 +18,13 @@ function generateMarkdown(readings, stats, getCategory, getCategoryInfo) {
     return '# Blood Pressure Summary\n\nNo readings available.';
   }
 
+  // Calculate actual date range from data (don't assume sort order)
+  const timestamps = readings.map((r) => new Date(r.datetime).getTime());
+  const minDate = new Date(Math.min(...timestamps));
+  const maxDate = new Date(Math.max(...timestamps));
+
   let md = '# Blood Pressure Summary\n\n';
-  md += `**Analysis Period:** ${new Date(readings[readings.length - 1].datetime).toLocaleDateString()} to ${new Date(readings[0].datetime).toLocaleDateString()}\n`;
+  md += `**Analysis Period:** ${minDate.toLocaleDateString()} to ${maxDate.toLocaleDateString()}\n`;
   md += `**Total Readings:** ${readings.length}\n\n`;
 
   // Category distribution
