@@ -4,19 +4,22 @@ import { BrowserRouter } from 'react-router-dom';
 import { ThemeProvider } from './lib/theme';
 import { AuthProvider } from './lib/AuthContext';
 import { SettingsProvider } from './lib/SettingsContext';
+import ErrorBoundary from './components/ErrorBoundary';
 import App from './App';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <ThemeProvider>
-      <SettingsProvider>
-        <AuthProvider>
-          <BrowserRouter>
-            <App />
-          </BrowserRouter>
-        </AuthProvider>
-      </SettingsProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <SettingsProvider>
+          <AuthProvider>
+            <BrowserRouter>
+              <App />
+            </BrowserRouter>
+          </AuthProvider>
+        </SettingsProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   </React.StrictMode>
 );

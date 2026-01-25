@@ -7,57 +7,50 @@ import { supabase } from '../supabase';
 
 /**
  * Get all blood test reports with their metrics for the current user
+ * Uses Supabase's relational query to fetch reports and metrics in a single request
  * @returns {Promise<{data: Array, error: Error|null}>}
  */
 export async function getReports() {
-  // Fetch reports
-  const { data: reports, error: reportsError } = await supabase
+  // Fetch reports with their metrics in a single query (fixes N+1 problem)
+  const { data: reports, error } = await supabase
     .from('blood_test_reports')
-    .select('*')
+    .select(
+      `
+      *,
+      blood_test_metrics (*)
+    `
+    )
     .order('report_date', { ascending: false });
 
-  if (reportsError) {
-    console.error('Error fetching blood test reports:', reportsError);
-    return { data: null, error: reportsError };
+  if (error) {
+    console.error('Error fetching blood test reports:', error);
+    return { data: null, error };
   }
 
   if (!reports || reports.length === 0) {
     return { data: [], error: null };
   }
 
-  // Fetch all metrics for these reports
-  const reportIds = reports.map((r) => r.id);
-  const { data: metrics, error: metricsError } = await supabase
-    .from('blood_test_metrics')
-    .select('*')
-    .in('report_id', reportIds);
-
-  if (metricsError) {
-    console.error('Error fetching blood test metrics:', metricsError);
-    return { data: null, error: metricsError };
-  }
-
-  // Group metrics by report_id
-  const metricsByReport = {};
-  for (const metric of metrics || []) {
-    if (!metricsByReport[metric.report_id]) {
-      metricsByReport[metric.report_id] = {};
-    }
-    metricsByReport[metric.report_id][metric.metric_key] = {
-      value: parseFloat(metric.value),
-      unit: metric.unit,
-      reference: buildReferenceObject(metric),
-    };
-  }
-
   // Transform to match the existing data shape used by components
-  const transformedReports = reports.map((report) => ({
-    id: report.id,
-    date: report.report_date,
-    orderNumber: report.order_number || '',
-    orderedBy: report.ordered_by || '',
-    metrics: metricsByReport[report.id] || {},
-  }));
+  const transformedReports = reports.map((report) => {
+    // Group metrics by metric_key
+    const metrics = {};
+    for (const metric of report.blood_test_metrics || []) {
+      metrics[metric.metric_key] = {
+        value: parseFloat(metric.value),
+        unit: metric.unit,
+        reference: buildReferenceObject(metric),
+      };
+    }
+
+    return {
+      id: report.id,
+      date: report.report_date,
+      orderNumber: report.order_number || '',
+      orderedBy: report.ordered_by || '',
+      metrics,
+    };
+  });
 
   return { data: transformedReports, error: null };
 }

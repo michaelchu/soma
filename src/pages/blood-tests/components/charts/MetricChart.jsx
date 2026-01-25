@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useMemo } from 'react';
 import {
   Line,
   XAxis,
@@ -113,46 +113,70 @@ export function MetricChart({
     },
     [onLongPress]
   );
+
   const ref = REFERENCE_RANGES[metricKey];
-  const data = reports
-    .sort((a, b) => new Date(a.date) - new Date(b.date))
-    .map((r) => {
-      if (!r.metrics[metricKey]) return null;
-      const m = r.metrics[metricKey];
-      return {
-        date: new Date(r.date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-        value: m.value,
-        min: m.min,
-        max: m.max,
-        fullDate: r.date,
-      };
-    })
-    .filter(Boolean);
 
-  if (data.length === 0 || !ref) return null;
+  // Memoize chart data transformation to prevent recalculation on every render
+  const data = useMemo(
+    () =>
+      [...reports]
+        .sort((a, b) => new Date(a.date) - new Date(b.date))
+        .map((r) => {
+          if (!r.metrics[metricKey]) return null;
+          const m = r.metrics[metricKey];
+          return {
+            date: new Date(r.date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+            value: m.value,
+            min: m.min,
+            max: m.max,
+            fullDate: r.date,
+          };
+        })
+        .filter(Boolean),
+    [reports, metricKey]
+  );
 
-  const sortedReports = [...reports].sort((a, b) => new Date(b.date) - new Date(a.date));
-  const latestReport = sortedReports.find((r) => r.metrics[metricKey]);
-  const metric = latestReport?.metrics[metricKey];
-  if (!metric) return null;
+  // Memoize latest metric lookup
+  const metric = useMemo(() => {
+    const sortedReports = [...reports].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const latestReport = sortedReports.find((r) => r.metrics[metricKey]);
+    return latestReport?.metrics[metricKey];
+  }, [reports, metricKey]);
 
-  const allValues = data.map((d) => d.value);
-  const minVal = Math.min(...allValues),
-    maxVal = Math.max(...allValues);
-  const range = maxVal - minVal || maxVal * 0.2;
-  const padding = range * 0.4;
+  // Memoize chart domain calculations
+  const { yMin, yMax } = useMemo(() => {
+    if (data.length === 0 || !metric) return { yMin: 0, yMax: 100 };
 
-  let yMin = minVal - padding,
-    yMax = maxVal + padding;
-  if (metric.min !== null) yMin = Math.min(yMin, metric.min - padding * 0.5);
-  if (metric.max !== null) yMax = Math.max(yMax, metric.max + padding * 0.5);
-  if (metric.optimalMin !== null || metric.optimalMax !== null) {
-    if (metric.optimalMin !== null) yMin = Math.min(yMin, metric.optimalMin - padding * 0.3);
-    if (metric.optimalMax !== null) yMax = Math.max(yMax, metric.optimalMax + padding * 0.3);
-  }
+    const allValues = data.map((d) => d.value);
+    const minVal = Math.min(...allValues);
+    const maxVal = Math.max(...allValues);
+    const range = maxVal - minVal || maxVal * 0.2;
+    const padding = range * 0.4;
 
-  const status = getStatus(metric.value, metric.min, metric.max);
-  const hasHistoricalAbnormal = data.some((d) => getStatus(d.value, d.min, d.max) !== 'normal');
+    let computedYMin = minVal - padding;
+    let computedYMax = maxVal + padding;
+
+    if (metric.min !== null) computedYMin = Math.min(computedYMin, metric.min - padding * 0.5);
+    if (metric.max !== null) computedYMax = Math.max(computedYMax, metric.max + padding * 0.5);
+    if (metric.optimalMin !== null)
+      computedYMin = Math.min(computedYMin, metric.optimalMin - padding * 0.3);
+    if (metric.optimalMax !== null)
+      computedYMax = Math.max(computedYMax, metric.optimalMax + padding * 0.3);
+
+    return { yMin: computedYMin, yMax: computedYMax };
+  }, [data, metric]);
+
+  // Memoize status calculations
+  const { status, hasHistoricalAbnormal } = useMemo(() => {
+    if (!metric) return { status: 'normal', hasHistoricalAbnormal: false };
+    return {
+      status: getStatus(metric.value, metric.min, metric.max),
+      hasHistoricalAbnormal: data.some((d) => getStatus(d.value, d.min, d.max) !== 'normal'),
+    };
+  }, [metric, data]);
+
+  // Early return after all hooks
+  if (data.length === 0 || !ref || !metric) return null;
 
   return (
     <div

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { FileText, Copy, Check, Download } from 'lucide-react';
+import { showError } from '@/lib/toast';
 import {
   Dialog,
   DialogContent,
@@ -101,8 +102,8 @@ export function ExportModal({ onClose, reports, ignoredMetrics = new Set() }) {
       await navigator.clipboard.writeText(content);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy:', err);
+    } catch {
+      showError('Failed to copy to clipboard');
     }
   };
 
