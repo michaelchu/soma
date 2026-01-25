@@ -52,7 +52,6 @@ export function useReports() {
 
       if (fetchError) {
         setError('Failed to load reports');
-        console.error('Error fetching reports:', fetchError);
         setLoading(false);
         return;
       }
@@ -72,7 +71,6 @@ export function useReports() {
 
     if (fetchError) {
       setError('Failed to load reports');
-      console.error('Error fetching reports:', fetchError);
       setLoading(false);
       return;
     }
@@ -87,7 +85,6 @@ export function useReports() {
       if (!isMountedRef.current) return { error: null };
 
       if (addError) {
-        console.error('Error adding report:', addError);
         return { error: addError };
       }
 
@@ -109,7 +106,6 @@ export function useReports() {
       if (!isMountedRef.current) return { error: null };
 
       if (updateError) {
-        console.error('Error updating report:', updateError);
         return { error: updateError };
       }
 
@@ -130,7 +126,6 @@ export function useReports() {
     if (!isMountedRef.current) return { error: null };
 
     if (deleteError) {
-      console.error('Error deleting report:', deleteError);
       return { error: deleteError };
     }
 

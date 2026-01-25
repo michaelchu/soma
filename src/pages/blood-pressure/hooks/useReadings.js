@@ -38,7 +38,6 @@ export function useReadings() {
 
       if (fetchError) {
         setError('Failed to load blood pressure readings');
-        console.error('Error fetching readings:', fetchError);
       } else {
         setReadings(data || []);
         setError(null);
@@ -59,7 +58,6 @@ export function useReadings() {
     if (!isMountedRef.current) return { error: null };
 
     if (addError) {
-      console.error('Error adding session:', addError);
       return { error: addError };
     }
 
@@ -79,7 +77,6 @@ export function useReadings() {
     if (!isMountedRef.current) return { error: null };
 
     if (updateError) {
-      console.error('Error updating session:', updateError);
       return { error: updateError };
     }
 
@@ -99,7 +96,6 @@ export function useReadings() {
     if (!isMountedRef.current) return { error: null, deletedSession };
 
     if (deleteError) {
-      console.error('Error deleting session:', deleteError);
       return { error: deleteError };
     }
 
@@ -118,7 +114,6 @@ export function useReadings() {
 
     if (fetchError) {
       setError('Failed to load blood pressure readings');
-      console.error('Error fetching readings:', fetchError);
     } else {
       setReadings(data || []);
       setError(null);

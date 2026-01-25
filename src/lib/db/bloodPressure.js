@@ -282,8 +282,6 @@ export async function updateSession(sessionId, session) {
             'Update failed and data recovery failed. Your previous reading may be lost. Please refresh and re-enter if needed.'
           ),
         };
-      } else {
-        console.log('Rollback successful - original data restored');
       }
     }
 

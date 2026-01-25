@@ -16,8 +16,7 @@ export function AuthProvider({ children }) {
         setUser(session?.user ?? null);
         setLoading(false);
       })
-      .catch((error) => {
-        console.error('Failed to get session:', error);
+      .catch(() => {
         setSession(null);
         setUser(null);
         setLoading(false);
