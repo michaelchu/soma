@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 const STORAGE_KEY = 'soma-ignored-blood-metrics';
+const DEBOUNCE_MS = 500;
 
 export function useIgnoredMetrics() {
   const [ignoredMetrics, setIgnoredMetrics] = useState(() => {
@@ -15,8 +16,26 @@ export function useIgnoredMetrics() {
     return new Set();
   });
 
+  const saveTimeoutRef = useRef(null);
+
+  // Debounced localStorage save
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify([...ignoredMetrics]));
+    // Clear any pending save
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    // Schedule new save
+    saveTimeoutRef.current = setTimeout(() => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([...ignoredMetrics]));
+    }, DEBOUNCE_MS);
+
+    // Cleanup on unmount
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
   }, [ignoredMetrics]);
 
   const ignoreMetric = useCallback((metricKey) => {

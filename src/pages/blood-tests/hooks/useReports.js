@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   getReports,
   addReport as addReportDb,
@@ -32,16 +32,23 @@ export function useReports() {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const isMountedRef = useRef(true);
+
+  // Track mounted state
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Initial data load
   useEffect(() => {
-    let isMounted = true;
-
     const loadReports = async () => {
       setLoading(true);
       const { data, error: fetchError } = await getReports();
 
-      if (!isMounted) return;
+      if (!isMountedRef.current) return;
 
       if (fetchError) {
         setError('Failed to load reports');
@@ -54,16 +61,14 @@ export function useReports() {
     };
 
     loadReports();
-
-    return () => {
-      isMounted = false;
-    };
   }, []);
 
   // Refetch function for manual refresh and after mutations
   const fetchReports = useCallback(async () => {
     setLoading(true);
     const { data, error: fetchError } = await getReports();
+
+    if (!isMountedRef.current) return;
 
     if (fetchError) {
       setError('Failed to load reports');
@@ -78,6 +83,8 @@ export function useReports() {
   const addReport = useCallback(
     async (report) => {
       const { data, error: addError } = await addReportDb(report);
+
+      if (!isMountedRef.current) return { error: null };
 
       if (addError) {
         console.error('Error adding report:', addError);
@@ -96,6 +103,8 @@ export function useReports() {
     async (id, updates) => {
       const { data, error: updateError } = await updateReportDb(id, updates);
 
+      if (!isMountedRef.current) return { error: null };
+
       if (updateError) {
         console.error('Error updating report:', updateError);
         return { error: updateError };
@@ -111,6 +120,8 @@ export function useReports() {
 
   const deleteReport = useCallback(async (id) => {
     const { error: deleteError } = await deleteReportDb(id);
+
+    if (!isMountedRef.current) return { error: null };
 
     if (deleteError) {
       console.error('Error deleting report:', deleteError);

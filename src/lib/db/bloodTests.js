@@ -242,6 +242,28 @@ export async function deleteReport(id) {
  * @returns {Promise<{error: Error|null}>}
  */
 export async function updateMetric(reportId, metricKey, data) {
+  // Get current user for explicit filtering (defense in depth alongside RLS)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: new Error('Not authenticated') };
+  }
+
+  // Verify the report belongs to the user before updating metric
+  const { data: report, error: reportError } = await supabase
+    .from('blood_test_reports')
+    .select('id')
+    .eq('id', reportId)
+    .eq('user_id', user.id)
+    .single();
+
+  if (reportError || !report) {
+    console.error('Error verifying report ownership:', reportError);
+    return { error: new Error('Report not found or access denied') };
+  }
+
   const { error } = await supabase.from('blood_test_metrics').upsert({
     report_id: reportId,
     metric_key: metricKey,
