@@ -21,6 +21,7 @@ export default function Auth() {
       await signIn(email, password);
     } catch (err) {
       setError(err.message || 'Invalid email or password');
+      setPassword(''); // Clear password on failed attempt for security
     }
 
     setLoading(false);

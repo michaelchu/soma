@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { validateBPSession, sanitizeString } from '../validation';
 
 /**
  * Blood Pressure data service
@@ -24,9 +25,19 @@ const cuffToArm = (cuff) => {
  * @returns {Promise<{data: Array, error: Error|null}>}
  */
 export async function getReadings() {
+  // Get current user for explicit filtering (defense in depth alongside RLS)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { data: null, error: new Error('Not authenticated') };
+  }
+
   const { data, error } = await supabase
     .from('blood_pressure_readings')
     .select('*')
+    .eq('user_id', user.id)
     .order('recorded_at', { ascending: false });
 
   if (error) {
@@ -113,6 +124,12 @@ export async function getReadings() {
  * @returns {Promise<{data: Object|null, error: Error|null}>}
  */
 export async function addSession(session) {
+  // Validate input
+  const validation = validateBPSession(session);
+  if (!validation.valid) {
+    return { data: null, error: new Error(validation.errors.join('; ')) };
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -124,6 +141,9 @@ export async function addSession(session) {
   // Generate a session ID
   const sessionId = crypto.randomUUID();
 
+  // Sanitize notes
+  const sanitizedNotes = session.notes ? sanitizeString(session.notes) : null;
+
   // Create rows for each reading
   const rows = session.readings.map((reading, index) => ({
     user_id: user.id,
@@ -132,7 +152,7 @@ export async function addSession(session) {
     systolic: reading.systolic,
     diastolic: reading.diastolic,
     pulse: index === 0 ? session.pulse || null : null, // Pulse on first reading only
-    notes: index === 0 ? session.notes || null : null, // Notes on first reading only
+    notes: index === 0 ? sanitizedNotes : null, // Notes on first reading only
     cuff_location: armToCuff(reading.arm),
   }));
 
@@ -169,7 +189,7 @@ export async function addSession(session) {
       systolic: avgSystolic,
       diastolic: avgDiastolic,
       pulse: session.pulse || null,
-      notes: session.notes || null,
+      notes: sanitizedNotes,
       readings,
       readingCount: readings.length,
     },
@@ -180,11 +200,18 @@ export async function addSession(session) {
 /**
  * Update a session of blood pressure readings
  * Replaces all readings in the session with new ones
+ * Uses a backup-delete-insert pattern with rollback on failure
  * @param {string} sessionId - The session ID
  * @param {Object} session - The updated session data
  * @returns {Promise<{data: Object|null, error: Error|null}>}
  */
 export async function updateSession(sessionId, session) {
+  // Validate input
+  const validation = validateBPSession(session);
+  if (!validation.valid) {
+    return { data: null, error: new Error(validation.errors.join('; ')) };
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -193,11 +220,27 @@ export async function updateSession(sessionId, session) {
     return { data: null, error: new Error('Not authenticated') };
   }
 
-  // Delete existing readings in this session
+  // Sanitize notes
+  const sanitizedNotes = session.notes ? sanitizeString(session.notes) : null;
+
+  // First, fetch existing readings for rollback capability (filter by user_id for security)
+  const { data: existingReadings, error: fetchError } = await supabase
+    .from('blood_pressure_readings')
+    .select('*')
+    .eq('session_id', sessionId)
+    .eq('user_id', user.id);
+
+  if (fetchError) {
+    console.error('Error fetching existing readings for backup:', fetchError);
+    return { data: null, error: fetchError };
+  }
+
+  // Delete existing readings in this session (filter by user_id for security)
   const { error: deleteError } = await supabase
     .from('blood_pressure_readings')
     .delete()
-    .eq('session_id', sessionId);
+    .eq('session_id', sessionId)
+    .eq('user_id', user.id);
 
   if (deleteError) {
     console.error('Error deleting old session readings:', deleteError);
@@ -212,7 +255,7 @@ export async function updateSession(sessionId, session) {
     systolic: reading.systolic,
     diastolic: reading.diastolic,
     pulse: index === 0 ? session.pulse || null : null,
-    notes: index === 0 ? session.notes || null : null,
+    notes: index === 0 ? sanitizedNotes : null,
     cuff_location: armToCuff(reading.arm),
   }));
 
@@ -220,6 +263,30 @@ export async function updateSession(sessionId, session) {
 
   if (error) {
     console.error('Error updating blood pressure session:', error);
+
+    // Attempt rollback: re-insert the old readings
+    if (existingReadings && existingReadings.length > 0) {
+      const rollbackRows = existingReadings.map(
+        ({ id: _id, created_at: _createdAt, updated_at: _updatedAt, ...rest }) => rest
+      );
+      const { error: rollbackError } = await supabase
+        .from('blood_pressure_readings')
+        .insert(rollbackRows);
+
+      if (rollbackError) {
+        console.error('Rollback failed - data may be lost:', rollbackError);
+        // Return a more descriptive error that includes rollback failure
+        return {
+          data: null,
+          error: new Error(
+            'Update failed and data recovery failed. Your previous reading may be lost. Please refresh and re-enter if needed.'
+          ),
+        };
+      } else {
+        console.log('Rollback successful - original data restored');
+      }
+    }
+
     return { data: null, error };
   }
 
@@ -249,7 +316,7 @@ export async function updateSession(sessionId, session) {
       systolic: avgSystolic,
       diastolic: avgDiastolic,
       pulse: session.pulse || null,
-      notes: session.notes || null,
+      notes: sanitizedNotes,
       readings,
       readingCount: readings.length,
     },
@@ -263,47 +330,23 @@ export async function updateSession(sessionId, session) {
  * @returns {Promise<{error: Error|null}>}
  */
 export async function deleteSession(sessionId) {
+  // Get current user for explicit filtering (defense in depth alongside RLS)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: new Error('Not authenticated') };
+  }
+
   const { error } = await supabase
     .from('blood_pressure_readings')
     .delete()
-    .eq('session_id', sessionId);
+    .eq('session_id', sessionId)
+    .eq('user_id', user.id);
 
   if (error) {
     console.error('Error deleting blood pressure session:', error);
-  }
-
-  return { error };
-}
-
-// Keep legacy functions for backwards compatibility during migration
-
-/**
- * @deprecated Use addSession instead
- */
-export async function addReading(reading) {
-  // Convert single reading to session format
-  return addSession({
-    datetime: reading.datetime,
-    readings: [
-      {
-        systolic: reading.systolic,
-        diastolic: reading.diastolic,
-        arm: reading.arm,
-      },
-    ],
-    pulse: reading.pulse,
-    notes: reading.notes,
-  });
-}
-
-/**
- * @deprecated Use deleteSession instead
- */
-export async function deleteReading(id) {
-  const { error } = await supabase.from('blood_pressure_readings').delete().eq('id', id);
-
-  if (error) {
-    console.error('Error deleting blood pressure reading:', error);
   }
 
   return { error };

@@ -6,18 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Save, Loader2, Plus, X, Trash2 } from 'lucide-react';
 import { showError, showSuccess, showWithUndo } from '@/lib/toast';
-
-function getDefaultDatetime() {
-  const now = new Date();
-  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-  return now.toISOString().slice(0, 16);
-}
-
-function formatDatetimeForInput(isoString) {
-  const date = new Date(isoString);
-  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
-  return date.toISOString().slice(0, 16);
-}
+import { getLocalDatetimeNow, toDatetimeLocalFormat } from '@/lib/dateUtils';
+import { BP_VALIDATION } from '@/lib/validation';
 
 function createEmptyBpRow() {
   return { systolic: '', diastolic: '', arm: null };
@@ -28,7 +18,7 @@ function ReadingFormContent({ session, onOpenChange, addSession, updateSession, 
   const isEditing = !!session;
 
   const [datetime, setDatetime] = useState(() =>
-    session ? formatDatetimeForInput(session.datetime) : getDefaultDatetime()
+    session ? toDatetimeLocalFormat(session.datetime) : getLocalDatetimeNow()
   );
   const [bpRows, setBpRows] = useState(() =>
     session?.readings
@@ -83,10 +73,10 @@ function ReadingFormContent({ session, onOpenChange, addSession, updateSession, 
     (row) =>
       row.systolic &&
       row.diastolic &&
-      parseInt(row.systolic) >= 60 &&
-      parseInt(row.systolic) <= 250 &&
-      parseInt(row.diastolic) >= 40 &&
-      parseInt(row.diastolic) <= 150
+      parseInt(row.systolic) >= BP_VALIDATION.SYSTOLIC_MIN &&
+      parseInt(row.systolic) <= BP_VALIDATION.SYSTOLIC_MAX &&
+      parseInt(row.diastolic) >= BP_VALIDATION.DIASTOLIC_MIN &&
+      parseInt(row.diastolic) <= BP_VALIDATION.DIASTOLIC_MAX
   );
 
   const avgSystolic =
@@ -146,7 +136,7 @@ function ReadingFormContent({ session, onOpenChange, addSession, updateSession, 
   };
 
   const handleReset = () => {
-    setDatetime(getDefaultDatetime());
+    setDatetime(getLocalDatetimeNow());
     setBpRows([createEmptyBpRow()]);
     setPulse('');
     setNotes('');
@@ -171,10 +161,10 @@ function ReadingFormContent({ session, onOpenChange, addSession, updateSession, 
       return;
     }
 
-    showWithUndo('Reading deleted', () => {
+    showWithUndo('Reading deleted', async () => {
       if (deletedSession) {
         // Re-add the session with its readings
-        addSession({
+        const { error: undoError } = await addSession({
           datetime: deletedSession.datetime,
           readings: deletedSession.readings.map((r) => ({
             systolic: r.systolic,
@@ -184,6 +174,9 @@ function ReadingFormContent({ session, onOpenChange, addSession, updateSession, 
           pulse: deletedSession.pulse,
           notes: deletedSession.notes,
         });
+        if (undoError) {
+          showError('Failed to restore reading');
+        }
       }
     });
 
@@ -220,8 +213,8 @@ function ReadingFormContent({ session, onOpenChange, addSession, updateSession, 
                   placeholder="Sys"
                   value={row.systolic}
                   onChange={(e) => updateBpRow(index, 'systolic', e.target.value)}
-                  min={60}
-                  max={250}
+                  min={BP_VALIDATION.SYSTOLIC_MIN}
+                  max={BP_VALIDATION.SYSTOLIC_MAX}
                   className="text-center"
                 />
                 <span className="text-2xl text-muted-foreground">/</span>
@@ -231,15 +224,21 @@ function ReadingFormContent({ session, onOpenChange, addSession, updateSession, 
                   placeholder="Dia"
                   value={row.diastolic}
                   onChange={(e) => updateBpRow(index, 'diastolic', e.target.value)}
-                  min={40}
-                  max={150}
+                  min={BP_VALIDATION.DIASTOLIC_MIN}
+                  max={BP_VALIDATION.DIASTOLIC_MAX}
                   className="text-center"
                 />
                 {/* Arm selector */}
-                <div className="flex h-9 rounded-md border border-input overflow-hidden flex-shrink-0">
+                <div
+                  className="flex h-9 rounded-md border border-input overflow-hidden flex-shrink-0"
+                  role="group"
+                  aria-label="Arm selection"
+                >
                   <button
                     type="button"
                     onClick={() => updateBpRow(index, 'arm', row.arm === 'L' ? null : 'L')}
+                    aria-label="Left arm"
+                    aria-pressed={row.arm === 'L'}
                     className={`px-2.5 text-sm font-medium transition-colors ${
                       row.arm === 'L'
                         ? 'bg-primary text-primary-foreground'
@@ -251,6 +250,8 @@ function ReadingFormContent({ session, onOpenChange, addSession, updateSession, 
                   <button
                     type="button"
                     onClick={() => updateBpRow(index, 'arm', row.arm === 'R' ? null : 'R')}
+                    aria-label="Right arm"
+                    aria-pressed={row.arm === 'R'}
                     className={`px-2.5 text-sm font-medium border-l border-input transition-colors ${
                       row.arm === 'R'
                         ? 'bg-primary text-primary-foreground'
@@ -295,8 +296,8 @@ function ReadingFormContent({ session, onOpenChange, addSession, updateSession, 
               placeholder="72"
               value={pulse}
               onChange={(e) => setPulse(e.target.value)}
-              min={30}
-              max={200}
+              min={BP_VALIDATION.PULSE_MIN}
+              max={BP_VALIDATION.PULSE_MAX}
               className="w-24"
             />
             <span className="text-sm text-muted-foreground">bpm</span>

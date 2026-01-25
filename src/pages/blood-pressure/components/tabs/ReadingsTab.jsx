@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { StickyNote, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
-import { showWithUndo } from '@/lib/toast';
+import { showWithUndo, showError } from '@/lib/toast';
 import {
   Table,
   TableBody,
@@ -195,9 +195,9 @@ export function ReadingsTab({ readings, addSession, updateSession, deleteSession
     const { error, deletedSession } = await deleteSession(sessionId);
     if (error) return;
 
-    showWithUndo('Reading deleted', () => {
+    showWithUndo('Reading deleted', async () => {
       if (deletedSession) {
-        addSession({
+        const { error: undoError } = await addSession({
           datetime: deletedSession.datetime,
           readings: deletedSession.readings.map((r) => ({
             systolic: r.systolic,
@@ -207,6 +207,9 @@ export function ReadingsTab({ readings, addSession, updateSession, deleteSession
           pulse: deletedSession.pulse,
           notes: deletedSession.notes,
         });
+        if (undoError) {
+          showError('Failed to restore reading');
+        }
       }
     });
   };

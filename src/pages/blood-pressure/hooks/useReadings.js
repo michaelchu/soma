@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   getReadings,
   addSession as addSessionDb,
@@ -15,10 +15,26 @@ export function useReadings() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Ref to track current readings for use in callbacks without stale closures
+  const readingsRef = useRef(readings);
+
+  // Ref to track mounted state for async callbacks
+  const isMountedRef = useRef(true);
+
+  // Keep ref in sync with state (in effect, not during render)
   useEffect(() => {
+    readingsRef.current = readings;
+  }, [readings]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+
     const loadReadings = async () => {
       setLoading(true);
       const { data, error: fetchError } = await getReadings();
+
+      // Only update state if component is still mounted
+      if (!isMountedRef.current) return;
 
       if (fetchError) {
         setError('Failed to load blood pressure readings');
@@ -30,10 +46,17 @@ export function useReadings() {
       setLoading(false);
     };
     loadReadings();
+
+    return () => {
+      isMountedRef.current = false;
+    };
   }, []);
 
   const addSession = useCallback(async (session) => {
     const { data, error: addError } = await addSessionDb(session);
+
+    // Check if still mounted after async operation
+    if (!isMountedRef.current) return { error: null };
 
     if (addError) {
       console.error('Error adding session:', addError);
@@ -52,6 +75,9 @@ export function useReadings() {
   const updateSession = useCallback(async (sessionId, session) => {
     const { data, error: updateError } = await updateSessionDb(sessionId, session);
 
+    // Check if still mounted after async operation
+    if (!isMountedRef.current) return { error: null };
+
     if (updateError) {
       console.error('Error updating session:', updateError);
       return { error: updateError };
@@ -65,13 +91,12 @@ export function useReadings() {
 
   const deleteSession = useCallback(async (sessionId) => {
     // Find the session before deleting so we can return it for undo
-    let deletedSession = null;
-    setReadings((prev) => {
-      deletedSession = prev.find((s) => s.sessionId === sessionId);
-      return prev;
-    });
+    const deletedSession = readingsRef.current.find((s) => s.sessionId === sessionId);
 
     const { error: deleteError } = await deleteSessionDb(sessionId);
+
+    // Check if still mounted after async operation
+    if (!isMountedRef.current) return { error: null, deletedSession };
 
     if (deleteError) {
       console.error('Error deleting session:', deleteError);
@@ -87,6 +112,9 @@ export function useReadings() {
   const refetch = useCallback(async () => {
     setLoading(true);
     const { data, error: fetchError } = await getReadings();
+
+    // Only update state if component is still mounted
+    if (!isMountedRef.current) return;
 
     if (fetchError) {
       setError('Failed to load blood pressure readings');

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   getReports,
   addReport as addReportDb,
@@ -8,6 +8,23 @@ import {
 import { enrichReportMetrics } from '../utils/metricCalculations';
 
 /**
+ * Process and update reports state
+ */
+function processReportsData(data, setReports, setError, setLoading) {
+  if (!data || data.length === 0) {
+    setReports([]);
+    setError(null);
+    setLoading(false);
+    return;
+  }
+
+  const enrichedReports = enrichReportMetrics(data);
+  setReports(enrichedReports);
+  setError(null);
+  setLoading(false);
+}
+
+/**
  * Custom hook for managing blood test reports
  * Loads reports from Supabase and enriches them with reference range data
  */
@@ -15,36 +32,23 @@ export function useReports() {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const isMountedRef = useRef(true);
 
-  const fetchReports = useCallback(async () => {
-    setLoading(true);
-    const { data, error: fetchError } = await getReports();
-
-    if (fetchError) {
-      setError('Failed to load reports');
-      console.error('Error fetching reports:', fetchError);
-      setLoading(false);
-      return;
-    }
-
-    if (!data || data.length === 0) {
-      setReports([]);
-      setError(null);
-      setLoading(false);
-      return;
-    }
-
-    // Enrich reports with reference range data from constants
-    const enrichedReports = enrichReportMetrics(data);
-    setReports(enrichedReports);
-    setError(null);
-    setLoading(false);
+  // Track mounted state
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
   }, []);
 
+  // Initial data load
   useEffect(() => {
     const loadReports = async () => {
       setLoading(true);
       const { data, error: fetchError } = await getReports();
+
+      if (!isMountedRef.current) return;
 
       if (fetchError) {
         setError('Failed to load reports');
@@ -53,25 +57,34 @@ export function useReports() {
         return;
       }
 
-      if (!data || data.length === 0) {
-        setReports([]);
-        setError(null);
-        setLoading(false);
-        return;
-      }
-
-      // Enrich reports with reference range data from constants
-      const enrichedReports = enrichReportMetrics(data);
-      setReports(enrichedReports);
-      setError(null);
-      setLoading(false);
+      processReportsData(data, setReports, setError, setLoading);
     };
+
     loadReports();
+  }, []);
+
+  // Refetch function for manual refresh and after mutations
+  const fetchReports = useCallback(async () => {
+    setLoading(true);
+    const { data, error: fetchError } = await getReports();
+
+    if (!isMountedRef.current) return;
+
+    if (fetchError) {
+      setError('Failed to load reports');
+      console.error('Error fetching reports:', fetchError);
+      setLoading(false);
+      return;
+    }
+
+    processReportsData(data, setReports, setError, setLoading);
   }, []);
 
   const addReport = useCallback(
     async (report) => {
       const { data, error: addError } = await addReportDb(report);
+
+      if (!isMountedRef.current) return { error: null };
 
       if (addError) {
         console.error('Error adding report:', addError);
@@ -80,6 +93,9 @@ export function useReports() {
 
       // Refetch to get enriched data
       await fetchReports();
+
+      // Check again after async operation
+      if (!isMountedRef.current) return { error: null };
 
       return { data };
     },
@@ -90,6 +106,8 @@ export function useReports() {
     async (id, updates) => {
       const { data, error: updateError } = await updateReportDb(id, updates);
 
+      if (!isMountedRef.current) return { error: null };
+
       if (updateError) {
         console.error('Error updating report:', updateError);
         return { error: updateError };
@@ -98,6 +116,9 @@ export function useReports() {
       // Refetch to get enriched data
       await fetchReports();
 
+      // Check again after async operation
+      if (!isMountedRef.current) return { error: null };
+
       return { data };
     },
     [fetchReports]
@@ -105,6 +126,8 @@ export function useReports() {
 
   const deleteReport = useCallback(async (id) => {
     const { error: deleteError } = await deleteReportDb(id);
+
+    if (!isMountedRef.current) return { error: null };
 
     if (deleteError) {
       console.error('Error deleting report:', deleteError);

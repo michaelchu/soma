@@ -5,6 +5,12 @@ export function TrendIndicator({ data, min, max }) {
 
   const recent = data[data.length - 1].value;
   const previous = data[data.length - 2].value;
+
+  // Avoid division by zero when previous value is 0
+  if (previous === 0) {
+    return <span className="text-xs text-muted-foreground">N/A</span>;
+  }
+
   const change = (((recent - previous) / previous) * 100).toFixed(1);
 
   if (Math.abs(change) < 1) {

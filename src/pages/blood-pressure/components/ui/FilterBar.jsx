@@ -5,6 +5,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { isInTimeOfDay, getDateRange } from '@/lib/dateUtils';
 
 const DATE_RANGES = [
   { value: '30', label: 'Last 30 Days' },
@@ -62,31 +63,13 @@ export function filterReadings(readings, dateRange, timeOfDay) {
 
   // Filter by date range
   if (dateRange !== 'all') {
-    const days = parseInt(dateRange, 10);
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
-    filtered = filtered.filter((r) => new Date(r.datetime) >= cutoff);
+    const { start } = getDateRange(dateRange);
+    filtered = filtered.filter((r) => new Date(r.datetime) >= start);
   }
 
   // Filter by time of day
   if (timeOfDay !== 'all') {
-    filtered = filtered.filter((r) => {
-      const hour = new Date(r.datetime).getHours();
-      switch (timeOfDay) {
-        case 'am':
-          return hour < 12;
-        case 'pm':
-          return hour >= 12;
-        case 'morning':
-          return hour >= 6 && hour < 12;
-        case 'afternoon':
-          return hour >= 12 && hour < 18;
-        case 'evening':
-          return hour >= 18 || hour < 6;
-        default:
-          return true;
-      }
-    });
+    filtered = filtered.filter((r) => isInTimeOfDay(r.datetime, timeOfDay));
   }
 
   return filtered;
