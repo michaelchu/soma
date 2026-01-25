@@ -152,7 +152,7 @@ export function isInTimeOfDay(date, period) {
     case 'afternoon':
       return hour >= 12 && hour < 18;
     case 'evening':
-      return hour >= 18 || hour < 6;
+      return hour >= 18;
     default:
       return true;
   }

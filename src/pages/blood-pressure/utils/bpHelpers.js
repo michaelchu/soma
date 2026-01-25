@@ -1,4 +1,5 @@
 import { BP_GUIDELINES, BP_CATEGORY_INFO, DEFAULT_GUIDELINE } from '../constants/bpGuidelines';
+import { isInTimeOfDay } from '@/lib/dateUtils';
 
 /**
  * Determine BP category based on systolic and diastolic values
@@ -175,23 +176,7 @@ export function getPreviousPeriodReadings(allReadings, dateRange, timeOfDay) {
 
   // Apply time of day filter
   if (timeOfDay !== 'all') {
-    filtered = filtered.filter((r) => {
-      const hour = new Date(r.datetime).getHours();
-      switch (timeOfDay) {
-        case 'am':
-          return hour < 12;
-        case 'pm':
-          return hour >= 12;
-        case 'morning':
-          return hour >= 6 && hour < 12;
-        case 'afternoon':
-          return hour >= 12 && hour < 18;
-        case 'evening':
-          return hour >= 18 || hour < 6;
-        default:
-          return true;
-      }
-    });
+    filtered = filtered.filter((r) => isInTimeOfDay(r.datetime, timeOfDay));
   }
 
   return filtered;

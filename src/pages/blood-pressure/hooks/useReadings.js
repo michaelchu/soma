@@ -18,20 +18,23 @@ export function useReadings() {
   // Ref to track current readings for use in callbacks without stale closures
   const readingsRef = useRef(readings);
 
+  // Ref to track mounted state for async callbacks
+  const isMountedRef = useRef(true);
+
   // Keep ref in sync with state (in effect, not during render)
   useEffect(() => {
     readingsRef.current = readings;
   }, [readings]);
 
   useEffect(() => {
-    let isMounted = true;
+    isMountedRef.current = true;
 
     const loadReadings = async () => {
       setLoading(true);
       const { data, error: fetchError } = await getReadings();
 
       // Only update state if component is still mounted
-      if (!isMounted) return;
+      if (!isMountedRef.current) return;
 
       if (fetchError) {
         setError('Failed to load blood pressure readings');
@@ -45,7 +48,7 @@ export function useReadings() {
     loadReadings();
 
     return () => {
-      isMounted = false;
+      isMountedRef.current = false;
     };
   }, []);
 
@@ -100,6 +103,9 @@ export function useReadings() {
   const refetch = useCallback(async () => {
     setLoading(true);
     const { data, error: fetchError } = await getReadings();
+
+    // Only update state if component is still mounted
+    if (!isMountedRef.current) return;
 
     if (fetchError) {
       setError('Failed to load blood pressure readings');
