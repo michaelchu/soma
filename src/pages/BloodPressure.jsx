@@ -129,7 +129,7 @@ export default function BloodPressure() {
               className="hidden md:flex h-8 w-8"
               title="Add Reading"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-5 w-5" />
             </Button>
             <Button
               onClick={() => setShowExport(true)}
@@ -138,7 +138,7 @@ export default function BloodPressure() {
               className="h-8 w-8"
               title="Export Data"
             >
-              <Download className="h-4 w-4" />
+              <Download className="h-5 w-5" />
             </Button>
             <Button
               onClick={() => setShowSettings(true)}
@@ -147,7 +147,7 @@ export default function BloodPressure() {
               className="h-8 w-8"
               title="Settings"
             >
-              <Settings className="h-4 w-4" />
+              <Settings className="h-5 w-5" />
             </Button>
           </>
         }

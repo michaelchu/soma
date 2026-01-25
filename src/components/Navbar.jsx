@@ -28,7 +28,7 @@ export default function Navbar({ leftContent, rightContent }) {
               onClick={toggleTheme}
               title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             >
-              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </Button>
             <Button
               variant="ghost"
@@ -37,7 +37,7 @@ export default function Navbar({ leftContent, rightContent }) {
               onClick={handleLogout}
               title="Sign out"
             >
-              <LogOut className="h-4 w-4" />
+              <LogOut className="h-5 w-5" />
             </Button>
           </div>
         </div>
