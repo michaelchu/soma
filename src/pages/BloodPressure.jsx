@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Activity, AlertTriangle, Plus, Download, Settings } from 'lucide-react';
+import { Activity, AlertTriangle, Download, Plus, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { FabButton } from '@/components/ui/fab-button';
 import { Card, CardContent } from '@/components/ui/card';
 import Navbar from '@/components/Navbar';
 import { useReadings } from './blood-pressure/hooks/useReadings';
@@ -128,7 +129,7 @@ export default function BloodPressure() {
               className="hidden md:flex h-8 w-8"
               title="Add Reading"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-5 w-5" />
             </Button>
             <Button
               onClick={() => setShowExport(true)}
@@ -137,7 +138,7 @@ export default function BloodPressure() {
               className="h-8 w-8"
               title="Export Data"
             >
-              <Download className="h-4 w-4" />
+              <Download className="h-5 w-5" />
             </Button>
             <Button
               onClick={() => setShowSettings(true)}
@@ -146,7 +147,7 @@ export default function BloodPressure() {
               className="h-8 w-8"
               title="Settings"
             >
-              <Settings className="h-4 w-4" />
+              <Settings className="h-5 w-5" />
             </Button>
           </>
         }
@@ -245,14 +246,7 @@ export default function BloodPressure() {
       </main>
 
       {/* FAB Button - mobile only, readings tab only */}
-      {activeTab === 'readings' && (
-        <button
-          onClick={() => setShowForm(true)}
-          className="md:hidden fixed bottom-20 right-4 z-50 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors"
-        >
-          <Plus className="h-6 w-6" />
-        </button>
-      )}
+      {activeTab === 'readings' && <FabButton onClick={() => setShowForm(true)} />}
 
       {/* Bottom Navigation - mobile only */}
       <div className="md:hidden">

@@ -4,16 +4,17 @@ import {
   Activity,
   AlertTriangle,
   Calendar,
-  Plus,
   Download,
   ChevronDown,
   ChevronsDownUp,
   ChevronsUpDown,
   EyeOff,
   Beaker,
+  Plus,
   SearchX,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { FabButton } from '@/components/ui/fab-button';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -39,7 +40,7 @@ export default function BloodTests() {
   const [showImporter, setShowImporter] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [filter, setFilter] = useState('all');
-  // Initialize all categories expanded
+  // Initialize all categories collapsed
   const [collapsedCategories, setCollapsedCategories] = useState({});
   const [selectedReportIds, setSelectedReportIds] = useState(null); // null = all selected
   // Track which categories have their charts expanded (default all collapsed)
@@ -263,7 +264,7 @@ export default function BloodTests() {
         onClick={() => setShowImporter(true)}
         title="Add New Report"
       >
-        <Plus size={16} />
+        <Plus size={20} />
       </Button>
       <Button
         variant="ghost"
@@ -272,7 +273,7 @@ export default function BloodTests() {
         onClick={() => setShowExportModal(true)}
         title="Export Data"
       >
-        <Download size={16} />
+        <Download size={20} />
       </Button>
     </>
   );
@@ -309,6 +310,31 @@ export default function BloodTests() {
                 {ignoredCount > 0 && <span className="text-xs opacity-70">({ignoredCount})</span>}
               </button>
             </div>
+            <button
+              onClick={() => {
+                // Check if all categories are currently expanded (all explicitly set to false)
+                const allExpanded = Object.keys(CATEGORY_INFO).every(
+                  (key) => collapsedCategories[key] === false
+                );
+                const newState = {};
+                Object.keys(CATEGORY_INFO).forEach((key) => {
+                  newState[key] = allExpanded; // collapse all if all expanded, expand all otherwise
+                });
+                setCollapsedCategories(newState);
+              }}
+              className="flex items-center justify-center h-8 w-8 rounded-lg border bg-card text-muted-foreground hover:bg-accent hover:text-foreground transition-colors flex-shrink-0"
+              title={
+                Object.keys(CATEGORY_INFO).every((key) => collapsedCategories[key] === false)
+                  ? 'Collapse all categories'
+                  : 'Expand all categories'
+              }
+            >
+              {Object.keys(CATEGORY_INFO).every((key) => collapsedCategories[key] === false) ? (
+                <ChevronsDownUp size={16} />
+              ) : (
+                <ChevronsUpDown size={16} />
+              )}
+            </button>
             <DropdownMenu open={reportsDropdownOpen} onOpenChange={setReportsDropdownOpen}>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -367,29 +393,6 @@ export default function BloodTests() {
                 })}
               </DropdownMenuContent>
             </DropdownMenu>
-            <button
-              onClick={() => {
-                // Check if all categories are currently expanded
-                const allExpanded = Object.values(collapsedCategories).every((v) => !v);
-                const newState = {};
-                Object.keys(CATEGORY_INFO).forEach((key) => {
-                  newState[key] = allExpanded; // collapse all if all expanded, expand all otherwise
-                });
-                setCollapsedCategories(newState);
-              }}
-              className="flex items-center justify-center h-8 w-8 rounded-lg border bg-card text-muted-foreground hover:bg-accent hover:text-foreground transition-colors flex-shrink-0"
-              title={
-                Object.values(collapsedCategories).every((v) => !v)
-                  ? 'Collapse all categories'
-                  : 'Expand all categories'
-              }
-            >
-              {Object.values(collapsedCategories).every((v) => !v) ? (
-                <ChevronsDownUp size={16} />
-              ) : (
-                <ChevronsUpDown size={16} />
-              )}
-            </button>
           </div>
 
           {sortedMetrics.length > 0 ? (
@@ -403,7 +406,7 @@ export default function BloodTests() {
                 }, {})
               ).map(([category, metrics]) => {
                 const categoryInfo = CATEGORY_INFO[category] || { label: category };
-                const isCollapsed = collapsedCategories[category] ?? false;
+                const isCollapsed = collapsedCategories[category] ?? true;
                 const chartsExpanded = expandedChartCategories[category] ?? false;
                 return (
                   <div key={category} className="bg-card rounded-xl border overflow-hidden">
@@ -508,12 +511,7 @@ export default function BloodTests() {
       </main>
 
       {/* FAB Button - mobile only */}
-      <button
-        onClick={() => setShowImporter(true)}
-        className="sm:hidden fixed bottom-4 right-4 z-50 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors"
-      >
-        <Plus className="h-6 w-6" />
-      </button>
+      <FabButton onClick={() => setShowImporter(true)} hideAbove="sm" className="bottom-4" />
 
       {showImporter && <ReportImporter onClose={() => setShowImporter(false)} />}
       {showExportModal && (
