@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   getReports,
   addReport as addReportDb,
@@ -16,9 +16,15 @@ export function useReports() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Track if component is mounted to prevent state updates after unmount
+  const isMountedRef = useRef(true);
+
   const fetchReports = useCallback(async () => {
     setLoading(true);
     const { data, error: fetchError } = await getReports();
+
+    // Only update state if component is still mounted
+    if (!isMountedRef.current) return;
 
     if (fetchError) {
       setError('Failed to load reports');
@@ -42,31 +48,13 @@ export function useReports() {
   }, []);
 
   useEffect(() => {
-    const loadReports = async () => {
-      setLoading(true);
-      const { data, error: fetchError } = await getReports();
+    isMountedRef.current = true;
+    fetchReports();
 
-      if (fetchError) {
-        setError('Failed to load reports');
-        console.error('Error fetching reports:', fetchError);
-        setLoading(false);
-        return;
-      }
-
-      if (!data || data.length === 0) {
-        setReports([]);
-        setError(null);
-        setLoading(false);
-        return;
-      }
-
-      // Enrich reports with reference range data from constants
-      const enrichedReports = enrichReportMetrics(data);
-      setReports(enrichedReports);
-      setError(null);
-      setLoading(false);
+    return () => {
+      isMountedRef.current = false;
     };
-    loadReports();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const addReport = useCallback(

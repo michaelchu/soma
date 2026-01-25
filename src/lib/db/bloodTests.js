@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { validateBloodTestReport, sanitizeString } from '../validation';
 
 /**
  * Blood Tests data service
@@ -76,6 +77,12 @@ function buildReferenceObject(metric) {
  * @returns {Promise<{data: Object|null, error: Error|null}>}
  */
 export async function addReport(report) {
+  // Validate input
+  const validation = validateBloodTestReport(report);
+  if (!validation.valid) {
+    return { data: null, error: new Error(validation.errors.join('; ')) };
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -84,15 +91,20 @@ export async function addReport(report) {
     return { data: null, error: new Error('Not authenticated') };
   }
 
+  // Sanitize string fields
+  const sanitizedOrderNumber = report.orderNumber ? sanitizeString(report.orderNumber, 100) : null;
+  const sanitizedOrderedBy = report.orderedBy ? sanitizeString(report.orderedBy, 200) : null;
+  const sanitizedNotes = report.notes ? sanitizeString(report.notes) : null;
+
   // Insert report
   const { data: reportData, error: reportError } = await supabase
     .from('blood_test_reports')
     .insert({
       user_id: user.id,
       report_date: report.date,
-      order_number: report.orderNumber || null,
-      ordered_by: report.orderedBy || null,
-      notes: report.notes || null,
+      order_number: sanitizedOrderNumber,
+      ordered_by: sanitizedOrderedBy,
+      notes: sanitizedNotes,
     })
     .select()
     .single();
@@ -145,9 +157,11 @@ export async function addReport(report) {
 export async function updateReport(id, updates) {
   const updateData = {};
   if (updates.date !== undefined) updateData.report_date = updates.date;
-  if (updates.orderNumber !== undefined) updateData.order_number = updates.orderNumber;
-  if (updates.orderedBy !== undefined) updateData.ordered_by = updates.orderedBy;
-  if (updates.notes !== undefined) updateData.notes = updates.notes;
+  if (updates.orderNumber !== undefined)
+    updateData.order_number = sanitizeString(updates.orderNumber, 100);
+  if (updates.orderedBy !== undefined)
+    updateData.ordered_by = sanitizeString(updates.orderedBy, 200);
+  if (updates.notes !== undefined) updateData.notes = sanitizeString(updates.notes);
 
   const { data, error } = await supabase
     .from('blood_test_reports')

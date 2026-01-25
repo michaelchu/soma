@@ -18,7 +18,7 @@ import { calculateStats } from './blood-pressure/utils/bpHelpers';
 
 const VALID_TABS = ['readings', 'statistics', 'charts'];
 
-export default function BloodPressure({ onLogout }) {
+export default function BloodPressure() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { readings, loading, error, addSession, updateSession, deleteSession } = useReadings();
@@ -109,7 +109,6 @@ export default function BloodPressure({ onLogout }) {
   return (
     <div className="min-h-screen flex flex-col bg-background pb-14 md:pb-0">
       <Navbar
-        onLogout={onLogout}
         leftContent={
           <button
             onClick={() => navigate('/')}
