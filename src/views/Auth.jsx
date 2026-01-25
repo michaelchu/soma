@@ -76,7 +76,7 @@ export default function Auth() {
                 </div>
               )}
 
-              <Button type="submit" className="w-full h-12" disabled={loading}>
+              <Button type="submit" className="w-full h-12 mt-2" disabled={loading}>
                 {loading ? 'Signing in...' : 'Sign In'}
               </Button>
             </form>
