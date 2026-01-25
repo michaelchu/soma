@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback, useMemo } from 'react';
 import {
   getReports,
   addReport as addReportDb,
@@ -6,138 +6,54 @@ import {
   deleteReport as deleteReportDb,
 } from '../../../lib/db/bloodTests';
 import { enrichReportMetrics } from '../utils/metricCalculations';
-
-/**
- * Process and update reports state
- */
-function processReportsData(data, setReports, setError, setLoading) {
-  if (!data || data.length === 0) {
-    setReports([]);
-    setError(null);
-    setLoading(false);
-    return;
-  }
-
-  const enrichedReports = enrichReportMetrics(data);
-  setReports(enrichedReports);
-  setError(null);
-  setLoading(false);
-}
+import { useDataManager } from '../../../hooks/useDataManager';
 
 /**
  * Custom hook for managing blood test reports
  * Loads reports from Supabase and enriches them with reference range data
  */
 export function useReports() {
-  const [reports, setReports] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const isMountedRef = useRef(true);
-
-  // Track mounted state
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
+  const fetchFn = useMemo(() => getReports, []);
+  const processData = useCallback((data) => {
+    if (!data || data.length === 0) return [];
+    return enrichReportMetrics(data);
   }, []);
 
-  // Initial data load
-  useEffect(() => {
-    const loadReports = async () => {
-      setLoading(true);
-      const { data, error: fetchError } = await getReports();
-
-      if (!isMountedRef.current) return;
-
-      if (fetchError) {
-        setError('Failed to load reports');
-        setLoading(false);
-        return;
-      }
-
-      processReportsData(data, setReports, setError, setLoading);
-    };
-
-    loadReports();
-  }, []);
-
-  // Refetch function for manual refresh and after mutations
-  const fetchReports = useCallback(async () => {
-    setLoading(true);
-    const { data, error: fetchError } = await getReports();
-
-    if (!isMountedRef.current) return;
-
-    if (fetchError) {
-      setError('Failed to load reports');
-      setLoading(false);
-      return;
-    }
-
-    processReportsData(data, setReports, setError, setLoading);
-  }, []);
+  const {
+    data: reports,
+    loading,
+    error,
+    addItem,
+    updateItem,
+    deleteItem,
+    refetch,
+  } = useDataManager({
+    fetchFn,
+    processData,
+    errorMessage: 'Failed to load reports',
+    idField: 'id',
+  });
 
   const addReport = useCallback(
     async (report) => {
-      const { data, error: addError } = await addReportDb(report);
-
-      if (!isMountedRef.current) return { error: null };
-
-      if (addError) {
-        return { error: addError };
-      }
-
-      // Refetch to get enriched data
-      await fetchReports();
-
-      // Check again after async operation
-      if (!isMountedRef.current) return { error: null };
-
-      return { data };
+      return addItem(() => addReportDb(report), { refetchAfter: true });
     },
-    [fetchReports]
+    [addItem]
   );
 
   const updateReport = useCallback(
     async (id, updates) => {
-      const { data, error: updateError } = await updateReportDb(id, updates);
-
-      if (!isMountedRef.current) return { error: null };
-
-      if (updateError) {
-        return { error: updateError };
-      }
-
-      // Refetch to get enriched data
-      await fetchReports();
-
-      // Check again after async operation
-      if (!isMountedRef.current) return { error: null };
-
-      return { data };
+      return updateItem(id, () => updateReportDb(id, updates), { refetchAfter: true });
     },
-    [fetchReports]
+    [updateItem]
   );
 
-  const deleteReport = useCallback(async (id) => {
-    const { error: deleteError } = await deleteReportDb(id);
-
-    if (!isMountedRef.current) return { error: null };
-
-    if (deleteError) {
-      return { error: deleteError };
-    }
-
-    // Remove from local state
-    setReports((prev) => prev.filter((r) => r.id !== id));
-
-    return { error: null };
-  }, []);
-
-  const refetch = useCallback(() => {
-    fetchReports();
-  }, [fetchReports]);
+  const deleteReport = useCallback(
+    async (id) => {
+      return deleteItem(id, () => deleteReportDb(id));
+    },
+    [deleteItem]
+  );
 
   return {
     reports,
