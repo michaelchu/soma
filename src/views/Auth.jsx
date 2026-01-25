@@ -54,7 +54,7 @@ export default function Auth() {
                   onChange={(e) => setEmail(e.target.value)}
                   autoFocus
                   autoComplete="email"
-                  className="h-11"
+                  className="h-12"
                 />
               </div>
 
@@ -66,7 +66,7 @@ export default function Auth() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
-                  className="h-11"
+                  className="h-12"
                 />
               </div>
 
