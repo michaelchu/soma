@@ -247,9 +247,7 @@ export function StatisticsTab({ readings, allReadings, dateRange, timeOfDay }) {
       {/* Average BP Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <p className="text-sm text-muted-foreground mb-1">
-            Average Blood Pressure ({dateRangeLabel})
-          </p>
+          <p className="text-sm text-muted-foreground mb-1">Average Blood Pressure</p>
           <p className="text-3xl font-bold">
             {currentStats?.systolic.avg != null ? Math.floor(currentStats.systolic.avg) : '—'}/
             {currentStats?.diastolic.avg != null ? Math.floor(currentStats.diastolic.avg) : '—'}

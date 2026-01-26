@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { BPTimeChart } from '../charts/BPTimeChart';
 import { BPScatterChart } from '../charts/BPScatterChart';
 
-export function ChartsTab({ readings }) {
+export function ChartsTab({ readings, dateRange = 'all' }) {
   const [showTrendline, setShowTrendline] = useState(true);
   const [showMarkers, setShowMarkers] = useState(false);
 
@@ -33,7 +33,12 @@ export function ChartsTab({ readings }) {
         </TabsList>
       </div>
       <TabsContent value="timeline" className="w-full">
-        <BPTimeChart readings={readings} showTrendline={showTrendline} showMarkers={showMarkers} />
+        <BPTimeChart
+          readings={readings}
+          showTrendline={showTrendline}
+          showMarkers={showMarkers}
+          dateRange={dateRange}
+        />
         <div className="flex justify-center gap-6 mt-4">
           <div className="flex items-center gap-2">
             <Switch id="trendline" checked={showTrendline} onCheckedChange={setShowTrendline} />

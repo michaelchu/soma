@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import {
   ComposedChart,
   Line,
@@ -10,6 +11,7 @@ import {
 } from 'recharts';
 import { formatDateTime } from '../../utils/bpHelpers';
 import { useBPSettings } from '../../hooks/useBPSettings';
+import { getDateRange } from '@/lib/dateUtils';
 
 interface Reading {
   datetime: string;
@@ -139,6 +141,7 @@ interface BPTimeChartProps {
   height?: number;
   showTrendline?: boolean;
   showMarkers?: boolean;
+  dateRange?: string;
 }
 
 export function BPTimeChart({
@@ -146,8 +149,22 @@ export function BPTimeChart({
   height = 280,
   showTrendline = true,
   showMarkers = true,
+  dateRange = 'all',
 }: BPTimeChartProps) {
   const { getCategory, getCategoryInfo } = useBPSettings();
+
+  // Format date range label using theoretical filter range
+  const dateRangeLabel = useMemo(() => {
+    if (dateRange === 'all') return 'All Time';
+
+    const { start, end } = getDateRange(dateRange);
+    if (!start) return 'All Time';
+
+    const formatDate = (date: Date) =>
+      date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+    return `${formatDate(start)} - ${formatDate(end)}`;
+  }, [dateRange]);
 
   if (!readings || readings.length === 0) {
     return (
@@ -310,7 +327,7 @@ export function BPTimeChart({
       </ResponsiveContainer>
 
       <div className="mt-2 text-xs text-muted-foreground text-center">
-        {chartData.length} readings · {chartData[0].date} → {chartData[chartData.length - 1].date}
+        {chartData.length} reading{chartData.length !== 1 ? 's' : ''} ({dateRangeLabel})
       </div>
     </div>
   );

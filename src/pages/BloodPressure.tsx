@@ -87,7 +87,7 @@ function BloodPressureContent() {
           />
         );
       case 'charts':
-        return <ChartsTab readings={filteredReadings} />;
+        return <ChartsTab readings={filteredReadings} dateRange={dateRange} />;
       default:
         return <ReadingsTab readings={filteredReadings} />;
     }
@@ -216,7 +216,7 @@ function BloodPressureContent() {
 
               {/* Charts Section */}
               <div className="rounded-lg border bg-card shadow-sm p-6">
-                <ChartsTab readings={filteredReadings} />
+                <ChartsTab readings={filteredReadings} dateRange={dateRange} />
               </div>
 
               {/* Readings Table */}
