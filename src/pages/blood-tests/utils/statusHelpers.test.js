@@ -1,11 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import {
-  getStatus,
-  getVisualMax,
-  getPositionInRange,
-  getOptimalZoneStyle,
-  RANGE_CONSTANTS,
-} from './statusHelpers';
+import { getStatus, getVisualMax, getPositionInRange, getOptimalZoneStyle } from './statusHelpers';
+import { RANGE_BAR_CONSTANTS } from '@/lib/constants';
 
 describe('statusHelpers', () => {
   describe('getStatus', () => {
@@ -53,7 +48,7 @@ describe('statusHelpers', () => {
   });
 
   describe('getPositionInRange', () => {
-    const { LOW_ZONE_END, NORMAL_ZONE_END } = RANGE_CONSTANTS;
+    const { LOW_ZONE_END, NORMAL_ZONE_END } = RANGE_BAR_CONSTANTS;
 
     it('returns 50 when both bounds are null', () => {
       expect(getPositionInRange(5, null, null)).toBe(50);

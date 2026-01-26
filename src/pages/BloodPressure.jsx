@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { FabButton } from '@/components/ui/fab-button';
 import { Card, CardContent } from '@/components/ui/card';
 import Navbar from '@/components/Navbar';
-import { useReadings } from './blood-pressure/hooks/useReadings';
+import { BPProvider, useBP } from './blood-pressure/context/BPContext';
 import { BottomNav } from './blood-pressure/components/ui/BottomNav';
 import { FilterBar, filterReadings } from './blood-pressure/components/ui/FilterBar';
 import { ReadingsTab } from './blood-pressure/components/tabs/ReadingsTab';
@@ -19,10 +19,10 @@ import { calculateStats } from './blood-pressure/utils/bpHelpers';
 
 const VALID_TABS = ['readings', 'statistics', 'charts'];
 
-export default function BloodPressure() {
+function BloodPressureContent() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { readings, loading, error, addSession, updateSession, deleteSession } = useReadings();
+  const { readings, loading, error } = useBP();
   const [showForm, setShowForm] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -76,14 +76,7 @@ export default function BloodPressure() {
   const renderMobileTabContent = () => {
     switch (activeTab) {
       case 'readings':
-        return (
-          <ReadingsTab
-            readings={filteredReadings}
-            addSession={addSession}
-            updateSession={updateSession}
-            deleteSession={deleteSession}
-          />
-        );
+        return <ReadingsTab readings={filteredReadings} />;
       case 'statistics':
         return (
           <StatisticsTab
@@ -96,14 +89,7 @@ export default function BloodPressure() {
       case 'charts':
         return <ChartsTab readings={filteredReadings} />;
       default:
-        return (
-          <ReadingsTab
-            readings={filteredReadings}
-            addSession={addSession}
-            updateSession={updateSession}
-            deleteSession={deleteSession}
-          />
-        );
+        return <ReadingsTab readings={filteredReadings} />;
     }
   };
 
@@ -234,12 +220,7 @@ export default function BloodPressure() {
               </div>
 
               {/* Readings Table */}
-              <ReadingsTab
-                readings={filteredReadings}
-                addSession={addSession}
-                updateSession={updateSession}
-                deleteSession={deleteSession}
-              />
+              <ReadingsTab readings={filteredReadings} />
             </div>
           </>
         )}
@@ -254,13 +235,7 @@ export default function BloodPressure() {
       </div>
 
       {/* Add Reading Modal */}
-      <ReadingForm
-        open={showForm}
-        onOpenChange={setShowForm}
-        addSession={addSession}
-        updateSession={updateSession}
-        deleteSession={deleteSession}
-      />
+      <ReadingForm open={showForm} onOpenChange={setShowForm} />
 
       {/* Export Modal */}
       {showExport && (
@@ -270,5 +245,13 @@ export default function BloodPressure() {
       {/* Settings Modal */}
       <SettingsModal open={showSettings} onOpenChange={setShowSettings} />
     </div>
+  );
+}
+
+export default function BloodPressure() {
+  return (
+    <BPProvider>
+      <BloodPressureContent />
+    </BPProvider>
   );
 }

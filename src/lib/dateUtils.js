@@ -1,77 +1,130 @@
 /**
- * Centralized date utilities
- * Provides consistent date handling across the application
+ * Date utility functions
+ * Centralizes all date handling to avoid manual timezone juggling throughout the codebase
  */
 
 /**
- * Get current datetime adjusted for local timezone (for datetime-local inputs)
- * @returns {string} ISO string sliced to datetime-local format (YYYY-MM-DDTHH:mm)
+ * Get the current datetime formatted for datetime-local input
+ * @returns {string} ISO datetime string without timezone (YYYY-MM-DDTHH:mm)
  */
 export function getLocalDatetimeNow() {
   const now = new Date();
-  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-  return now.toISOString().slice(0, 16);
+  return formatDateForInput(now);
 }
 
 /**
- * Convert ISO datetime to datetime-local input format
+ * Format a Date object for datetime-local input
+ * @param {Date} date - Date object to format
+ * @returns {string} ISO datetime string without timezone (YYYY-MM-DDTHH:mm)
+ */
+export function formatDateForInput(date) {
+  const offset = date.getTimezoneOffset();
+  const localDate = new Date(date.getTime() - offset * 60 * 1000);
+  return localDate.toISOString().slice(0, 16);
+}
+
+/**
+ * Format an ISO datetime string for datetime-local input
+ * Alias: toDatetimeLocalFormat
  * @param {string} isoString - ISO datetime string
- * @returns {string} Formatted for datetime-local input
+ * @returns {string} ISO datetime string without timezone (YYYY-MM-DDTHH:mm)
  */
-export function toDatetimeLocalFormat(isoString) {
-  const date = new Date(isoString);
-  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
-  return date.toISOString().slice(0, 16);
+export function formatISOForInput(isoString) {
+  return formatDateForInput(new Date(isoString));
 }
 
+// Alias for backwards compatibility
+export const toDatetimeLocalFormat = formatISOForInput;
+
 /**
- * Convert datetime-local input value to ISO string
- * @param {string} localDatetime - Value from datetime-local input
- * @returns {string} ISO datetime string
+ * Convert a datetime-local input value to ISO string
+ * Alias: fromDatetimeLocalFormat
+ * @param {string} inputValue - Value from datetime-local input (YYYY-MM-DDTHH:mm)
+ * @returns {string} Full ISO datetime string
  */
-export function fromDatetimeLocalFormat(localDatetime) {
-  return new Date(localDatetime).toISOString();
+export function inputToISO(inputValue) {
+  return new Date(inputValue).toISOString();
 }
+
+// Alias for backwards compatibility
+export const fromDatetimeLocalFormat = inputToISO;
 
 /**
  * Format a date for display
- * @param {string|Date} date - Date to format
- * @param {Object} options - Formatting options
+ * @param {Date|string} date - Date object or ISO string
+ * @param {object} options - Formatting options
+ * @param {boolean} options.includeYear - Whether to include year (default: auto based on current year)
+ * @param {boolean} options.hideCurrentYear - Hide year if it's the current year
  * @param {boolean} options.includeTime - Include time (default: false)
- * @param {boolean} options.includeYear - Include year (default: auto based on current year)
  * @param {boolean} options.includeWeekday - Include weekday (default: false)
  * @param {string} options.locale - Locale for formatting (default: 'en-US')
  * @returns {string} Formatted date string
  */
 export function formatDate(date, options = {}) {
-  const { includeTime = false, includeYear, includeWeekday = false, locale = 'en-US' } = options;
+  const {
+    includeYear,
+    hideCurrentYear = false,
+    includeTime = false,
+    includeWeekday = false,
+    locale = 'en-US',
+  } = options;
 
-  const d = new Date(date);
-  const isCurrentYear = d.getFullYear() === new Date().getFullYear();
-  const showYear = includeYear ?? !isCurrentYear;
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  const now = new Date();
+  const isCurrentYear = dateObj.getFullYear() === now.getFullYear();
 
-  const dateOptions = {
+  // Determine if year should be shown
+  let showYear;
+  if (includeYear !== undefined) {
+    showYear = includeYear;
+  } else if (hideCurrentYear) {
+    showYear = !isCurrentYear;
+  } else {
+    showYear = !isCurrentYear; // Default: hide current year
+  }
+
+  return dateObj.toLocaleDateString(locale, {
     month: 'short',
     day: 'numeric',
     ...(showYear && { year: 'numeric' }),
     ...(includeWeekday && { weekday: 'short' }),
     ...(includeTime && { hour: 'numeric', minute: '2-digit' }),
-  };
-
-  return d.toLocaleDateString(locale, dateOptions);
+  });
 }
 
 /**
  * Format a time for display
- * @param {string|Date} date - Date to extract time from
- * @param {string} locale - Locale for formatting (default: 'en-US')
+ * @param {Date|string} date - Date object or ISO string
+ * @param {object|string} options - Formatting options or locale string
+ * @param {boolean} options.use24Hour - Use 24-hour format (default: false)
+ * @param {string} options.locale - Locale for formatting (default: 'en-US')
  * @returns {string} Formatted time string
  */
-export function formatTime(date, locale = 'en-US') {
-  return new Date(date).toLocaleTimeString(locale, {
+export function formatTime(date, options = {}) {
+  // Support passing locale as string for backwards compatibility
+  const opts = typeof options === 'string' ? { locale: options } : options;
+  const { use24Hour = false, locale = 'en-US' } = opts;
+
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+
+  return dateObj.toLocaleTimeString(locale, {
     hour: 'numeric',
     minute: '2-digit',
+    ...(use24Hour && { hour12: false }),
   });
+}
+
+/**
+ * Format date and time together
+ * @param {Date|string} date - Date object or ISO string
+ * @param {object} options - Formatting options
+ * @returns {object} Object with formatted date and time strings
+ */
+export function formatDateTime(date, options = {}) {
+  return {
+    date: formatDate(date, options),
+    time: formatTime(date, options),
+  };
 }
 
 /**
@@ -87,6 +140,39 @@ export function formatDatetimeForId(datetime) {
   const hours = String(date.getHours()).padStart(2, '0');
   const minutes = String(date.getMinutes()).padStart(2, '0');
   return `${year}-${month}-${day} ${hours}:${minutes}`;
+}
+
+/**
+ * Get the start of a day
+ * @param {Date|string} date - Date object or ISO string
+ * @returns {Date} Date object set to start of day (00:00:00.000)
+ */
+export function startOfDay(date) {
+  const dateObj = typeof date === 'string' ? new Date(date) : new Date(date);
+  dateObj.setHours(0, 0, 0, 0);
+  return dateObj;
+}
+
+/**
+ * Get the end of a day
+ * @param {Date|string} date - Date object or ISO string
+ * @returns {Date} Date object set to end of day (23:59:59.999)
+ */
+export function endOfDay(date) {
+  const dateObj = typeof date === 'string' ? new Date(date) : new Date(date);
+  dateObj.setHours(23, 59, 59, 999);
+  return dateObj;
+}
+
+/**
+ * Get date N days ago from today
+ * @param {number} days - Number of days ago
+ * @returns {Date} Date object
+ */
+export function daysAgo(days) {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return startOfDay(date);
 }
 
 /**
@@ -109,6 +195,18 @@ export function getDateRange(range) {
 }
 
 /**
+ * Check if a date is within a range of days from today
+ * @param {Date|string} date - Date to check
+ * @param {number} days - Number of days (e.g., 7 for "last 7 days")
+ * @returns {boolean}
+ */
+export function isWithinDays(date, days) {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  const cutoff = daysAgo(days);
+  return dateObj >= cutoff;
+}
+
+/**
  * Check if a date falls within a range
  * @param {string|Date} date - Date to check
  * @param {Date|null} start - Start of range (null for no lower bound)
@@ -123,12 +221,61 @@ export function isDateInRange(date, start, end) {
 }
 
 /**
- * Get the hour from a date for time-of-day filtering
- * @param {string|Date} date - Date to extract hour from
+ * Get the hour of a date (0-23)
+ * @param {Date|string} date - Date object or ISO string
  * @returns {number} Hour (0-23)
  */
 export function getHour(date) {
-  return new Date(date).getHours();
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  return dateObj.getHours();
+}
+
+/**
+ * Check if a time is in the AM (before noon)
+ * @param {Date|string} date - Date object or ISO string
+ * @returns {boolean}
+ */
+export function isAM(date) {
+  return getHour(date) < 12;
+}
+
+/**
+ * Check if a time is in the PM (noon or after)
+ * @param {Date|string} date - Date object or ISO string
+ * @returns {boolean}
+ */
+export function isPM(date) {
+  return getHour(date) >= 12;
+}
+
+/**
+ * Check if a time is in the morning (6:00-11:59)
+ * @param {Date|string} date - Date object or ISO string
+ * @returns {boolean}
+ */
+export function isMorning(date) {
+  const hour = getHour(date);
+  return hour >= 6 && hour < 12;
+}
+
+/**
+ * Check if a time is in the afternoon (12:00-17:59)
+ * @param {Date|string} date - Date object or ISO string
+ * @returns {boolean}
+ */
+export function isAfternoon(date) {
+  const hour = getHour(date);
+  return hour >= 12 && hour < 18;
+}
+
+/**
+ * Check if a time is in the evening (18:00-5:59)
+ * @param {Date|string} date - Date object or ISO string
+ * @returns {boolean}
+ */
+export function isEvening(date) {
+  const hour = getHour(date);
+  return hour >= 18 || hour < 6;
 }
 
 /**
@@ -156,4 +303,19 @@ export function isInTimeOfDay(date, period) {
     default:
       return true;
   }
+}
+
+/**
+ * Sort an array of objects by date
+ * @param {Array} items - Array of objects with date property
+ * @param {string} dateKey - Key of the date property
+ * @param {boolean} ascending - Sort ascending (oldest first) if true
+ * @returns {Array} Sorted array
+ */
+export function sortByDate(items, dateKey = 'date', ascending = false) {
+  return [...items].sort((a, b) => {
+    const dateA = new Date(a[dateKey]);
+    const dateB = new Date(b[dateKey]);
+    return ascending ? dateA - dateB : dateB - dateA;
+  });
 }

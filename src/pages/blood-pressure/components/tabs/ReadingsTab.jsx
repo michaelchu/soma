@@ -13,11 +13,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { BPStatusBadge } from '../ui/BPStatusBadge';
 import { formatDateTime } from '../../utils/bpHelpers';
 import { useBPSettings } from '../../hooks/useBPSettings';
+import { useBP } from '../../context/BPContext';
 import { ReadingForm } from '../modals/ReadingForm';
+import { TOUCH_CONSTANTS } from '@/lib/constants';
 
-const SWIPE_THRESHOLD = 80;
-const DELETE_THRESHOLD = 150;
-const LONG_PRESS_DURATION = 500;
+const { SWIPE_THRESHOLD, DELETE_THRESHOLD, LONG_PRESS_DURATION, MOVEMENT_THRESHOLD } =
+  TOUCH_CONSTANTS;
 
 function SwipeableRow({ children, onDelete, onLongPress, onTap, onExpandTap, isLast }) {
   const [offsetX, setOffsetX] = useState(0);
@@ -70,13 +71,16 @@ function SwipeableRow({ children, onDelete, onLongPress, onTap, onExpandTap, isL
     const deltaY = e.touches[0].clientY - startY.current;
 
     // Cancel long press if user moves
-    if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
+    if (Math.abs(deltaX) > MOVEMENT_THRESHOLD || Math.abs(deltaY) > MOVEMENT_THRESHOLD) {
       clearLongPressTimer();
       hasMoved.current = true;
     }
 
     // Determine swipe direction on first significant movement
-    if (isHorizontalSwipe.current === null && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
+    if (
+      isHorizontalSwipe.current === null &&
+      (Math.abs(deltaX) > MOVEMENT_THRESHOLD || Math.abs(deltaY) > MOVEMENT_THRESHOLD)
+    ) {
       isHorizontalSwipe.current = Math.abs(deltaX) > Math.abs(deltaY);
     }
 
@@ -185,7 +189,8 @@ function NotesModal({ open, onOpenChange, session }) {
   );
 }
 
-export function ReadingsTab({ readings, addSession, updateSession, deleteSession }) {
+export function ReadingsTab({ readings }) {
+  const { addSession, deleteSession } = useBP();
   const [editingSession, setEditingSession] = useState(null);
   const [expandedSessionId, setExpandedSessionId] = useState(null);
   const [notesSession, setNotesSession] = useState(null);
@@ -427,9 +432,6 @@ export function ReadingsTab({ readings, addSession, updateSession, deleteSession
         open={!!editingSession}
         onOpenChange={(open) => !open && setEditingSession(null)}
         session={editingSession}
-        addSession={addSession}
-        updateSession={updateSession}
-        deleteSession={deleteSession}
       />
     </>
   );

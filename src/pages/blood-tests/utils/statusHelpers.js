@@ -1,16 +1,9 @@
+import { RANGE_BAR_CONSTANTS } from '@/lib/constants';
+
 /**
  * Status Helper Functions
  * Functions for determining and calculating metric statuses
  */
-
-// Range bar layout constants
-// The bar is divided into: [low zone 0-15%] [normal zone 15-85%] [high zone 85-100%]
-export const RANGE_CONSTANTS = {
-  LOW_ZONE_END: 15,
-  NORMAL_ZONE_END: 85,
-  NORMAL_ZONE_WIDTH: 70, // 85 - 15
-  OVERFLOW_FACTOR: 0.3, // How much beyond bounds to show before clamping
-};
 
 /**
  * Determine if a metric value is low, normal, or high
@@ -42,7 +35,7 @@ export function getVisualMax(min) {
  * @returns {number} Position percentage (0-100)
  */
 export function getPositionInRange(value, min, max) {
-  const { LOW_ZONE_END, NORMAL_ZONE_END, NORMAL_ZONE_WIDTH, OVERFLOW_FACTOR } = RANGE_CONSTANTS;
+  const { LOW_ZONE_END, NORMAL_ZONE_END, NORMAL_ZONE_WIDTH, OVERFLOW_FACTOR } = RANGE_BAR_CONSTANTS;
 
   if (min === null && max === null) return 50;
 
@@ -89,7 +82,7 @@ export function getPositionInRange(value, min, max) {
 export function getOptimalZoneStyle(optimalMin, optimalMax, min, max) {
   if (optimalMin === null || optimalMax === null) return null;
 
-  const { LOW_ZONE_END, NORMAL_ZONE_WIDTH } = RANGE_CONSTANTS;
+  const { LOW_ZONE_END, NORMAL_ZONE_WIDTH } = RANGE_BAR_CONSTANTS;
 
   if (min !== null && max !== null) {
     const range = max - min;
