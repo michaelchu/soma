@@ -5,9 +5,6 @@ import { RANGE_BAR_CONSTANTS } from '@/lib/constants';
  * Functions for determining and calculating metric statuses
  */
 
-// Re-export for backwards compatibility
-export const RANGE_CONSTANTS = RANGE_BAR_CONSTANTS;
-
 /**
  * Determine if a metric value is low, normal, or high
  * @param {number} value - The metric value
@@ -38,7 +35,7 @@ export function getVisualMax(min) {
  * @returns {number} Position percentage (0-100)
  */
 export function getPositionInRange(value, min, max) {
-  const { LOW_ZONE_END, NORMAL_ZONE_END, NORMAL_ZONE_WIDTH, OVERFLOW_FACTOR } = RANGE_CONSTANTS;
+  const { LOW_ZONE_END, NORMAL_ZONE_END, NORMAL_ZONE_WIDTH, OVERFLOW_FACTOR } = RANGE_BAR_CONSTANTS;
 
   if (min === null && max === null) return 50;
 
@@ -85,7 +82,7 @@ export function getPositionInRange(value, min, max) {
 export function getOptimalZoneStyle(optimalMin, optimalMax, min, max) {
   if (optimalMin === null || optimalMax === null) return null;
 
-  const { LOW_ZONE_END, NORMAL_ZONE_WIDTH } = RANGE_CONSTANTS;
+  const { LOW_ZONE_END, NORMAL_ZONE_WIDTH } = RANGE_BAR_CONSTANTS;
 
   if (min !== null && max !== null) {
     const range = max - min;
