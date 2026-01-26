@@ -1,3 +1,4 @@
+import { useRef, useCallback, useMemo } from 'react';
 import {
   Line,
   XAxis,
@@ -17,57 +18,187 @@ import { StatusBadge } from '../ui/StatusBadge';
 import { RangeBar } from '../ui/RangeBar';
 import { TrendIndicator } from '../ui/TrendIndicator';
 
-export function MetricChart({ metricKey, reports, collapsed = false }) {
+const LONG_PRESS_DURATION = 600; // ms
+const MOVE_THRESHOLD = 10; // pixels - cancel long press if moved more than this
+
+export function MetricChart({
+  metricKey,
+  reports,
+  collapsed = false,
+  mobileExpanded = false,
+  onTap,
+  onLongPress,
+}) {
+  const longPressTimerRef = useRef(null);
+  const isLongPressRef = useRef(false);
+  const startPosRef = useRef({ x: 0, y: 0 });
+  const didMoveRef = useRef(false);
+
+  const cancelLongPress = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, []);
+
+  const startLongPress = useCallback(
+    (e) => {
+      isLongPressRef.current = false;
+      didMoveRef.current = false;
+
+      // Store initial position
+      if (e.touches) {
+        startPosRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      } else {
+        startPosRef.current = { x: e.clientX, y: e.clientY };
+      }
+
+      longPressTimerRef.current = setTimeout(() => {
+        isLongPressRef.current = true;
+        if (onLongPress) {
+          // Trigger haptic feedback on supported devices
+          if (navigator.vibrate) {
+            navigator.vibrate(50);
+          }
+          onLongPress(metricKey);
+        }
+      }, LONG_PRESS_DURATION);
+    },
+    [metricKey, onLongPress]
+  );
+
+  const handleMove = useCallback(
+    (e) => {
+      let currentX, currentY;
+      if (e.touches) {
+        currentX = e.touches[0].clientX;
+        currentY = e.touches[0].clientY;
+      } else {
+        currentX = e.clientX;
+        currentY = e.clientY;
+      }
+
+      const deltaX = Math.abs(currentX - startPosRef.current.x);
+      const deltaY = Math.abs(currentY - startPosRef.current.y);
+
+      // Cancel if moved beyond threshold (user is scrolling)
+      if (deltaX > MOVE_THRESHOLD || deltaY > MOVE_THRESHOLD) {
+        didMoveRef.current = true;
+        cancelLongPress();
+      }
+    },
+    [cancelLongPress]
+  );
+
+  const handleEnd = useCallback(() => {
+    cancelLongPress();
+  }, [cancelLongPress]);
+
+  const handleClick = useCallback(() => {
+    // If it was a long press or user moved, don't treat as tap
+    if (isLongPressRef.current || didMoveRef.current) {
+      return;
+    }
+    if (onTap) {
+      onTap(metricKey);
+    }
+  }, [metricKey, onTap]);
+
+  const handleContextMenu = useCallback(
+    (e) => {
+      // Prevent context menu on long press
+      if (onLongPress) {
+        e.preventDefault();
+      }
+    },
+    [onLongPress]
+  );
+
   const ref = REFERENCE_RANGES[metricKey];
-  const data = reports
-    .sort((a, b) => new Date(a.date) - new Date(b.date))
-    .map((r) => {
-      if (!r.metrics[metricKey]) return null;
-      const m = r.metrics[metricKey];
-      return {
-        date: new Date(r.date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-        value: m.value,
-        min: m.min,
-        max: m.max,
-        fullDate: r.date,
-      };
-    })
-    .filter(Boolean);
 
-  if (data.length === 0 || !ref) return null;
+  // Memoize chart data transformation to prevent recalculation on every render
+  const data = useMemo(
+    () =>
+      [...reports]
+        .sort((a, b) => new Date(a.date) - new Date(b.date))
+        .map((r) => {
+          if (!r.metrics[metricKey]) return null;
+          const m = r.metrics[metricKey];
+          return {
+            date: new Date(r.date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+            value: m.value,
+            min: m.min,
+            max: m.max,
+            fullDate: r.date,
+          };
+        })
+        .filter(Boolean),
+    [reports, metricKey]
+  );
 
-  const sortedReports = [...reports].sort((a, b) => new Date(b.date) - new Date(a.date));
-  const latestReport = sortedReports.find((r) => r.metrics[metricKey]);
-  const metric = latestReport?.metrics[metricKey];
-  if (!metric) return null;
+  // Memoize latest metric lookup
+  const metric = useMemo(() => {
+    const sortedReports = [...reports].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const latestReport = sortedReports.find((r) => r.metrics[metricKey]);
+    return latestReport?.metrics[metricKey];
+  }, [reports, metricKey]);
 
-  const allValues = data.map((d) => d.value);
-  const minVal = Math.min(...allValues),
-    maxVal = Math.max(...allValues);
-  const range = maxVal - minVal || maxVal * 0.2;
-  const padding = range * 0.4;
+  // Memoize chart domain calculations
+  const { yMin, yMax } = useMemo(() => {
+    if (data.length === 0 || !metric) return { yMin: 0, yMax: 100 };
 
-  let yMin = minVal - padding,
-    yMax = maxVal + padding;
-  if (metric.min !== null) yMin = Math.min(yMin, metric.min - padding * 0.5);
-  if (metric.max !== null) yMax = Math.max(yMax, metric.max + padding * 0.5);
-  if (metric.optimalMin !== null || metric.optimalMax !== null) {
-    if (metric.optimalMin !== null) yMin = Math.min(yMin, metric.optimalMin - padding * 0.3);
-    if (metric.optimalMax !== null) yMax = Math.max(yMax, metric.optimalMax + padding * 0.3);
-  }
+    const allValues = data.map((d) => d.value);
+    const minVal = Math.min(...allValues);
+    const maxVal = Math.max(...allValues);
+    const range = maxVal - minVal || maxVal * 0.2;
+    const padding = range * 0.4;
 
-  const status = getStatus(metric.value, metric.min, metric.max);
-  const hasHistoricalAbnormal = data.some((d) => getStatus(d.value, d.min, d.max) !== 'normal');
+    let computedYMin = minVal - padding;
+    let computedYMax = maxVal + padding;
+
+    if (metric.min !== null) computedYMin = Math.min(computedYMin, metric.min - padding * 0.5);
+    if (metric.max !== null) computedYMax = Math.max(computedYMax, metric.max + padding * 0.5);
+    if (metric.optimalMin !== null)
+      computedYMin = Math.min(computedYMin, metric.optimalMin - padding * 0.3);
+    if (metric.optimalMax !== null)
+      computedYMax = Math.max(computedYMax, metric.optimalMax + padding * 0.3);
+
+    return { yMin: computedYMin, yMax: computedYMax };
+  }, [data, metric]);
+
+  // Memoize status calculations
+  const { status, hasHistoricalAbnormal } = useMemo(() => {
+    if (!metric) return { status: 'normal', hasHistoricalAbnormal: false };
+    return {
+      status: getStatus(metric.value, metric.min, metric.max),
+      hasHistoricalAbnormal: data.some((d) => getStatus(d.value, d.min, d.max) !== 'normal'),
+    };
+  }, [metric, data]);
+
+  // Early return after all hooks
+  if (data.length === 0 || !ref || !metric) return null;
 
   return (
     <div
-      className={`bg-card rounded-xl border-2 p-3 sm:p-4 transition-all ${
+      className={`transition-all select-none md:bg-card md:rounded-xl md:border-2 md:p-4 ${
         status !== 'normal'
-          ? 'border-amber-300 dark:border-amber-700 bg-gradient-to-br from-amber-50/50 to-transparent dark:from-amber-950/20'
+          ? 'md:border-amber-300 md:dark:border-amber-700 md:bg-gradient-to-br md:from-amber-50/50 md:to-transparent md:dark:from-amber-950/20'
           : hasHistoricalAbnormal
-            ? 'border-muted-foreground/30'
-            : 'border-border'
-      }`}
+            ? 'md:border-muted-foreground/30'
+            : 'md:border-border'
+      } ${onLongPress || onTap ? 'cursor-pointer active:scale-[0.98]' : ''}`}
+      onClick={onTap ? handleClick : undefined}
+      onMouseDown={onLongPress ? startLongPress : undefined}
+      onMouseUp={onLongPress ? handleEnd : undefined}
+      onMouseMove={onLongPress ? handleMove : undefined}
+      onMouseLeave={onLongPress ? cancelLongPress : undefined}
+      onTouchStart={onLongPress || onTap ? startLongPress : undefined}
+      onTouchEnd={onLongPress || onTap ? handleEnd : undefined}
+      onTouchMove={onLongPress || onTap ? handleMove : undefined}
+      onTouchCancel={onLongPress || onTap ? cancelLongPress : undefined}
+      role={onTap ? 'button' : undefined}
+      tabIndex={onTap ? 0 : undefined}
+      onContextMenu={handleContextMenu}
     >
       <div className="flex justify-between items-start mb-1 gap-2">
         <div className="flex-1 min-w-0">
@@ -107,24 +238,31 @@ export function MetricChart({ metricKey, reports, collapsed = false }) {
         optimalMax={metric.optimalMax}
       />
 
-      {!collapsed && (
-        <>
+      {/* Expanded content: visible on mobile when mobileExpanded, on desktop when not collapsed */}
+      {(mobileExpanded || !collapsed) && (
+        <div
+          className={`${mobileExpanded || !collapsed ? '' : 'hidden'} ${collapsed ? 'md:hidden' : ''}`}
+        >
           <div className="flex items-center justify-between mt-2 mb-3">
             <div className="flex items-center gap-2">
               <StatusBadge status={status} />
               <TrendIndicator data={data} min={metric.min} max={metric.max} />
             </div>
-            <div className="text-xs text-muted-foreground">
-              {metric.min !== null && metric.max !== null
-                ? `Ref: ${metric.min}–${metric.max}`
-                : metric.min !== null
-                  ? `Ref: ≥${metric.min}`
-                  : metric.max !== null
-                    ? `Ref: ≤${metric.max}`
-                    : ''}
-              {metric.optimalMin !== null &&
-                metric.optimalMax !== null &&
-                ` · Optimal: ${metric.optimalMin}–${metric.optimalMax}`}
+            <div className="text-xs text-muted-foreground text-right">
+              {metric.min !== null && metric.max !== null ? (
+                <div>
+                  Ref: {metric.min}–{metric.max}
+                </div>
+              ) : metric.min !== null ? (
+                <div>Ref: ≥{metric.min}</div>
+              ) : metric.max !== null ? (
+                <div>Ref: ≤{metric.max}</div>
+              ) : null}
+              {metric.optimalMin !== null && metric.optimalMax !== null && (
+                <div>
+                  Optimal: {metric.optimalMin}–{metric.optimalMax}
+                </div>
+              )}
             </div>
           </div>
 
@@ -264,7 +402,7 @@ export function MetricChart({ metricKey, reports, collapsed = false }) {
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="h-16 flex items-center justify-center text-sm text-muted-foreground bg-muted rounded-lg">
+            <div className="h-16 flex items-center justify-center text-sm text-muted-foreground bg-muted rounded-lg text-center px-4">
               Single data point — add more reports to see trends
             </div>
           )}
@@ -274,7 +412,7 @@ export function MetricChart({ metricKey, reports, collapsed = false }) {
               ? `1 reading · ${data[0].date}`
               : `${data.length} readings · ${data[0].date} → ${data[data.length - 1].date}`}
           </div>
-        </>
+        </div>
       )}
     </div>
   );

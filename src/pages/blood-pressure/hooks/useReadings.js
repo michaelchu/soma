@@ -1,104 +1,58 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import {
   getReadings,
   addSession as addSessionDb,
   updateSession as updateSessionDb,
   deleteSession as deleteSessionDb,
 } from '../../../lib/db/bloodPressure';
+import { useDataManager } from '../../../hooks/useDataManager';
 
 /**
  * Custom hook to load and manage blood pressure sessions from Supabase
  * Each session contains one or more individual readings taken in one sitting
  */
 export function useReadings() {
-  const [readings, setReadings] = useState([]); // These are actually sessions now
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const fetchFn = useMemo(() => getReadings, []);
 
-  useEffect(() => {
-    const loadReadings = async () => {
-      setLoading(true);
-      const { data, error: fetchError } = await getReadings();
+  const {
+    data: readings,
+    loading,
+    error,
+    addItem,
+    updateItem,
+    deleteItem,
+    refetch,
+  } = useDataManager({
+    fetchFn,
+    errorMessage: 'Failed to load blood pressure readings',
+    idField: 'sessionId',
+  });
 
-      if (fetchError) {
-        setError('Failed to load blood pressure readings');
-        console.error('Error fetching readings:', fetchError);
-      } else {
-        setReadings(data || []);
-        setError(null);
-      }
-      setLoading(false);
-    };
-    loadReadings();
-  }, []);
+  const sortByDateDesc = useCallback((a, b) => new Date(b.datetime) - new Date(a.datetime), []);
 
-  const addSession = useCallback(async (session) => {
-    const { data, error: addError } = await addSessionDb(session);
+  const addSession = useCallback(
+    async (session) => {
+      return addItem(() => addSessionDb(session), { sortFn: sortByDateDesc });
+    },
+    [addItem, sortByDateDesc]
+  );
 
-    if (addError) {
-      console.error('Error adding session:', addError);
-      return { error: addError };
-    }
-
-    // Add to local state (insert at beginning since sorted by date desc)
-    setReadings((prev) => {
-      const updated = [data, ...prev];
-      return updated.sort((a, b) => new Date(b.datetime) - new Date(a.datetime));
-    });
-
-    return { data };
-  }, []);
-
-  const updateSession = useCallback(async (sessionId, session) => {
-    const { data, error: updateError } = await updateSessionDb(sessionId, session);
-
-    if (updateError) {
-      console.error('Error updating session:', updateError);
-      return { error: updateError };
-    }
-
-    // Update local state
-    setReadings((prev) => prev.map((s) => (s.sessionId === sessionId ? data : s)));
-
-    return { data };
-  }, []);
+  const updateSession = useCallback(
+    async (sessionId, session) => {
+      return updateItem(sessionId, () => updateSessionDb(sessionId, session));
+    },
+    [updateItem]
+  );
 
   const deleteSession = useCallback(
     async (sessionId) => {
-      // Find the session before deleting so we can return it for undo
-      const deletedSession = readings.find((s) => s.sessionId === sessionId);
-
-      const { error: deleteError } = await deleteSessionDb(sessionId);
-
-      if (deleteError) {
-        console.error('Error deleting session:', deleteError);
-        return { error: deleteError };
-      }
-
-      // Remove from local state
-      setReadings((prev) => prev.filter((s) => s.sessionId !== sessionId));
-
-      return { error: null, deletedSession };
+      return deleteItem(sessionId, () => deleteSessionDb(sessionId));
     },
-    [readings]
+    [deleteItem]
   );
 
-  const refetch = useCallback(async () => {
-    setLoading(true);
-    const { data, error: fetchError } = await getReadings();
-
-    if (fetchError) {
-      setError('Failed to load blood pressure readings');
-      console.error('Error fetching readings:', fetchError);
-    } else {
-      setReadings(data || []);
-      setError(null);
-    }
-    setLoading(false);
-  }, []);
-
   return {
-    readings, // Sessions with computed averages
+    readings,
     loading,
     error,
     addSession,

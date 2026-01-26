@@ -1,5 +1,4 @@
 import { useState, useRef, useCallback } from 'react';
-import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Save, Loader2, Plus, X, Trash2 } from 'lucide-react';
 import { useBP } from '../../context/BPContext';
-import { getLocalDatetimeNow, formatISOForInput } from '@/lib/dateUtils';
+import { showError, showSuccess, showWithUndo } from '@/lib/toast';
+import { getLocalDatetimeNow, toDatetimeLocalFormat } from '@/lib/dateUtils';
+import { BP_VALIDATION } from '@/lib/validation';
 
 function createEmptyBpRow() {
   return { systolic: '', diastolic: '', arm: null };
@@ -19,7 +20,7 @@ function ReadingFormContent({ session, onOpenChange }) {
   const isEditing = !!session;
 
   const [datetime, setDatetime] = useState(() =>
-    session ? formatISOForInput(session.datetime) : getLocalDatetimeNow()
+    session ? toDatetimeLocalFormat(session.datetime) : getLocalDatetimeNow()
   );
   const [bpRows, setBpRows] = useState(() =>
     session?.readings
@@ -35,7 +36,6 @@ function ReadingFormContent({ session, onOpenChange }) {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [error, setError] = useState(null);
 
   // Refs for auto-focus: inputRefs[rowIndex][field] where field is 'systolic' or 'diastolic'
   const inputRefs = useRef({});
@@ -75,10 +75,10 @@ function ReadingFormContent({ session, onOpenChange }) {
     (row) =>
       row.systolic &&
       row.diastolic &&
-      parseInt(row.systolic) >= 60 &&
-      parseInt(row.systolic) <= 250 &&
-      parseInt(row.diastolic) >= 40 &&
-      parseInt(row.diastolic) <= 150
+      parseInt(row.systolic) >= BP_VALIDATION.SYSTOLIC_MIN &&
+      parseInt(row.systolic) <= BP_VALIDATION.SYSTOLIC_MAX &&
+      parseInt(row.diastolic) >= BP_VALIDATION.DIASTOLIC_MIN &&
+      parseInt(row.diastolic) <= BP_VALIDATION.DIASTOLIC_MAX
   );
 
   const avgSystolic =
@@ -98,7 +98,6 @@ function ReadingFormContent({ session, onOpenChange }) {
   const isValid = datetime && validRows.length > 0;
 
   const handleSave = async () => {
-    setError(null);
     setSaving(true);
 
     // Convert valid rows to readings array with parsed integers
@@ -127,11 +126,11 @@ function ReadingFormContent({ session, onOpenChange }) {
     setSaving(false);
 
     if (saveError) {
-      setError(saveError.message || 'Failed to save reading');
+      showError(saveError.message || 'Failed to save reading');
       return;
     }
 
-    toast.success(isEditing ? 'Reading updated' : 'Reading added');
+    showSuccess(isEditing ? 'Reading updated' : 'Reading added');
 
     // Reset form and close
     handleReset();
@@ -143,7 +142,6 @@ function ReadingFormContent({ session, onOpenChange }) {
     setBpRows([createEmptyBpRow()]);
     setPulse('');
     setNotes('');
-    setError(null);
     setConfirmDelete(false);
   };
 
@@ -153,7 +151,6 @@ function ReadingFormContent({ session, onOpenChange }) {
       return;
     }
 
-    setError(null);
     setDeleting(true);
 
     const { error: deleteError, deletedSession } = await deleteSession(session.sessionId);
@@ -161,31 +158,28 @@ function ReadingFormContent({ session, onOpenChange }) {
     setDeleting(false);
 
     if (deleteError) {
-      setError(deleteError.message || 'Failed to delete reading');
+      showError(deleteError.message || 'Failed to delete reading');
       setConfirmDelete(false);
       return;
     }
 
-    toast('Reading deleted', {
-      action: {
-        label: 'Undo',
-        onClick: () => {
-          if (deletedSession) {
-            // Re-add the session with its readings
-            addSession({
-              datetime: deletedSession.datetime,
-              readings: deletedSession.readings.map((r) => ({
-                systolic: r.systolic,
-                diastolic: r.diastolic,
-                arm: r.arm,
-              })),
-              pulse: deletedSession.pulse,
-              notes: deletedSession.notes,
-            });
-          }
-        },
-      },
-      duration: 4000,
+    showWithUndo('Reading deleted', async () => {
+      if (deletedSession) {
+        // Re-add the session with its readings
+        const { error: undoError } = await addSession({
+          datetime: deletedSession.datetime,
+          readings: deletedSession.readings.map((r) => ({
+            systolic: r.systolic,
+            diastolic: r.diastolic,
+            arm: r.arm,
+          })),
+          pulse: deletedSession.pulse,
+          notes: deletedSession.notes,
+        });
+        if (undoError) {
+          showError('Failed to restore reading');
+        }
+      }
     });
 
     onOpenChange(false);
@@ -221,8 +215,8 @@ function ReadingFormContent({ session, onOpenChange }) {
                   placeholder="Sys"
                   value={row.systolic}
                   onChange={(e) => updateBpRow(index, 'systolic', e.target.value)}
-                  min={60}
-                  max={250}
+                  min={BP_VALIDATION.SYSTOLIC_MIN}
+                  max={BP_VALIDATION.SYSTOLIC_MAX}
                   className="text-center"
                 />
                 <span className="text-2xl text-muted-foreground">/</span>
@@ -232,15 +226,21 @@ function ReadingFormContent({ session, onOpenChange }) {
                   placeholder="Dia"
                   value={row.diastolic}
                   onChange={(e) => updateBpRow(index, 'diastolic', e.target.value)}
-                  min={40}
-                  max={150}
+                  min={BP_VALIDATION.DIASTOLIC_MIN}
+                  max={BP_VALIDATION.DIASTOLIC_MAX}
                   className="text-center"
                 />
                 {/* Arm selector */}
-                <div className="flex h-9 rounded-md border border-input overflow-hidden flex-shrink-0">
+                <div
+                  className="flex h-9 rounded-md border border-input overflow-hidden flex-shrink-0"
+                  role="group"
+                  aria-label="Arm selection"
+                >
                   <button
                     type="button"
                     onClick={() => updateBpRow(index, 'arm', row.arm === 'L' ? null : 'L')}
+                    aria-label="Left arm"
+                    aria-pressed={row.arm === 'L'}
                     className={`px-2.5 text-sm font-medium transition-colors ${
                       row.arm === 'L'
                         ? 'bg-primary text-primary-foreground'
@@ -252,6 +252,8 @@ function ReadingFormContent({ session, onOpenChange }) {
                   <button
                     type="button"
                     onClick={() => updateBpRow(index, 'arm', row.arm === 'R' ? null : 'R')}
+                    aria-label="Right arm"
+                    aria-pressed={row.arm === 'R'}
                     className={`px-2.5 text-sm font-medium border-l border-input transition-colors ${
                       row.arm === 'R'
                         ? 'bg-primary text-primary-foreground'
@@ -296,8 +298,8 @@ function ReadingFormContent({ session, onOpenChange }) {
               placeholder="72"
               value={pulse}
               onChange={(e) => setPulse(e.target.value)}
-              min={30}
-              max={200}
+              min={BP_VALIDATION.PULSE_MIN}
+              max={BP_VALIDATION.PULSE_MAX}
               className="w-24"
             />
             <span className="text-sm text-muted-foreground">bpm</span>
@@ -315,12 +317,6 @@ function ReadingFormContent({ session, onOpenChange }) {
             rows={2}
           />
         </div>
-
-        {error && (
-          <div className="bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm">
-            {error}
-          </div>
-        )}
 
         {/* Actions */}
         <div className="flex gap-2 pt-2">

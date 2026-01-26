@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
-import { toast } from 'sonner';
 import { StickyNote, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { showWithUndo, showError } from '@/lib/toast';
 import {
   Table,
   TableBody,
@@ -200,25 +200,22 @@ export function ReadingsTab({ readings }) {
     const { error, deletedSession } = await deleteSession(sessionId);
     if (error) return;
 
-    toast('Reading deleted', {
-      action: {
-        label: 'Undo',
-        onClick: () => {
-          if (deletedSession) {
-            addSession({
-              datetime: deletedSession.datetime,
-              readings: deletedSession.readings.map((r) => ({
-                systolic: r.systolic,
-                diastolic: r.diastolic,
-                arm: r.arm,
-              })),
-              pulse: deletedSession.pulse,
-              notes: deletedSession.notes,
-            });
-          }
-        },
-      },
-      duration: 4000,
+    showWithUndo('Reading deleted', async () => {
+      if (deletedSession) {
+        const { error: undoError } = await addSession({
+          datetime: deletedSession.datetime,
+          readings: deletedSession.readings.map((r) => ({
+            systolic: r.systolic,
+            diastolic: r.diastolic,
+            arm: r.arm,
+          })),
+          pulse: deletedSession.pulse,
+          notes: deletedSession.notes,
+        });
+        if (undoError) {
+          showError('Failed to restore reading');
+        }
+      }
     });
   };
 

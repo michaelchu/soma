@@ -1,14 +1,4 @@
-import { useState } from 'react';
-import { FileText, Copy, Check, Download } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ExportModal as SharedExportModal } from '@/components/shared/ExportModal';
 import { calculateStats } from '../../utils/bpHelpers';
 import { useBPSettings } from '../../hooks/useBPSettings';
 
@@ -17,8 +7,19 @@ function generateMarkdown(readings, stats, getCategory, getCategoryInfo) {
     return '# Blood Pressure Summary\n\nNo readings available.';
   }
 
+  // Calculate actual date range from data (don't assume sort order)
+  // Filter out invalid timestamps to prevent Math.min/max returning Infinity/NaN
+  const timestamps = readings.map((r) => new Date(r.datetime).getTime()).filter((t) => !isNaN(t));
+
+  if (timestamps.length === 0) {
+    return '# Blood Pressure Summary\n\nNo valid readings available.';
+  }
+
+  const minDate = new Date(Math.min(...timestamps));
+  const maxDate = new Date(Math.max(...timestamps));
+
   let md = '# Blood Pressure Summary\n\n';
-  md += `**Analysis Period:** ${new Date(readings[readings.length - 1].datetime).toLocaleDateString()} to ${new Date(readings[0].datetime).toLocaleDateString()}\n`;
+  md += `**Analysis Period:** ${minDate.toLocaleDateString()} to ${maxDate.toLocaleDateString()}\n`;
   md += `**Total Readings:** ${readings.length}\n\n`;
 
   // Category distribution
@@ -109,102 +110,19 @@ function generateCSV(readings, getCategory, getCategoryInfo) {
 }
 
 export function ExportModal({ readings, onClose }) {
-  const [copied, setCopied] = useState(false);
-  const [format, setFormat] = useState('markdown');
   const { getCategory, getCategoryInfo } = useBPSettings();
-
   const stats = calculateStats(readings);
-  const content =
-    format === 'markdown'
-      ? generateMarkdown(readings, stats, getCategory, getCategoryInfo)
-      : generateCSV(readings, getCategory, getCategoryInfo);
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(content);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy:', err);
-    }
-  };
-
-  const handleDownload = () => {
-    const ext = format === 'markdown' ? 'md' : 'csv';
-    const mimeType = format === 'markdown' ? 'text/markdown' : 'text/csv';
-    const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `blood-pressure-export.${ext}`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
+  const itemCount = `${readings?.length || 0} reading${readings?.length !== 1 ? 's' : ''}`;
 
   return (
-    <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-3xl h-[70vh] flex flex-col p-0 gap-0 overflow-hidden">
-        <DialogHeader className="p-4 border-b">
-          <DialogTitle className="flex items-center gap-2">
-            <FileText size={18} className="text-muted-foreground" />
-            Export Blood Pressure Data
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="px-4 py-3 flex gap-2">
-          <Button
-            variant={format === 'markdown' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setFormat('markdown')}
-          >
-            Markdown
-          </Button>
-          <Button
-            variant={format === 'csv' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setFormat('csv')}
-          >
-            CSV
-          </Button>
-        </div>
-
-        <ScrollArea className="flex-1 p-4 bg-muted">
-          <pre className="font-mono text-[13px] leading-relaxed whitespace-pre-wrap break-words bg-card p-4 rounded-lg border text-foreground">
-            {content}
-          </pre>
-        </ScrollArea>
-
-        <DialogFooter className="p-3 border-t bg-muted flex-row justify-between sm:justify-between">
-          <span className="text-[11px] text-muted-foreground self-center">
-            {readings?.length || 0} reading{readings?.length !== 1 ? 's' : ''} ·{' '}
-            {format.toUpperCase()} format
-          </span>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleDownload}>
-              <Download size={16} />
-              Download
-            </Button>
-            <Button
-              onClick={handleCopy}
-              className={copied ? 'bg-green-600 hover:bg-green-700' : ''}
-            >
-              {copied ? (
-                <>
-                  <Check size={16} />
-                  Copied!
-                </>
-              ) : (
-                <>
-                  <Copy size={16} />
-                  Copy
-                </>
-              )}
-            </Button>
-          </div>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <SharedExportModal
+      onClose={onClose}
+      title="Export Blood Pressure Data"
+      generateMarkdown={() => generateMarkdown(readings, stats, getCategory, getCategoryInfo)}
+      generateCSV={() => generateCSV(readings, getCategory, getCategoryInfo)}
+      downloadFilename="blood-pressure-export"
+      itemCount={itemCount}
+    />
   );
 }

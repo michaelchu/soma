@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Plus, Trash2, Save, Loader2 } from 'lucide-react';
+import { showError, showSuccess } from '@/lib/toast';
 import {
   Dialog,
   DialogContent,
@@ -45,7 +46,6 @@ export function ReportImporter({ onClose }) {
   const [orderedBy, setOrderedBy] = useState('');
   const [metrics, setMetrics] = useState([]);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
 
   const addMetric = () => {
     setMetrics([
@@ -86,7 +86,6 @@ export function ReportImporter({ onClose }) {
   };
 
   const handleSave = async () => {
-    setError(null);
     setSaving(true);
 
     // Build metrics object for database
@@ -113,10 +112,11 @@ export function ReportImporter({ onClose }) {
     setSaving(false);
 
     if (saveError) {
-      setError(saveError.message || 'Failed to save report');
+      showError(saveError.message || 'Failed to save report');
       return;
     }
 
+    showSuccess('Report saved');
     onClose();
   };
 
@@ -258,20 +258,14 @@ export function ReportImporter({ onClose }) {
                 </div>
               )}
             </div>
-
-            {error && (
-              <div className="bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm">
-                {error}
-              </div>
-            )}
           </div>
         </ScrollArea>
 
-        <DialogFooter className="p-3 border-t bg-muted flex-row justify-end">
-          <Button variant="outline" onClick={onClose} disabled={saving}>
+        <DialogFooter className="p-3 border-t bg-muted flex-row justify-end gap-3">
+          <Button variant="outline" onClick={onClose} disabled={saving} className="min-w-[100px]">
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={!canSave || saving}>
+          <Button onClick={handleSave} disabled={!canSave || saving} className="min-w-[100px]">
             {saving ? (
               <>
                 <Loader2 size={16} className="animate-spin" />

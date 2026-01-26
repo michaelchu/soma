@@ -1,4 +1,5 @@
 import { BP_GUIDELINES, BP_CATEGORY_INFO, DEFAULT_GUIDELINE } from '../constants/bpGuidelines';
+import { isInTimeOfDay } from '@/lib/dateUtils';
 
 /**
  * Determine BP category based on systolic and diastolic values
@@ -82,6 +83,10 @@ export function calculateStats(readings) {
   const diastolics = readings.map((r) => r.diastolic);
   const pulses = readings.filter((r) => r.pulse).map((r) => r.pulse);
 
+  // Get latest reading (arrays are guaranteed non-empty at this point due to early return)
+  const latestSystolic = systolics[systolics.length - 1];
+  const latestDiastolic = diastolics[diastolics.length - 1];
+
   return {
     avgSystolic: Math.round(systolics.reduce((a, b) => a + b, 0) / systolics.length),
     avgDiastolic: Math.round(diastolics.reduce((a, b) => a + b, 0) / diastolics.length),
@@ -92,10 +97,7 @@ export function calculateStats(readings) {
     minDiastolic: Math.min(...diastolics),
     maxDiastolic: Math.max(...diastolics),
     count: readings.length,
-    latestCategory: getBPCategory(
-      systolics[systolics.length - 1],
-      diastolics[diastolics.length - 1]
-    ),
+    latestCategory: getBPCategory(latestSystolic, latestDiastolic),
   };
 }
 
@@ -118,7 +120,8 @@ export function calculateFullStats(readings) {
     return Math.round(r.diastolic + pp / 3);
   });
 
-  const avg = (arr) => (arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : null);
+  const avg = (arr) =>
+    arr.length > 0 ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
 
   return {
     systolic: {
@@ -174,23 +177,7 @@ export function getPreviousPeriodReadings(allReadings, dateRange, timeOfDay) {
 
   // Apply time of day filter
   if (timeOfDay !== 'all') {
-    filtered = filtered.filter((r) => {
-      const hour = new Date(r.datetime).getHours();
-      switch (timeOfDay) {
-        case 'am':
-          return hour < 12;
-        case 'pm':
-          return hour >= 12;
-        case 'morning':
-          return hour >= 6 && hour < 12;
-        case 'afternoon':
-          return hour >= 12 && hour < 18;
-        case 'evening':
-          return hour >= 18 || hour < 6;
-        default:
-          return true;
-      }
-    });
+    filtered = filtered.filter((r) => isInTimeOfDay(r.datetime, timeOfDay));
   }
 
   return filtered;
@@ -224,19 +211,6 @@ export function formatDateTime(datetime, options = {}) {
       minute: '2-digit',
     }),
   };
-}
-
-/**
- * Format datetime for markdown ID
- */
-export function formatDatetimeForId(datetime) {
-  const date = new Date(datetime);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  return `${year}-${month}-${day} ${hours}:${minutes}`;
 }
 
 /**
