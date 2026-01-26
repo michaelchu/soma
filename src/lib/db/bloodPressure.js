@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { validateBPSession } from './validation';
 
 /**
  * Blood Pressure data service
@@ -113,6 +114,12 @@ export async function getReadings() {
  * @returns {Promise<{data: Object|null, error: Error|null}>}
  */
 export async function addSession(session) {
+  // Validate input
+  const validation = validateBPSession(session);
+  if (!validation.valid) {
+    return { data: null, error: new Error(validation.errors.join('; ')) };
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -185,6 +192,12 @@ export async function addSession(session) {
  * @returns {Promise<{data: Object|null, error: Error|null}>}
  */
 export async function updateSession(sessionId, session) {
+  // Validate input
+  const validation = validateBPSession(session);
+  if (!validation.valid) {
+    return { data: null, error: new Error(validation.errors.join('; ')) };
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();

@@ -42,9 +42,13 @@ export function useReports() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+
     const loadReports = async () => {
       setLoading(true);
       const { data, error: fetchError } = await getReports();
+
+      if (cancelled) return;
 
       if (fetchError) {
         setError('Failed to load reports');
@@ -60,13 +64,17 @@ export function useReports() {
         return;
       }
 
-      // Enrich reports with reference range data from constants
       const enrichedReports = enrichReportMetrics(data);
       setReports(enrichedReports);
       setError(null);
       setLoading(false);
     };
+
     loadReports();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const addReport = useCallback(

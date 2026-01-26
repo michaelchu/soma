@@ -1,16 +1,12 @@
+import { RANGE_BAR_CONSTANTS } from '@/lib/constants';
+
 /**
  * Status Helper Functions
  * Functions for determining and calculating metric statuses
  */
 
-// Range bar layout constants
-// The bar is divided into: [low zone 0-15%] [normal zone 15-85%] [high zone 85-100%]
-export const RANGE_CONSTANTS = {
-  LOW_ZONE_END: 15,
-  NORMAL_ZONE_END: 85,
-  NORMAL_ZONE_WIDTH: 70, // 85 - 15
-  OVERFLOW_FACTOR: 0.3, // How much beyond bounds to show before clamping
-};
+// Re-export for backwards compatibility
+export const RANGE_CONSTANTS = RANGE_BAR_CONSTANTS;
 
 /**
  * Determine if a metric value is low, normal, or high

@@ -1,30 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Activity,
-  AlertTriangle,
-  Calendar,
-  Plus,
-  Download,
-  ChevronDown,
-  ChevronsDownUp,
-  ChevronsUpDown,
-} from 'lucide-react';
+import { Activity, AlertTriangle, Plus, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuCheckboxItem,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
-} from '@/components/ui/dropdown-menu';
 import Navbar from '@/components/Navbar';
 import { useReports } from './blood-tests/hooks/useReports';
+import { useMetricFiltering } from './blood-tests/hooks/useMetricFiltering';
+import { useCategoryCollapse } from './blood-tests/hooks/useCategoryCollapse';
 import { REFERENCE_RANGES } from './blood-tests/constants/referenceRanges';
-import { CATEGORY_INFO } from './blood-tests/constants/categories';
-import { getStatus } from './blood-tests/utils/statusHelpers';
-import { MetricChart } from './blood-tests/components/charts/MetricChart';
+import { FilterToolbar } from './blood-tests/components/ui/FilterToolbar';
+import { CategorySection } from './blood-tests/components/ui/CategorySection';
 import { ReportImporter } from './blood-tests/components/modals/ReportImporter';
 import { ExportModal } from './blood-tests/components/modals/ExportModal';
 
@@ -33,19 +17,43 @@ export default function BloodTests() {
   const { reports, loading, error } = useReports();
   const [showImporter, setShowImporter] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
-  const [filter, setFilter] = useState('all');
-  // Initialize all categories expanded
-  const [collapsedCategories, setCollapsedCategories] = useState({});
-  const [selectedReportIds, setSelectedReportIds] = useState(null); // null = all selected
-  // Track which categories have their charts expanded (default all collapsed)
-  const [expandedChartCategories, setExpandedChartCategories] = useState({});
   const [isScrolled, setIsScrolled] = useState(false);
+
+  const {
+    filter,
+    setFilter,
+    filteredReports,
+    sortedMetrics,
+    isReportSelected,
+    toggleReportSelection,
+    selectAllReports,
+    selectedCount,
+  } = useMetricFiltering(reports);
+
+  const {
+    toggleCategory,
+    toggleCategoryCharts,
+    toggleAllCategories,
+    isCategoryCollapsed,
+    areCategoryChartsExpanded,
+    areAllExpanded,
+  } = useCategoryCollapse();
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 8);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Group metrics by category
+  const metricsByCategory = useMemo(() => {
+    return sortedMetrics.reduce((acc, key) => {
+      const category = REFERENCE_RANGES[key]?.category || 'other';
+      if (!acc[category]) acc[category] = [];
+      acc[category].push(key);
+      return acc;
+    }, {});
+  }, [sortedMetrics]);
 
   if (loading) {
     return (
@@ -69,69 +77,6 @@ export default function BloodTests() {
       </div>
     );
   }
-
-  const allMetrics = new Set();
-  reports.forEach((r) => Object.keys(r.metrics).forEach((k) => allMetrics.add(k)));
-
-  const sortedReports = [...reports].sort((a, b) => new Date(b.date) - new Date(a.date));
-
-  // Filter reports based on checkbox selection
-  const filteredReports =
-    selectedReportIds === null ? reports : reports.filter((r) => selectedReportIds.has(r.id));
-
-  const isReportSelected = (reportId) =>
-    selectedReportIds === null || selectedReportIds.has(reportId);
-
-  const toggleReportSelection = (reportId) => {
-    setSelectedReportIds((prev) => {
-      if (prev === null) {
-        // First uncheck: create Set with all IDs except this one
-        const allIds = new Set(reports.map((r) => r.id));
-        allIds.delete(reportId);
-        return allIds;
-      }
-      const next = new Set(prev);
-      if (next.has(reportId)) {
-        // Don't allow unchecking the last report
-        if (next.size === 1) {
-          return prev;
-        }
-        next.delete(reportId);
-      } else {
-        next.add(reportId);
-      }
-      // If all are selected again, return to null state
-      if (next.size === reports.length) {
-        return null;
-      }
-      return next;
-    });
-  };
-
-  const selectAllReports = () => setSelectedReportIds(null);
-  const selectedCount = selectedReportIds === null ? reports.length : selectedReportIds.size;
-
-  const filteredMetrics = Array.from(allMetrics).filter((key) => {
-    const ref = REFERENCE_RANGES[key];
-    if (!ref) return false;
-    const reportsWithMetric = filteredReports.filter((r) => r.metrics[key]);
-    if (reportsWithMetric.length === 0) return false;
-    if (filter === 'abnormal')
-      return reportsWithMetric.some((r) => {
-        const metric = r.metrics[key];
-        return getStatus(metric.value, metric.min, metric.max) !== 'normal';
-      });
-    return true;
-  });
-
-  // Always sort by category, then by name within category
-  const sortedMetrics = filteredMetrics.sort((a, b) => {
-    const refA = REFERENCE_RANGES[a],
-      refB = REFERENCE_RANGES[b];
-    const catCompare = (refA?.category || '').localeCompare(refB?.category || '');
-    if (catCompare !== 0) return catCompare;
-    return (refA?.name || '').localeCompare(refB?.name || '');
-  });
 
   const leftContent = (
     <button
@@ -173,177 +118,33 @@ export default function BloodTests() {
 
       <main className="max-w-7xl mx-auto px-5 sm:px-6 pb-3 sm:pb-4">
         <div>
-          <div
-            className={`flex gap-2 pb-3 overflow-x-auto -mx-5 px-5 sm:-mx-6 sm:px-6 sm:overflow-visible sticky top-[49px] z-10 bg-background py-2 ${isScrolled ? 'border-b' : ''}`}
-          >
-            <div className="flex rounded-lg border bg-card overflow-hidden text-xs font-medium h-8 flex-shrink-0">
-              <button
-                onClick={() => setFilter('all')}
-                className={`px-2.5 sm:px-4 ${filter === 'all' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-accent'}`}
-              >
-                All
-              </button>
-              <button
-                onClick={() => setFilter('abnormal')}
-                className={`px-2.5 sm:px-4 flex items-center gap-1 ${filter === 'abnormal' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' : 'text-muted-foreground hover:bg-accent'}`}
-              >
-                <AlertTriangle size={14} />
-                Abnormal
-              </button>
-            </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-1 sm:gap-2 h-8 flex-shrink-0"
-                  title="Select Reports"
-                >
-                  <Calendar size={16} />
-                  <span className="hidden sm:inline">Reports</span>
-                  <span className="text-xs text-muted-foreground">
-                    ({selectedCount}/{reports.length})
-                  </span>
-                  <ChevronDown size={14} />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56">
-                <DropdownMenuLabel className="flex items-center justify-between">
-                  <span>Select Reports</span>
-                  <button
-                    onClick={selectAllReports}
-                    className="text-xs text-primary hover:underline"
-                  >
-                    Select All
-                  </button>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {sortedReports.map((report) => {
-                  const abnormalCount = Object.entries(report.metrics).filter(([key, m]) => {
-                    const ref = REFERENCE_RANGES[key];
-                    return ref && getStatus(m.value, m.min, m.max) !== 'normal';
-                  }).length;
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={report.id}
-                      checked={isReportSelected(report.id)}
-                      onCheckedChange={() => toggleReportSelection(report.id)}
-                    >
-                      <div className="flex items-center justify-between w-full">
-                        <span>
-                          {new Date(report.date).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                          })}
-                        </span>
-                        {abnormalCount > 0 && (
-                          <span className="text-xs text-amber-500 ml-2">{abnormalCount} ⚠</span>
-                        )}
-                      </div>
-                    </DropdownMenuCheckboxItem>
-                  );
-                })}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <button
-              onClick={() => {
-                // Check if all categories are currently expanded
-                const allExpanded = Object.values(collapsedCategories).every((v) => !v);
-                const newState = {};
-                Object.keys(CATEGORY_INFO).forEach((key) => {
-                  newState[key] = allExpanded; // collapse all if all expanded, expand all otherwise
-                });
-                setCollapsedCategories(newState);
-              }}
-              className="flex items-center justify-center h-8 w-8 rounded-lg border bg-card text-muted-foreground hover:bg-accent hover:text-foreground transition-colors flex-shrink-0"
-              title={
-                Object.values(collapsedCategories).every((v) => !v)
-                  ? 'Collapse all categories'
-                  : 'Expand all categories'
-              }
-            >
-              {Object.values(collapsedCategories).every((v) => !v) ? (
-                <ChevronsDownUp size={16} />
-              ) : (
-                <ChevronsUpDown size={16} />
-              )}
-            </button>
-          </div>
+          <FilterToolbar
+            filter={filter}
+            setFilter={setFilter}
+            reports={reports}
+            selectedCount={selectedCount}
+            isReportSelected={isReportSelected}
+            toggleReportSelection={toggleReportSelection}
+            selectAllReports={selectAllReports}
+            areAllExpanded={areAllExpanded}
+            toggleAllCategories={toggleAllCategories}
+            isScrolled={isScrolled}
+          />
 
           {sortedMetrics.length > 0 ? (
             <div className="space-y-4">
-              {Object.entries(
-                sortedMetrics.reduce((acc, key) => {
-                  const category = REFERENCE_RANGES[key]?.category || 'other';
-                  if (!acc[category]) acc[category] = [];
-                  acc[category].push(key);
-                  return acc;
-                }, {})
-              ).map(([category, metrics]) => {
-                const categoryInfo = CATEGORY_INFO[category] || { label: category };
-                const isCollapsed = collapsedCategories[category] ?? false;
-                const chartsExpanded = expandedChartCategories[category] ?? false;
-                return (
-                  <div key={category} className="bg-card rounded-xl border overflow-hidden">
-                    <div className="px-4 py-3 bg-muted/50 flex items-center justify-between">
-                      <button
-                        onClick={() =>
-                          setCollapsedCategories((prev) => ({
-                            ...prev,
-                            [category]: !prev[category],
-                          }))
-                        }
-                        className="flex items-center gap-2 hover:text-foreground transition-colors flex-1"
-                      >
-                        <ChevronDown
-                          size={18}
-                          className={`text-muted-foreground transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`}
-                        />
-                        <h3 className="font-semibold text-foreground flex items-center gap-2">
-                          {categoryInfo.label}
-                          <span className="text-sm font-normal text-muted-foreground">
-                            ({metrics.length})
-                          </span>
-                        </h3>
-                      </button>
-                      {!isCollapsed && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setExpandedChartCategories((prev) => ({
-                              ...prev,
-                              [category]: !prev[category],
-                            }));
-                          }}
-                          className="flex items-center justify-center h-7 w-7 rounded border bg-card text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                          title={chartsExpanded ? 'Collapse charts' : 'Expand charts'}
-                        >
-                          {chartsExpanded ? (
-                            <ChevronsDownUp size={14} />
-                          ) : (
-                            <ChevronsUpDown size={14} />
-                          )}
-                        </button>
-                      )}
-                    </div>
-                    {!isCollapsed && (
-                      <div className="p-3 sm:p-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                          {metrics.map((key) => (
-                            <MetricChart
-                              key={key}
-                              metricKey={key}
-                              reports={filteredReports}
-                              collapsed={!chartsExpanded}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+              {Object.entries(metricsByCategory).map(([category, metrics]) => (
+                <CategorySection
+                  key={category}
+                  category={category}
+                  metrics={metrics}
+                  reports={filteredReports}
+                  isCollapsed={isCategoryCollapsed(category)}
+                  chartsExpanded={areCategoryChartsExpanded(category)}
+                  onToggleCollapse={() => toggleCategory(category)}
+                  onToggleCharts={() => toggleCategoryCharts(category)}
+                />
+              ))}
             </div>
           ) : (
             <div className="bg-card rounded-xl border p-8 text-center">

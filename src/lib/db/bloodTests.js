@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { validateBloodTestReport } from './validation';
 
 /**
  * Blood Tests data service
@@ -83,6 +84,12 @@ function buildReferenceObject(metric) {
  * @returns {Promise<{data: Object|null, error: Error|null}>}
  */
 export async function addReport(report) {
+  // Validate input
+  const validation = validateBloodTestReport(report);
+  if (!validation.valid) {
+    return { data: null, error: new Error(validation.errors.join('; ')) };
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();

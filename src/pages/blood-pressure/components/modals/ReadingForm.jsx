@@ -6,29 +6,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Save, Loader2, Plus, X, Trash2 } from 'lucide-react';
-
-function getDefaultDatetime() {
-  const now = new Date();
-  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-  return now.toISOString().slice(0, 16);
-}
-
-function formatDatetimeForInput(isoString) {
-  const date = new Date(isoString);
-  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
-  return date.toISOString().slice(0, 16);
-}
+import { useBP } from '../../context/BPContext';
+import { getLocalDatetimeNow, formatISOForInput } from '@/lib/dateUtils';
 
 function createEmptyBpRow() {
   return { systolic: '', diastolic: '', arm: null };
 }
 
 // Inner form component that resets when key changes
-function ReadingFormContent({ session, onOpenChange, addSession, updateSession, deleteSession }) {
+function ReadingFormContent({ session, onOpenChange }) {
+  const { addSession, updateSession, deleteSession } = useBP();
   const isEditing = !!session;
 
   const [datetime, setDatetime] = useState(() =>
-    session ? formatDatetimeForInput(session.datetime) : getDefaultDatetime()
+    session ? formatISOForInput(session.datetime) : getLocalDatetimeNow()
   );
   const [bpRows, setBpRows] = useState(() =>
     session?.readings
@@ -148,7 +139,7 @@ function ReadingFormContent({ session, onOpenChange, addSession, updateSession, 
   };
 
   const handleReset = () => {
-    setDatetime(getDefaultDatetime());
+    setDatetime(getLocalDatetimeNow());
     setBpRows([createEmptyBpRow()]);
     setPulse('');
     setNotes('');
@@ -333,7 +324,7 @@ function ReadingFormContent({ session, onOpenChange, addSession, updateSession, 
 
         {/* Actions */}
         <div className="flex gap-2 pt-2">
-          {isEditing && deleteSession && (
+          {isEditing && (
             <Button
               variant={confirmDelete ? 'destructive' : 'outline'}
               onClick={handleDelete}
@@ -377,14 +368,7 @@ function ReadingFormContent({ session, onOpenChange, addSession, updateSession, 
   );
 }
 
-export function ReadingForm({
-  open,
-  onOpenChange,
-  session = null,
-  addSession,
-  updateSession,
-  deleteSession,
-}) {
+export function ReadingForm({ open, onOpenChange, session = null }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full h-full max-w-none sm:max-w-md sm:h-auto flex flex-col rounded-none sm:rounded-lg">
@@ -392,9 +376,6 @@ export function ReadingForm({
           key={session?.sessionId || 'new'}
           session={session}
           onOpenChange={onOpenChange}
-          addSession={addSession}
-          updateSession={updateSession}
-          deleteSession={deleteSession}
         />
       </DialogContent>
     </Dialog>

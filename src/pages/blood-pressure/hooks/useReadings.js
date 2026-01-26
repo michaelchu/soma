@@ -63,26 +63,25 @@ export function useReadings() {
     return { data };
   }, []);
 
-  const deleteSession = useCallback(async (sessionId) => {
-    // Find the session before deleting so we can return it for undo
-    let deletedSession = null;
-    setReadings((prev) => {
-      deletedSession = prev.find((s) => s.sessionId === sessionId);
-      return prev;
-    });
+  const deleteSession = useCallback(
+    async (sessionId) => {
+      // Find the session before deleting so we can return it for undo
+      const deletedSession = readings.find((s) => s.sessionId === sessionId);
 
-    const { error: deleteError } = await deleteSessionDb(sessionId);
+      const { error: deleteError } = await deleteSessionDb(sessionId);
 
-    if (deleteError) {
-      console.error('Error deleting session:', deleteError);
-      return { error: deleteError };
-    }
+      if (deleteError) {
+        console.error('Error deleting session:', deleteError);
+        return { error: deleteError };
+      }
 
-    // Remove from local state
-    setReadings((prev) => prev.filter((s) => s.sessionId !== sessionId));
+      // Remove from local state
+      setReadings((prev) => prev.filter((s) => s.sessionId !== sessionId));
 
-    return { error: null, deletedSession };
-  }, []);
+      return { error: null, deletedSession };
+    },
+    [readings]
+  );
 
   const refetch = useCallback(async () => {
     setLoading(true);
