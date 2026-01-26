@@ -170,9 +170,12 @@ export function getDateRange(range: string | number): { start: Date | null; end:
     return { start: null, end };
   }
 
+  // "Last 30 days" means today + 29 previous days (today counts as day 1)
   const days = typeof range === 'string' ? parseInt(range, 10) : range;
   const start = new Date();
-  start.setDate(end.getDate() - days);
+  start.setDate(end.getDate() - (days - 1));
+  // Use start of day (midnight) for consistent date boundaries
+  start.setHours(0, 0, 0, 0);
 
   return { start, end };
 }

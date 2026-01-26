@@ -87,11 +87,13 @@ export function calculateStats(readings) {
   const latestSystolic = systolics[systolics.length - 1];
   const latestDiastolic = diastolics[diastolics.length - 1];
 
+  // Keep full precision - round with Math.floor(x + 0.5) for standard rounding at display time
+  const avg = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length;
+
   return {
-    avgSystolic: Math.round(systolics.reduce((a, b) => a + b, 0) / systolics.length),
-    avgDiastolic: Math.round(diastolics.reduce((a, b) => a + b, 0) / diastolics.length),
-    avgPulse:
-      pulses.length > 0 ? Math.round(pulses.reduce((a, b) => a + b, 0) / pulses.length) : null,
+    avgSystolic: Math.floor(avg(systolics) + 0.5),
+    avgDiastolic: Math.floor(avg(diastolics) + 0.5),
+    avgPulse: pulses.length > 0 ? Math.floor(avg(pulses) + 0.5) : null,
     minSystolic: Math.min(...systolics),
     maxSystolic: Math.max(...systolics),
     minDiastolic: Math.min(...diastolics),
@@ -115,13 +117,14 @@ export function calculateFullStats(readings) {
   const pps = readings.map((r) => r.systolic - r.diastolic);
 
   // Calculate MAP (Mean Arterial Pressure) = Diastolic + (1/3 * PP)
+  // Keep full precision - don't round individual values
   const maps = readings.map((r) => {
     const pp = r.systolic - r.diastolic;
-    return Math.round(r.diastolic + pp / 3);
+    return r.diastolic + pp / 3;
   });
 
-  const avg = (arr) =>
-    arr.length > 0 ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
+  // Keep full precision for averages - round only at display time
+  const avg = (arr) => (arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : null);
 
   return {
     systolic: {
@@ -163,12 +166,16 @@ export function getPreviousPeriodReadings(allReadings, dateRange, timeOfDay) {
   const days = parseInt(dateRange, 10);
   const now = new Date();
 
-  // Previous period: from (days*2) ago to (days) ago
+  // Previous period: the N days immediately before the current period
+  // Current period is today - (days-1), so previous period ends at today - days
+  // Use start of day (midnight) for consistent date boundaries
   const previousStart = new Date();
-  previousStart.setDate(now.getDate() - days * 2);
+  previousStart.setDate(now.getDate() - (days * 2 - 1));
+  previousStart.setHours(0, 0, 0, 0);
 
   const previousEnd = new Date();
-  previousEnd.setDate(now.getDate() - days);
+  previousEnd.setDate(now.getDate() - (days - 1));
+  previousEnd.setHours(0, 0, 0, 0);
 
   let filtered = allReadings.filter((r) => {
     const date = new Date(r.datetime);

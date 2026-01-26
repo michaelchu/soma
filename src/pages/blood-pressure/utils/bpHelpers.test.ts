@@ -127,9 +127,9 @@ describe('bpHelpers', () => {
     it('calculates mean arterial pressure (MAP) correctly', () => {
       const stats = calculateFullStats(mockReadings);
       // MAP = diastolic + (1/3 * PP)
-      // Reading 1: 80 + (40/3) ≈ 93
+      // Reading 1: 80 + (40/3) = 93.333...
       // Reading 2: 85 + (45/3) = 100
-      expect(stats.map.min).toBe(93);
+      expect(stats.map.min).toBeCloseTo(93.33, 1);
       expect(stats.map.max).toBe(100);
     });
 

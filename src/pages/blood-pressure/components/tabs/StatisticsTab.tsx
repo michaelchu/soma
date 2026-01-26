@@ -3,14 +3,7 @@ import { Minus } from 'lucide-react';
 import { calculateFullStats, getPreviousPeriodReadings } from '../../utils/bpHelpers';
 import { useSettings } from '@/lib/SettingsContext';
 import { BP_GUIDELINES, DEFAULT_GUIDELINE } from '../../constants/bpGuidelines';
-
-const DATE_RANGE_LABELS = {
-  all: 'All Time',
-  30: 'Last 30 Days',
-  90: 'Last 90 Days',
-  180: 'Last 180 Days',
-  365: 'Last 365 Days',
-};
+import { getDateRange } from '@/lib/dateUtils';
 
 // Determine color for change indicator based on metric type and buffer zones
 function getChangeColor(current, previous, config) {
@@ -53,9 +46,18 @@ function ChangeIndicator({ current, previous, config, disabled = false }) {
   }
 
   const diff = current - previous;
-  const pctChange = previous !== 0 ? ((diff / previous) * 100).toFixed(1) : 0;
 
-  if (diff === 0) {
+  // Truncate to 1 decimal place (floor for positive, ceil for negative)
+  const truncateToOneDecimal = (val: number) => {
+    const factor = val >= 0 ? Math.floor : Math.ceil;
+    return factor(val * 10) / 10;
+  };
+
+  const truncatedDiff = truncateToOneDecimal(diff);
+  const pctChange = previous !== 0 ? truncateToOneDecimal((diff / previous) * 100) : 0;
+
+  // Check if diff truncates to 0.0 for display purposes
+  if (truncatedDiff === 0) {
     return (
       <span className="flex items-center justify-center gap-1 text-muted-foreground">
         <Minus className="h-3 w-3" />
@@ -73,8 +75,8 @@ function ChangeIndicator({ current, previous, config, disabled = false }) {
         ? 'text-red-600 dark:text-red-400'
         : 'text-muted-foreground';
 
-  const sign = diff > 0 ? '+' : '';
-  const roundedDiff = diff.toFixed(1);
+  const sign = truncatedDiff > 0 ? '+' : '';
+  const displayDiff = truncatedDiff.toFixed(1);
 
   return (
     <span
@@ -82,7 +84,7 @@ function ChangeIndicator({ current, previous, config, disabled = false }) {
     >
       <span className="font-medium">
         {sign}
-        {roundedDiff}
+        {displayDiff}
       </span>
       <span className="text-xs opacity-75">
         ({sign}
@@ -164,13 +166,13 @@ function StatsTable({ currentStats, previousStats, dateRange, normalThresholds }
                   </span>
                 </td>
                 <td className="py-3 px-3 text-center font-mono">
-                  {current?.min != null ? Math.round(current.min) : '—'}
+                  {current?.min != null ? Math.floor(current.min) : '—'}
                 </td>
                 <td className="py-3 px-3 text-center font-mono">
-                  {current?.max != null ? Math.round(current.max) : '—'}
+                  {current?.max != null ? Math.floor(current.max) : '—'}
                 </td>
                 <td className="py-3 px-3 text-center font-mono font-semibold">
-                  {current?.avg != null ? Math.round(current.avg) : '—'}
+                  {current?.avg != null ? Math.floor(current.avg) : '—'}
                 </td>
                 <td className="py-3 pl-3 text-center">
                   <ChangeIndicator
@@ -217,6 +219,19 @@ export function StatisticsTab({ readings, allReadings, dateRange, timeOfDay }) {
   );
   const previousStats = useMemo(() => calculateFullStats(previousReadings), [previousReadings]);
 
+  // Format date range label
+  const dateRangeLabel = useMemo(() => {
+    if (dateRange === 'all') return 'All Time';
+
+    const { start, end } = getDateRange(dateRange);
+    if (!start) return 'All Time';
+
+    const formatDate = (date: Date) =>
+      date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+    return `${formatDate(start)} - ${formatDate(end)}`;
+  }, [dateRange]);
+
   if (!readings || readings.length === 0) {
     return (
       <div className="flex items-center justify-center h-40 text-muted-foreground">
@@ -225,7 +240,6 @@ export function StatisticsTab({ readings, allReadings, dateRange, timeOfDay }) {
     );
   }
 
-  const dateRangeLabel = DATE_RANGE_LABELS[dateRange] || dateRange;
   const hasPreviousData = previousStats !== null;
 
   return (
@@ -237,8 +251,8 @@ export function StatisticsTab({ readings, allReadings, dateRange, timeOfDay }) {
             Average Blood Pressure ({dateRangeLabel})
           </p>
           <p className="text-3xl font-bold">
-            {currentStats?.systolic.avg != null ? Math.round(currentStats.systolic.avg) : '—'}/
-            {currentStats?.diastolic.avg != null ? Math.round(currentStats.diastolic.avg) : '—'}
+            {currentStats?.systolic.avg != null ? Math.floor(currentStats.systolic.avg) : '—'}/
+            {currentStats?.diastolic.avg != null ? Math.floor(currentStats.diastolic.avg) : '—'}
             <span className="text-lg font-normal text-muted-foreground ml-1">mmHg</span>
           </p>
         </div>
@@ -247,7 +261,7 @@ export function StatisticsTab({ readings, allReadings, dateRange, timeOfDay }) {
           <div className="sm:text-right">
             <p className="text-sm text-muted-foreground mb-1">Previous Period</p>
             <p className="text-xl font-semibold text-muted-foreground">
-              {Math.round(previousStats.systolic.avg)}/{Math.round(previousStats.diastolic.avg)}
+              {Math.floor(previousStats.systolic.avg)}/{Math.floor(previousStats.diastolic.avg)}
               <span className="text-sm font-normal ml-1">mmHg</span>
             </p>
           </div>
