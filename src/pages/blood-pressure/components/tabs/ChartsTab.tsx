@@ -11,7 +11,7 @@ export function ChartsTab({ readings, dateRange = 'all' }) {
   const [showMarkers, setShowMarkers] = useState(false);
   const [showPP, setShowPP] = useState(true);
   const [showMAP, setShowMAP] = useState(false);
-  const [showPulse, setShowPulse] = useState(true);
+  const [showPulse, setShowPulse] = useState(false);
 
   if (!readings || readings.length === 0) {
     return (
