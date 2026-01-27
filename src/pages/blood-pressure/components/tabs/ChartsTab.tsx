@@ -10,7 +10,7 @@ export function ChartsTab({ readings, dateRange = 'all' }) {
   const [showTrendline, setShowTrendline] = useState(true);
   const [showMarkers, setShowMarkers] = useState(false);
   const [showPP, setShowPP] = useState(true);
-  const [showMAP, setShowMAP] = useState(false);
+  const [showMAP, setShowMAP] = useState(true);
   const [showPulse, setShowPulse] = useState(false);
 
   if (!readings || readings.length === 0) {
