@@ -157,7 +157,7 @@ function SleepEntryFormContent({
         <DialogTitle>{isEditing ? 'Edit Sleep Entry' : 'Add Sleep Entry'}</DialogTitle>
       </DialogHeader>
 
-      <div className="space-y-4 pt-2 overflow-y-auto">
+      <div className="space-y-4 pt-2 -mx-1 px-1">
         {/* Date */}
         <div className="space-y-2">
           <Label htmlFor="date">Date</Label>
@@ -353,7 +353,7 @@ export function SleepEntryForm({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full h-full max-w-none sm:max-w-md sm:h-auto flex flex-col rounded-none sm:rounded-lg max-h-[90vh] overflow-hidden p-4 sm:p-6">
+      <DialogContent className="w-full h-full max-w-none sm:max-w-md sm:h-auto flex flex-col rounded-none sm:rounded-lg">
         <SleepEntryFormContent key={entry?.id || 'new'} entry={entry} onOpenChange={onOpenChange} />
       </DialogContent>
     </Dialog>
