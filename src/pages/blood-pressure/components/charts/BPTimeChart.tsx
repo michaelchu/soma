@@ -323,7 +323,7 @@ export function BPTimeChart({
           {/* PP shaded area between systolic and diastolic (stacked) */}
           {showPP && (
             <>
-              {/* Base area (diastolic) - invisible, acts as spacer */}
+              {/* Base area (diastolic) - invisible, acts as spacer from yMin */}
               <Area
                 type="monotone"
                 dataKey="diastolic"
@@ -331,6 +331,7 @@ export function BPTimeChart({
                 stackId="pp"
                 stroke="none"
                 fill="transparent"
+                baseValue={yMin}
                 legendType="none"
                 isAnimationActive={false}
               />
