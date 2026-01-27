@@ -132,6 +132,96 @@ export function filterEntriesByDateRange(
 }
 
 /**
+ * Get entries from the previous period for comparison
+ * e.g., if dateRange is 30, get entries from 31-60 days ago
+ */
+export function getPreviousPeriodEntries(
+  allEntries: SleepEntry[],
+  dateRange: string
+): SleepEntry[] {
+  if (dateRange === 'all') return [];
+
+  const days = parseInt(dateRange, 10);
+  if (isNaN(days)) return [];
+
+  const now = new Date();
+  now.setHours(23, 59, 59, 999);
+
+  // Current period: now - days to now
+  // Previous period: now - (2 * days) to now - days
+  const currentCutoff = new Date(now);
+  currentCutoff.setDate(currentCutoff.getDate() - days);
+  currentCutoff.setHours(0, 0, 0, 0);
+
+  const previousCutoff = new Date(now);
+  previousCutoff.setDate(previousCutoff.getDate() - days * 2);
+  previousCutoff.setHours(0, 0, 0, 0);
+
+  return allEntries.filter((e) => {
+    const entryDate = new Date(e.date);
+    return entryDate >= previousCutoff && entryDate < currentCutoff;
+  });
+}
+
+/**
+ * Calculate detailed stats with min/max/avg for table display
+ */
+export interface DetailedSleepStats {
+  count: number;
+  duration: { min: number; max: number; avg: number };
+  hrvLow: { min: number | null; max: number | null; avg: number | null };
+  hrvHigh: { min: number | null; max: number | null; avg: number | null };
+  restingHr: { min: number | null; max: number | null; avg: number | null };
+  deepSleepPct: { min: number | null; max: number | null; avg: number | null };
+  remSleepPct: { min: number | null; max: number | null; avg: number | null };
+  restorative: { min: number | null; max: number | null; avg: number | null };
+  hrDrop: { min: number | null; max: number | null; avg: number | null };
+}
+
+export function calculateDetailedStats(entries: SleepEntry[]): DetailedSleepStats | null {
+  if (entries.length === 0) return null;
+
+  const calcStats = (values: number[]) => {
+    if (values.length === 0) return { min: null, max: null, avg: null };
+    const avg = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+    return {
+      min: Math.min(...values),
+      max: Math.max(...values),
+      avg,
+    };
+  };
+
+  const durations = entries.map((e) => e.durationMinutes);
+  const hrvLows = entries.filter((e) => e.hrvLow !== null).map((e) => e.hrvLow!);
+  const hrvHighs = entries.filter((e) => e.hrvHigh !== null).map((e) => e.hrvHigh!);
+  const restingHrs = entries.filter((e) => e.restingHr !== null).map((e) => e.restingHr!);
+  const deepPcts = entries.filter((e) => e.deepSleepPct !== null).map((e) => e.deepSleepPct!);
+  const remPcts = entries.filter((e) => e.remSleepPct !== null).map((e) => e.remSleepPct!);
+  const restoratives = entries
+    .filter((e) => e.deepSleepPct !== null || e.remSleepPct !== null)
+    .map((e) => (e.deepSleepPct || 0) + (e.remSleepPct || 0));
+  const hrDrops = entries.filter((e) => e.hrDropMinutes !== null).map((e) => e.hrDropMinutes!);
+
+  const durationStats = calcStats(durations);
+
+  return {
+    count: entries.length,
+    duration: {
+      min: durationStats.min!,
+      max: durationStats.max!,
+      avg: durationStats.avg!,
+    },
+    hrvLow: calcStats(hrvLows),
+    hrvHigh: calcStats(hrvHighs),
+    restingHr: calcStats(restingHrs),
+    deepSleepPct: calcStats(deepPcts),
+    remSleepPct: calcStats(remPcts),
+    restorative: calcStats(restoratives),
+    hrDrop: calcStats(hrDrops),
+  };
+}
+
+/**
  * Personal baseline statistics with mean and standard deviation
  */
 export interface PersonalBaseline {
