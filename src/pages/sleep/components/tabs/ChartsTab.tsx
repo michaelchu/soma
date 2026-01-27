@@ -77,19 +77,19 @@ function CustomTooltip({
         )}
         {data.remSleepPct !== null && (
           <p>
-            <span className="text-cyan-500">REM:</span>{' '}
+            <span className="text-teal-500">REM:</span>{' '}
             <span className="font-medium">{data.remSleepPct}%</span>
           </p>
         )}
         {data.lightSleepPct !== null && (
           <p>
-            <span className="text-blue-400">Light:</span>{' '}
+            <span className="text-slate-400">Light:</span>{' '}
             <span className="font-medium">{data.lightSleepPct}%</span>
           </p>
         )}
         {data.awakePct !== null && (
           <p>
-            <span className="text-orange-400">Awake:</span>{' '}
+            <span className="text-amber-500">Awake:</span>{' '}
             <span className="font-medium">{data.awakePct}%</span>
           </p>
         )}
@@ -292,10 +292,10 @@ export function ChartsTab({ entries }: ChartsTabProps) {
                   <RechartsTooltip content={<CustomTooltip />} />
                   <Legend />
 
-                  <Bar dataKey="deepSleepPct" stackId="stages" fill="#4f46e5" name="Deep" />
-                  <Bar dataKey="remSleepPct" stackId="stages" fill="#06b6d4" name="REM" />
-                  <Bar dataKey="lightSleepPct" stackId="stages" fill="#60a5fa" name="Light" />
-                  <Bar dataKey="awakePct" stackId="stages" fill="#fb923c" name="Awake" />
+                  <Bar dataKey="deepSleepPct" stackId="stages" fill="#6366f1" name="Deep" />
+                  <Bar dataKey="remSleepPct" stackId="stages" fill="#14b8a6" name="REM" />
+                  <Bar dataKey="lightSleepPct" stackId="stages" fill="#94a3b8" name="Light" />
+                  <Bar dataKey="awakePct" stackId="stages" fill="#f59e0b" name="Awake" />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
