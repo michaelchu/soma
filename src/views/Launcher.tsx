@@ -29,7 +29,7 @@ export default function Launcher() {
       {/* Main Content */}
       <main className="flex-1 flex items-center justify-center p-8">
         <div className="animate-fade-in">
-          <div className="flex flex-wrap justify-center gap-6 sm:gap-8">
+          <div className="grid grid-cols-2 gap-6 sm:gap-8">
             {apps.apps.map((app) => (
               <AppIcon key={app.id} app={app} onClick={handleAppClick} />
             ))}
