@@ -8,11 +8,10 @@ import {
 import { isInTimeOfDay, getDateRange } from '@/lib/dateUtils';
 
 const DATE_RANGES = [
-  { value: '30', label: 'Last 30 Days' },
-  { value: '90', label: 'Last 90 Days' },
-  { value: '180', label: 'Last 180 Days' },
-  { value: '365', label: 'Last 365 Days' },
-  { value: 'all', label: 'All Time' },
+  { value: '7', label: '7d' },
+  { value: '30', label: '30d' },
+  { value: '90', label: '90d' },
+  { value: 'all', label: 'All' },
 ];
 
 const TIME_OF_DAY = [
@@ -27,18 +26,21 @@ const TIME_OF_DAY = [
 export function FilterBar({ dateRange, timeOfDay, onDateRangeChange, onTimeOfDayChange }) {
   return (
     <div className="flex flex-col xs:flex-row gap-2 xs:justify-center md:justify-start">
-      <Select value={dateRange} onValueChange={onDateRangeChange}>
-        <SelectTrigger className="w-full xs:w-[140px] h-8">
-          <SelectValue placeholder="Date range" />
-        </SelectTrigger>
-        <SelectContent>
-          {DATE_RANGES.map((range) => (
-            <SelectItem key={range.value} value={range.value}>
-              {range.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <div className="flex gap-1 bg-muted rounded-md p-0.5 h-8 items-center">
+        {DATE_RANGES.map((range) => (
+          <button
+            key={range.value}
+            onClick={() => onDateRangeChange(range.value)}
+            className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
+              dateRange === range.value
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {range.label}
+          </button>
+        ))}
+      </div>
 
       <Select value={timeOfDay} onValueChange={onTimeOfDayChange}>
         <SelectTrigger className="w-full xs:w-[160px] h-8">

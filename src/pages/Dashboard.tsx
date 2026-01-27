@@ -1,9 +1,12 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Activity, AlertTriangle, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Activity, AlertTriangle, TrendingUp, TrendingDown, Minus, Download } from 'lucide-react';
 import Navbar from '@/components/Navbar';
+import { Button } from '@/components/ui/button';
 import { DashboardProvider, useDashboard } from './dashboard/context/DashboardContext';
 import { getHealthScoreColor, getHealthScoreLabel } from './dashboard/utils/healthScore';
 import { formatDate, formatTimeString } from '@/lib/dateUtils';
+import { ExportModal } from './dashboard/components/ExportModal';
 
 // Period selector component
 function PeriodSelector() {
@@ -13,15 +16,16 @@ function PeriodSelector() {
     { days: 7, label: '7d' },
     { days: 30, label: '30d' },
     { days: 90, label: '90d' },
+    { days: 0, label: 'All' },
   ];
 
   return (
-    <div className="flex gap-1 bg-muted rounded-lg p-1">
+    <div className="flex gap-1 bg-muted rounded-md p-0.5 h-8 items-center">
       {periods.map((p) => (
         <button
           key={p.days}
           onClick={() => setPeriodDays(p.days)}
-          className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+          className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
             periodDays === p.days
               ? 'bg-background text-foreground shadow-sm'
               : 'text-muted-foreground hover:text-foreground'
@@ -451,7 +455,10 @@ function Timeline() {
 // Main dashboard content
 function DashboardContent() {
   const navigate = useNavigate();
-  const { loading, error } = useDashboard();
+  const { loading, error, bpReadings, sleepEntries, bloodTestReports, periodDays } = useDashboard();
+  const [showExport, setShowExport] = useState(false);
+
+  const hasData = bpReadings.length > 0 || sleepEntries.length > 0 || bloodTestReports.length > 0;
 
   if (loading) {
     return (
@@ -491,6 +498,19 @@ function DashboardContent() {
             <span className="text-xl font-bold">Soma</span>
           </button>
         }
+        rightContent={
+          hasData && (
+            <Button
+              onClick={() => setShowExport(true)}
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8"
+              title="Export Data"
+            >
+              <Download className="h-5 w-5" />
+            </Button>
+          )
+        }
       />
 
       {/* Sticky toolbar with period selector */}
@@ -521,6 +541,17 @@ function DashboardContent() {
           <Timeline />
         </section>
       </main>
+
+      {/* Export Modal */}
+      {showExport && (
+        <ExportModal
+          onClose={() => setShowExport(false)}
+          bpReadings={bpReadings}
+          sleepEntries={sleepEntries}
+          bloodTestReports={bloodTestReports}
+          periodDays={periodDays}
+        />
+      )}
     </div>
   );
 }

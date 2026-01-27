@@ -22,14 +22,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
  * @param {string} props.downloadFilename - Base filename without extension (e.g., "blood-pressure-export")
  * @param {string} props.itemCount - Display count (e.g., "5 readings" or "3 reports")
  */
-export function ExportModal({
-  onClose,
-  title,
-  generateMarkdown,
-  generateCSV,
-  downloadFilename,
-  itemCount,
-}) {
+export function ExportModal({ onClose, title, generateMarkdown, generateCSV, downloadFilename }) {
   const [copied, setCopied] = useState(false);
   const [format, setFormat] = useState('markdown');
 
@@ -92,10 +85,7 @@ export function ExportModal({
           </pre>
         </ScrollArea>
 
-        <DialogFooter className="p-3 border-t bg-muted flex-row justify-between sm:justify-between">
-          <span className="text-[11px] text-muted-foreground self-center">
-            {itemCount} · {format.toUpperCase()} format
-          </span>
+        <DialogFooter className="p-3 border-t bg-muted flex-row justify-end sm:justify-end">
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleDownload}>
               <Download size={16} />
