@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Moon, AlertTriangle, Plus } from 'lucide-react';
+import { Moon, AlertTriangle, Plus, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FabButton } from '@/components/ui/fab-button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,6 +12,7 @@ import { ReadingsTab } from './sleep/components/tabs/ReadingsTab';
 import { StatisticsTab } from './sleep/components/tabs/StatisticsTab';
 import { ChartsTab } from './sleep/components/tabs/ChartsTab';
 import { SleepEntryForm } from './sleep/components/modals/SleepEntryForm';
+import { ExportModal } from './sleep/components/modals/ExportModal';
 import { LatestEntry } from './sleep/components/ui/LatestEntry';
 import { calculateSleepStats } from './sleep/utils/sleepHelpers';
 
@@ -22,6 +23,7 @@ function SleepContent() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { entries, loading, error } = useSleep();
   const [showForm, setShowForm] = useState(false);
+  const [showExport, setShowExport] = useState(false);
   const [dateRange, setDateRange] = useState('30');
 
   // Get active tab from URL, default to 'readings'
@@ -94,6 +96,17 @@ function SleepContent() {
         }
         rightContent={
           <>
+            {entries.length > 0 && (
+              <Button
+                onClick={() => setShowExport(true)}
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8"
+                title="Export Data"
+              >
+                <Download className="h-5 w-5" />
+              </Button>
+            )}
             <Button
               onClick={() => setShowForm(true)}
               size="icon"
@@ -196,6 +209,9 @@ function SleepContent() {
 
       {/* Add Entry Modal */}
       <SleepEntryForm open={showForm} onOpenChange={setShowForm} />
+
+      {/* Export Modal */}
+      {showExport && <ExportModal entries={filteredEntries} onClose={() => setShowExport(false)} />}
     </div>
   );
 }
