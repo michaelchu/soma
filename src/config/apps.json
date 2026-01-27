@@ -15,6 +15,14 @@
       "icon": "💓",
       "color": "#ec4899",
       "route": "/blood-pressure"
+    },
+    {
+      "id": "sleep",
+      "name": "Sleep",
+      "description": "Track sleep quality and recovery metrics",
+      "icon": "😴",
+      "color": "#8b5cf6",
+      "route": "/sleep"
     }
   ]
 }

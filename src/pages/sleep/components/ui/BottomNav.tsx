@@ -1,0 +1,33 @@
+import { List, BarChart3, LineChart } from 'lucide-react';
+
+interface BottomNavProps {
+  activeTab: string;
+  onTabChange: (tab: string) => void;
+}
+
+export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
+  const tabs = [
+    { id: 'readings', label: 'Entries', icon: List },
+    { id: 'statistics', label: 'Stats', icon: BarChart3 },
+    { id: 'charts', label: 'Charts', icon: LineChart },
+  ];
+
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 bg-background border-t z-50">
+      <div className="flex justify-around items-center h-14">
+        {tabs.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            onClick={() => onTabChange(id)}
+            className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
+              activeTab === id ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Icon className="h-5 w-5" />
+            <span className="text-xs mt-1">{label}</span>
+          </button>
+        ))}
+      </div>
+    </nav>
+  );
+}
