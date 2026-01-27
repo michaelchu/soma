@@ -28,8 +28,8 @@ export interface BPSessionInput {
     systolic: number;
     diastolic: number;
     arm?: Arm;
+    pulse?: number | null;
   }>;
-  pulse?: number | null;
   notes?: string | null;
 }
 

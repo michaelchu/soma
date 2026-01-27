@@ -47,8 +47,7 @@ interface BPSession {
 
 interface SessionInput {
   datetime: string;
-  readings: Array<{ systolic: number; diastolic: number; arm?: Arm }>;
-  pulse?: number | null;
+  readings: Array<{ systolic: number; diastolic: number; arm?: Arm; pulse?: number | null }>;
   notes?: string | null;
 }
 
@@ -192,7 +191,7 @@ export async function addSession(
     recorded_at: session.datetime,
     systolic: reading.systolic,
     diastolic: reading.diastolic,
-    pulse: index === 0 ? session.pulse || null : null, // Pulse on first reading only
+    pulse: reading.pulse || null,
     notes: index === 0 ? sanitizedNotes : null, // Notes on first reading only
     cuff_location: armToCuff(reading.arm || null),
   }));
@@ -223,13 +222,22 @@ export async function addSession(
     readings.reduce((sum, r) => sum + r.diastolic, 0) / readings.length
   );
 
+  // Calculate average pulse from readings that have it
+  const readingsWithPulse = readings.filter((r) => r.pulse);
+  const avgPulse =
+    readingsWithPulse.length > 0
+      ? Math.round(
+          readingsWithPulse.reduce((sum, r) => sum + (r.pulse || 0), 0) / readingsWithPulse.length
+        )
+      : null;
+
   return {
     data: {
       sessionId,
       datetime: session.datetime,
       systolic: avgSystolic,
       diastolic: avgDiastolic,
-      pulse: session.pulse || null,
+      pulse: avgPulse,
       notes: sanitizedNotes,
       readings,
       readingCount: readings.length,
@@ -295,7 +303,7 @@ export async function updateSession(
     recorded_at: session.datetime,
     systolic: reading.systolic,
     diastolic: reading.diastolic,
-    pulse: index === 0 ? session.pulse || null : null,
+    pulse: reading.pulse || null,
     notes: index === 0 ? sanitizedNotes : null,
     cuff_location: armToCuff(reading.arm || null),
   }));
@@ -348,13 +356,22 @@ export async function updateSession(
     readings.reduce((sum, r) => sum + r.diastolic, 0) / readings.length
   );
 
+  // Calculate average pulse from readings that have it
+  const readingsWithPulse = readings.filter((r) => r.pulse);
+  const avgPulse =
+    readingsWithPulse.length > 0
+      ? Math.round(
+          readingsWithPulse.reduce((sum, r) => sum + (r.pulse || 0), 0) / readingsWithPulse.length
+        )
+      : null;
+
   return {
     data: {
       sessionId,
       datetime: session.datetime,
       systolic: avgSystolic,
       diastolic: avgDiastolic,
-      pulse: session.pulse || null,
+      pulse: avgPulse,
       notes: sanitizedNotes,
       readings,
       readingCount: readings.length,

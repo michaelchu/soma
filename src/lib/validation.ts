@@ -29,6 +29,7 @@ interface ValidationResult {
 interface BPReadingInput {
   systolic: number;
   diastolic: number;
+  pulse?: number | null;
 }
 
 // BloodTestReportInput imported from @/types
@@ -59,6 +60,17 @@ export function validateBPReading(reading: BPReadingInput | null | undefined): V
     errors.push(
       `Diastolic must be between ${BP_VALIDATION.DIASTOLIC_MIN} and ${BP_VALIDATION.DIASTOLIC_MAX}`
     );
+  }
+
+  // Validate pulse if provided
+  if (reading.pulse !== null && reading.pulse !== undefined) {
+    if (typeof reading.pulse !== 'number' || isNaN(reading.pulse)) {
+      errors.push('Pulse must be a number');
+    } else if (reading.pulse < BP_VALIDATION.PULSE_MIN || reading.pulse > BP_VALIDATION.PULSE_MAX) {
+      errors.push(
+        `Pulse must be between ${BP_VALIDATION.PULSE_MIN} and ${BP_VALIDATION.PULSE_MAX}`
+      );
+    }
   }
 
   // Only check systolic > diastolic if both values passed type validation
@@ -105,16 +117,6 @@ export function validateBPSession(session: BPSessionInput | null | undefined): V
         errors.push(`Reading ${index + 1}: ${readingValidation.errors.join(', ')}`);
       }
     });
-  }
-
-  if (session.pulse !== null && session.pulse !== undefined) {
-    if (typeof session.pulse !== 'number' || isNaN(session.pulse)) {
-      errors.push('Pulse must be a number');
-    } else if (session.pulse < BP_VALIDATION.PULSE_MIN || session.pulse > BP_VALIDATION.PULSE_MAX) {
-      errors.push(
-        `Pulse must be between ${BP_VALIDATION.PULSE_MIN} and ${BP_VALIDATION.PULSE_MAX}`
-      );
-    }
   }
 
   return { valid: errors.length === 0, errors };

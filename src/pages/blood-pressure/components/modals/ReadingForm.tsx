@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +11,7 @@ import { getLocalDatetimeNow, toDatetimeLocalFormat } from '@/lib/dateUtils';
 import { BP_VALIDATION } from '@/lib/validation';
 
 function createEmptyBpRow() {
-  return { systolic: '', diastolic: '', arm: null };
+  return { systolic: '', diastolic: '', arm: null, pulse: '' };
 }
 
 // Inner form component that resets when key changes
@@ -28,11 +28,12 @@ function ReadingFormContent({ session, onOpenChange }) {
           systolic: String(r.systolic),
           diastolic: String(r.diastolic),
           arm: r.arm || null,
+          pulse: r.pulse ? String(r.pulse) : '',
         }))
       : [createEmptyBpRow()]
   );
-  const [pulse, setPulse] = useState(() => (session?.pulse ? String(session.pulse) : ''));
   const [notes, setNotes] = useState(() => session?.notes || '');
+  const scrollContainerRef = useRef(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -66,6 +67,13 @@ function ReadingFormContent({ session, onOpenChange }) {
     setBpRows((rows) => [...rows, createEmptyBpRow()]);
   };
 
+  // Auto-scroll to bottom when new row is added
+  useEffect(() => {
+    if (scrollContainerRef.current && bpRows.length > 1) {
+      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+    }
+  }, [bpRows.length]);
+
   const removeBpRow = (index) => {
     setBpRows((rows) => rows.filter((_, i) => i !== index));
   };
@@ -95,6 +103,20 @@ function ReadingFormContent({ session, onOpenChange }) {
         )
       : null;
 
+  const rowsWithPulse = validRows.filter(
+    (row) =>
+      row.pulse &&
+      parseInt(row.pulse) >= BP_VALIDATION.PULSE_MIN &&
+      parseInt(row.pulse) <= BP_VALIDATION.PULSE_MAX
+  );
+
+  const avgPulse =
+    rowsWithPulse.length > 0
+      ? Math.round(
+          rowsWithPulse.reduce((sum, row) => sum + parseInt(row.pulse), 0) / rowsWithPulse.length
+        )
+      : null;
+
   const isValid = datetime && validRows.length > 0;
 
   const handleSave = async () => {
@@ -105,12 +127,12 @@ function ReadingFormContent({ session, onOpenChange }) {
       systolic: parseInt(row.systolic),
       diastolic: parseInt(row.diastolic),
       arm: row.arm,
+      pulse: row.pulse ? parseInt(row.pulse) : null,
     }));
 
     const sessionData = {
       datetime: new Date(datetime).toISOString(),
       readings,
-      pulse: pulse ? parseInt(pulse) : null,
       notes: notes || null,
     };
 
@@ -140,7 +162,6 @@ function ReadingFormContent({ session, onOpenChange }) {
   const handleReset = () => {
     setDatetime(getLocalDatetimeNow());
     setBpRows([createEmptyBpRow()]);
-    setPulse('');
     setNotes('');
     setConfirmDelete(false);
   };
@@ -172,8 +193,8 @@ function ReadingFormContent({ session, onOpenChange }) {
             systolic: r.systolic,
             diastolic: r.diastolic,
             arm: r.arm,
+            pulse: r.pulse,
           })),
-          pulse: deletedSession.pulse,
           notes: deletedSession.notes,
         });
         if (undoError) {
@@ -206,7 +227,7 @@ function ReadingFormContent({ session, onOpenChange }) {
         {/* Blood Pressure */}
         <div className="space-y-2">
           <Label>Blood Pressure (mmHg)</Label>
-          <div className="max-h-40 overflow-y-auto -mx-1">
+          <div ref={scrollContainerRef} className="max-h-40 overflow-y-auto -mx-1">
             {bpRows.map((row, index) => (
               <div key={index} className="flex items-center gap-2 px-1 py-1">
                 <Input
@@ -229,6 +250,15 @@ function ReadingFormContent({ session, onOpenChange }) {
                   min={BP_VALIDATION.DIASTOLIC_MIN}
                   max={BP_VALIDATION.DIASTOLIC_MAX}
                   className="text-center"
+                />
+                <Input
+                  type="number"
+                  placeholder="Pulse"
+                  value={row.pulse}
+                  onChange={(e) => updateBpRow(index, 'pulse', e.target.value)}
+                  min={BP_VALIDATION.PULSE_MIN}
+                  max={BP_VALIDATION.PULSE_MAX}
+                  className="w-20 text-center flex-shrink-0"
                 />
                 {/* Arm selector */}
                 <div
@@ -283,27 +313,9 @@ function ReadingFormContent({ session, onOpenChange }) {
           </Button>
           {validRows.length > 1 && (
             <div className="text-sm text-muted-foreground">
-              Average: {avgSystolic}/{avgDiastolic} mmHg
+              Average: {avgSystolic}/{avgDiastolic} mmHg{avgPulse && ` • ${avgPulse} bpm`}
             </div>
           )}
-        </div>
-
-        {/* Pulse */}
-        <div className="space-y-2">
-          <Label htmlFor="pulse">Pulse (optional)</Label>
-          <div className="flex items-center gap-2">
-            <Input
-              id="pulse"
-              type="number"
-              placeholder="72"
-              value={pulse}
-              onChange={(e) => setPulse(e.target.value)}
-              min={BP_VALIDATION.PULSE_MIN}
-              max={BP_VALIDATION.PULSE_MAX}
-              className="w-24"
-            />
-            <span className="text-sm text-muted-foreground">bpm</span>
-          </div>
         </div>
 
         {/* Notes */}
