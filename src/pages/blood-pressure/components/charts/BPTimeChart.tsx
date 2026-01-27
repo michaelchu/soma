@@ -320,30 +320,30 @@ export function BPTimeChart({
             formatter={(value) => <span className="text-sm text-foreground">{value}</span>}
           />
 
-          {/* PP shaded area between systolic and diastolic (stacked) */}
+          {/* PP shaded area between systolic and diastolic */}
           {showPP && (
             <>
-              {/* Base area (diastolic) - invisible, acts as spacer from yMin */}
+              {/* Systolic area fills down with PP color */}
               <Area
                 type="monotone"
-                dataKey="diastolic"
+                dataKey="systolic"
                 yAxisId="bp"
-                stackId="pp"
                 stroke="none"
-                fill="transparent"
+                fill="#f43f5e"
+                fillOpacity={0.15}
                 baseValue={yMin}
                 legendType="none"
                 isAnimationActive={false}
               />
-              {/* PP area stacked on top of diastolic */}
+              {/* Diastolic area masks below with background color */}
               <Area
                 type="monotone"
-                dataKey="pp"
+                dataKey="diastolic"
                 yAxisId="bp"
-                stackId="pp"
                 stroke="none"
-                fill="#f43f5e"
-                fillOpacity={0.15}
+                fill="hsl(var(--background))"
+                fillOpacity={1}
+                baseValue={yMin}
                 legendType="none"
                 isAnimationActive={false}
               />
