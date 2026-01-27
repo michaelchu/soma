@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Save, Loader2 } from 'lucide-react';
+import { formatTimeString } from '@/lib/dateUtils';
 import { useSleep } from '../../context/SleepContext';
 import { showError, showSuccess } from '@/lib/toast';
 import type { SleepEntry } from '@/lib/db/sleep';
@@ -219,7 +220,8 @@ function SleepEntryFormContent({
             </div>
             {calculatedDuration > 0 && (
               <p className="text-sm text-muted-foreground">
-                Duration: {formatDuration(calculatedDuration)}
+                {formatTimeString(sleepStart)} → {formatTimeString(sleepEnd)} (
+                {formatDuration(calculatedDuration)})
               </p>
             )}
           </div>
