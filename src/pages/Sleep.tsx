@@ -128,7 +128,7 @@ function SleepContent() {
             </div>
 
             {/* Mobile: Tab-based view with scrollable content */}
-            <div className="md:hidden">{renderMobileTabContent()}</div>
+            <div className="md:hidden pt-4">{renderMobileTabContent()}</div>
 
             {/* Desktop: Full card layout */}
             <div className="hidden md:block space-y-6">
