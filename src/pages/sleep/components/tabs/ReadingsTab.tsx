@@ -9,6 +9,7 @@ import {
   calculatePersonalBaseline,
   calculateSleepScore,
   getScoreColorClass,
+  getScoreBgClass,
 } from '../../utils/sleepHelpers';
 import { SleepEntryForm } from '../modals/SleepEntryForm';
 import { SleepDetailModal } from '../modals/SleepDetailModal';
@@ -311,7 +312,9 @@ export function ReadingsTab({ entries }: ReadingsTabProps) {
             >
               <div className="flex items-stretch select-none">
                 {/* Score or Duration - colored accent */}
-                <div className="flex flex-col items-center justify-center min-w-[60px] py-2 bg-violet-500/10">
+                <div
+                  className={`flex flex-col items-center justify-center min-w-[60px] py-2 ${score.overall !== null ? getScoreBgClass(score.overall) : 'bg-violet-500/10'}`}
+                >
                   {score.overall !== null ? (
                     <span
                       className={`font-mono text-xl font-bold leading-tight ${getScoreColorClass(score.overall)}`}
