@@ -71,7 +71,10 @@ function SleepEntryCard({ entry, onClick }: { entry: SleepEntry; onClick: () => 
         </div>
 
         {/* Sleep Stages Bar */}
-        {(entry.deepSleepPct !== null || entry.remSleepPct !== null) && (
+        {(entry.deepSleepPct !== null ||
+          entry.remSleepPct !== null ||
+          entry.lightSleepPct !== null ||
+          entry.awakePct !== null) && (
           <div className="mt-3">
             <div className="flex h-2 rounded-full overflow-hidden bg-muted">
               {entry.deepSleepPct !== null && (
@@ -86,6 +89,20 @@ function SleepEntryCard({ entry, onClick }: { entry: SleepEntry; onClick: () => 
                   className="bg-cyan-500"
                   style={{ width: `${entry.remSleepPct}%` }}
                   title={`REM: ${entry.remSleepPct}%`}
+                />
+              )}
+              {entry.lightSleepPct !== null && (
+                <div
+                  className="bg-blue-400"
+                  style={{ width: `${entry.lightSleepPct}%` }}
+                  title={`Light: ${entry.lightSleepPct}%`}
+                />
+              )}
+              {entry.awakePct !== null && (
+                <div
+                  className="bg-orange-400"
+                  style={{ width: `${entry.awakePct}%` }}
+                  title={`Awake: ${entry.awakePct}%`}
                 />
               )}
             </div>
