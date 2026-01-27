@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { StickyNote, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { showWithUndo, showError } from '@/lib/toast';
 import { formatDate } from '@/lib/dateUtils';
 import {
@@ -222,27 +223,29 @@ function SleepStagesBar({ entry }: { entry: SleepEntry }) {
   ].filter((s) => s.value !== null);
 
   return (
-    <div className="mt-1.5">
-      <div className="flex h-1.5 rounded-full overflow-hidden bg-muted">
-        {stages.map((stage) => (
-          <div
-            key={stage.key}
-            className={stage.color}
-            style={{ width: `${stage.value}%` }}
-            title={`${stage.label}: ${stage.value}%`}
-          />
-        ))}
+    <TooltipProvider delayDuration={0}>
+      <div className="mt-1.5">
+        <div className="flex h-1.5 rounded-full overflow-hidden bg-muted">
+          {stages.map((stage) => (
+            <div key={stage.key} className={stage.color} style={{ width: `${stage.value}%` }} />
+          ))}
+        </div>
+        {/* Compact legend with dots */}
+        <div className="flex gap-x-1.5 mt-1 text-[10px] text-muted-foreground">
+          {stages.map((stage) => (
+            <Tooltip key={stage.key}>
+              <TooltipTrigger asChild>
+                <span className="flex items-center gap-0.5 cursor-default">
+                  <span className={`w-1.5 h-1.5 rounded-full ${stage.color}`} />
+                  {stage.value}%
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top">{stage.label}</TooltipContent>
+            </Tooltip>
+          ))}
+        </div>
       </div>
-      {/* Compact legend with dots */}
-      <div className="flex gap-x-1.5 mt-1 text-[10px] text-muted-foreground">
-        {stages.map((stage) => (
-          <span key={stage.key} className="flex items-center gap-0.5">
-            <span className={`w-1.5 h-1.5 rounded-full ${stage.color}`} />
-            {stage.value}%
-          </span>
-        ))}
-      </div>
-    </div>
+    </TooltipProvider>
   );
 }
 
