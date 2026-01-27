@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,53 @@ function getLocalDateNow(): string {
   return localDate.toISOString().slice(0, 10);
 }
 
+/**
+ * Calculate duration in minutes from sleep start and end times
+ * Handles overnight sleep (end time before start time)
+ */
+function calculateDuration(start: string, end: string): number {
+  if (!start || !end) return 0;
+  const [startH, startM] = start.split(':').map(Number);
+  const [endH, endM] = end.split(':').map(Number);
+
+  let startMinutes = startH * 60 + startM;
+  let endMinutes = endH * 60 + endM;
+
+  // If end is before start, it's overnight sleep
+  if (endMinutes < startMinutes) {
+    endMinutes += 24 * 60;
+  }
+
+  return endMinutes - startMinutes;
+}
+
+/**
+ * Calculate HR drop time in minutes from sleep start to lowest HR time
+ * Handles overnight sleep
+ */
+function calculateHrDrop(sleepStart: string, lowestHrTime: string): number | null {
+  if (!sleepStart || !lowestHrTime) return null;
+  const [startH, startM] = sleepStart.split(':').map(Number);
+  const [lowH, lowM] = lowestHrTime.split(':').map(Number);
+
+  let startMinutes = startH * 60 + startM;
+  let lowMinutes = lowH * 60 + lowM;
+
+  // If lowest HR time is before sleep start, it's next day
+  if (lowMinutes < startMinutes) {
+    lowMinutes += 24 * 60;
+  }
+
+  return lowMinutes - startMinutes;
+}
+
+function formatDuration(minutes: number): string {
+  if (minutes <= 0) return '';
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `${h}h ${m}m`;
+}
+
 function SleepEntryFormContent({
   entry,
   onOpenChange,
@@ -28,50 +75,58 @@ function SleepEntryFormContent({
 
   // Form state
   const [date, setDate] = useState(() => entry?.date || getLocalDateNow());
-  const [durationHours, setDurationHours] = useState(() =>
-    entry ? String(Math.floor(entry.durationMinutes / 60)) : ''
-  );
-  const [durationMins, setDurationMins] = useState(() =>
-    entry ? String(entry.durationMinutes % 60) : ''
-  );
+  const [sleepStart, setSleepStart] = useState(() => entry?.sleepStart || '');
+  const [sleepEnd, setSleepEnd] = useState(() => entry?.sleepEnd || '');
   const [hrvLow, setHrvLow] = useState(() => (entry?.hrvLow ? String(entry.hrvLow) : ''));
   const [hrvHigh, setHrvHigh] = useState(() => (entry?.hrvHigh ? String(entry.hrvHigh) : ''));
   const [restingHr, setRestingHr] = useState(() =>
     entry?.restingHr ? String(entry.restingHr) : ''
   );
   const [lowestHrTime, setLowestHrTime] = useState(() => entry?.lowestHrTime || '');
-  const [hrDropMinutes, setHrDropMinutes] = useState(() =>
-    entry?.hrDropMinutes ? String(entry.hrDropMinutes) : ''
-  );
   const [deepSleepPct, setDeepSleepPct] = useState(() =>
     entry?.deepSleepPct ? String(entry.deepSleepPct) : ''
   );
   const [remSleepPct, setRemSleepPct] = useState(() =>
     entry?.remSleepPct ? String(entry.remSleepPct) : ''
   );
+  const [lightSleepPct, setLightSleepPct] = useState(() =>
+    entry?.lightSleepPct ? String(entry.lightSleepPct) : ''
+  );
+  const [awakePct, setAwakePct] = useState(() => (entry?.awakePct ? String(entry.awakePct) : ''));
   const [notes, setNotes] = useState(() => entry?.notes || '');
 
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  // Calculate total duration
-  const totalMinutes = (parseInt(durationHours) || 0) * 60 + (parseInt(durationMins) || 0);
-  const isValid = date && totalMinutes > 0;
+  // Calculate duration and HR drop from times
+  const calculatedDuration = useMemo(
+    () => calculateDuration(sleepStart, sleepEnd),
+    [sleepStart, sleepEnd]
+  );
+  const calculatedHrDrop = useMemo(
+    () => calculateHrDrop(sleepStart, lowestHrTime),
+    [sleepStart, lowestHrTime]
+  );
+
+  const isValid = date && sleepStart && sleepEnd && calculatedDuration > 0;
 
   const handleSave = async () => {
     setSaving(true);
 
     const entryData = {
       date,
-      durationMinutes: totalMinutes,
+      sleepStart: sleepStart || null,
+      sleepEnd: sleepEnd || null,
       hrvLow: hrvLow ? parseInt(hrvLow) : null,
       hrvHigh: hrvHigh ? parseInt(hrvHigh) : null,
       restingHr: restingHr ? parseInt(restingHr) : null,
       lowestHrTime: lowestHrTime || null,
-      hrDropMinutes: hrDropMinutes ? parseInt(hrDropMinutes) : null,
+      hrDropMinutes: calculatedHrDrop,
       deepSleepPct: deepSleepPct ? parseInt(deepSleepPct) : null,
       remSleepPct: remSleepPct ? parseInt(remSleepPct) : null,
+      lightSleepPct: lightSleepPct ? parseInt(lightSleepPct) : null,
+      awakePct: awakePct ? parseInt(awakePct) : null,
       notes: notes || null,
     };
 
@@ -97,15 +152,16 @@ function SleepEntryFormContent({
 
   const handleReset = () => {
     setDate(getLocalDateNow());
-    setDurationHours('');
-    setDurationMins('');
+    setSleepStart('');
+    setSleepEnd('');
     setHrvLow('');
     setHrvHigh('');
     setRestingHr('');
     setLowestHrTime('');
-    setHrDropMinutes('');
     setDeepSleepPct('');
     setRemSleepPct('');
+    setLightSleepPct('');
+    setAwakePct('');
     setNotes('');
     setConfirmDelete(false);
   };
@@ -132,7 +188,8 @@ function SleepEntryFormContent({
       if (deletedItem) {
         const { error: undoError } = await addEntry({
           date: deletedItem.date,
-          durationMinutes: deletedItem.durationMinutes,
+          sleepStart: deletedItem.sleepStart,
+          sleepEnd: deletedItem.sleepEnd,
           hrvLow: deletedItem.hrvLow,
           hrvHigh: deletedItem.hrvHigh,
           restingHr: deletedItem.restingHr,
@@ -140,6 +197,8 @@ function SleepEntryFormContent({
           hrDropMinutes: deletedItem.hrDropMinutes,
           deepSleepPct: deletedItem.deepSleepPct,
           remSleepPct: deletedItem.remSleepPct,
+          lightSleepPct: deletedItem.lightSleepPct,
+          awakePct: deletedItem.awakePct,
           notes: deletedItem.notes,
         });
         if (undoError) {
@@ -164,31 +223,29 @@ function SleepEntryFormContent({
           <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </div>
 
-        {/* Duration */}
+        {/* Sleep Times */}
         <div className="space-y-2">
-          <Label>Sleep Duration</Label>
+          <Label>Sleep Time</Label>
           <div className="flex items-center gap-2">
             <Input
-              type="number"
-              placeholder="Hours"
-              value={durationHours}
-              onChange={(e) => setDurationHours(e.target.value)}
-              min={0}
-              max={24}
+              type="time"
+              value={sleepStart}
+              onChange={(e) => setSleepStart(e.target.value)}
               className="flex-1"
             />
-            <span className="text-muted-foreground">h</span>
+            <span className="text-muted-foreground">to</span>
             <Input
-              type="number"
-              placeholder="Mins"
-              value={durationMins}
-              onChange={(e) => setDurationMins(e.target.value)}
-              min={0}
-              max={59}
+              type="time"
+              value={sleepEnd}
+              onChange={(e) => setSleepEnd(e.target.value)}
               className="flex-1"
             />
-            <span className="text-muted-foreground">m</span>
           </div>
+          {calculatedDuration > 0 && (
+            <p className="text-sm text-muted-foreground">
+              Duration: {formatDuration(calculatedDuration)}
+            </p>
+          )}
         </div>
 
         {/* HRV Range */}
@@ -232,55 +289,73 @@ function SleepEntryFormContent({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="hrDropMinutes">HR Drop (mins)</Label>
+            <Label htmlFor="lowestHrTime">Lowest HR Time</Label>
             <Input
-              id="hrDropMinutes"
-              type="number"
-              placeholder="e.g., 25"
-              value={hrDropMinutes}
-              onChange={(e) => setHrDropMinutes(e.target.value)}
-              min={0}
-              max={180}
+              id="lowestHrTime"
+              type="time"
+              value={lowestHrTime}
+              onChange={(e) => setLowestHrTime(e.target.value)}
             />
           </div>
         </div>
-
-        {/* Lowest HR Time */}
-        <div className="space-y-2">
-          <Label htmlFor="lowestHrTime">Lowest HR Time</Label>
-          <Input
-            id="lowestHrTime"
-            type="time"
-            value={lowestHrTime}
-            onChange={(e) => setLowestHrTime(e.target.value)}
-          />
-        </div>
+        {calculatedHrDrop !== null && (
+          <p className="text-sm text-muted-foreground -mt-2">
+            HR drop: {calculatedHrDrop} mins after sleep start
+          </p>
+        )}
 
         {/* Sleep Stages */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-2">
-            <Label htmlFor="deepSleepPct">Deep Sleep (%)</Label>
-            <Input
-              id="deepSleepPct"
-              type="number"
-              placeholder="e.g., 20"
-              value={deepSleepPct}
-              onChange={(e) => setDeepSleepPct(e.target.value)}
-              min={0}
-              max={100}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="remSleepPct">REM Sleep (%)</Label>
-            <Input
-              id="remSleepPct"
-              type="number"
-              placeholder="e.g., 25"
-              value={remSleepPct}
-              onChange={(e) => setRemSleepPct(e.target.value)}
-              min={0}
-              max={100}
-            />
+        <div className="space-y-2">
+          <Label>Sleep Stages (%)</Label>
+          <div className="grid grid-cols-4 gap-2">
+            <div className="space-y-1">
+              <Input
+                type="number"
+                placeholder="Deep"
+                value={deepSleepPct}
+                onChange={(e) => setDeepSleepPct(e.target.value)}
+                min={0}
+                max={100}
+                className="text-center"
+              />
+              <p className="text-xs text-muted-foreground text-center">Deep</p>
+            </div>
+            <div className="space-y-1">
+              <Input
+                type="number"
+                placeholder="REM"
+                value={remSleepPct}
+                onChange={(e) => setRemSleepPct(e.target.value)}
+                min={0}
+                max={100}
+                className="text-center"
+              />
+              <p className="text-xs text-muted-foreground text-center">REM</p>
+            </div>
+            <div className="space-y-1">
+              <Input
+                type="number"
+                placeholder="Light"
+                value={lightSleepPct}
+                onChange={(e) => setLightSleepPct(e.target.value)}
+                min={0}
+                max={100}
+                className="text-center"
+              />
+              <p className="text-xs text-muted-foreground text-center">Light</p>
+            </div>
+            <div className="space-y-1">
+              <Input
+                type="number"
+                placeholder="Awake"
+                value={awakePct}
+                onChange={(e) => setAwakePct(e.target.value)}
+                min={0}
+                max={100}
+                className="text-center"
+              />
+              <p className="text-xs text-muted-foreground text-center">Awake</p>
+            </div>
           </div>
         </div>
 

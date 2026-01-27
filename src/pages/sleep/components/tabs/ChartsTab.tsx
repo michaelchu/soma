@@ -31,6 +31,8 @@ interface ChartDataPoint {
   hrDropMinutes: number | null;
   deepSleepPct: number | null;
   remSleepPct: number | null;
+  lightSleepPct: number | null;
+  awakePct: number | null;
   restorativePct: number | null;
 }
 
@@ -79,6 +81,18 @@ function CustomTooltip({
             <span className="font-medium">{data.remSleepPct}%</span>
           </p>
         )}
+        {data.lightSleepPct !== null && (
+          <p>
+            <span className="text-blue-400">Light:</span>{' '}
+            <span className="font-medium">{data.lightSleepPct}%</span>
+          </p>
+        )}
+        {data.awakePct !== null && (
+          <p>
+            <span className="text-orange-400">Awake:</span>{' '}
+            <span className="font-medium">{data.awakePct}%</span>
+          </p>
+        )}
       </div>
     </div>
   );
@@ -102,6 +116,8 @@ export function ChartsTab({ entries }: ChartsTabProps) {
         hrDropMinutes: entry.hrDropMinutes,
         deepSleepPct: entry.deepSleepPct,
         remSleepPct: entry.remSleepPct,
+        lightSleepPct: entry.lightSleepPct,
+        awakePct: entry.awakePct,
         restorativePct:
           entry.deepSleepPct !== null || entry.remSleepPct !== null
             ? (entry.deepSleepPct || 0) + (entry.remSleepPct || 0)
@@ -122,7 +138,11 @@ export function ChartsTab({ entries }: ChartsTabProps) {
   const hasHrvData = chartData.some((d) => d.hrvLow !== null || d.hrvHigh !== null);
   const hasHrData = chartData.some((d) => d.restingHr !== null);
   const hasSleepStageData = chartData.some(
-    (d) => d.deepSleepPct !== null || d.remSleepPct !== null
+    (d) =>
+      d.deepSleepPct !== null ||
+      d.remSleepPct !== null ||
+      d.lightSleepPct !== null ||
+      d.awakePct !== null
   );
 
   return (
@@ -274,6 +294,8 @@ export function ChartsTab({ entries }: ChartsTabProps) {
 
                   <Bar dataKey="deepSleepPct" stackId="stages" fill="#4f46e5" name="Deep" />
                   <Bar dataKey="remSleepPct" stackId="stages" fill="#06b6d4" name="REM" />
+                  <Bar dataKey="lightSleepPct" stackId="stages" fill="#60a5fa" name="Light" />
+                  <Bar dataKey="awakePct" stackId="stages" fill="#fb923c" name="Awake" />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
