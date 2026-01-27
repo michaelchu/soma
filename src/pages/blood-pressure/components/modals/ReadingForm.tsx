@@ -267,7 +267,7 @@ function ReadingFormContent({ session, onOpenChange }) {
                   onChange={(e) => updateBpRow(index, 'systolic', e.target.value)}
                   min={BP_VALIDATION.SYSTOLIC_MIN}
                   max={BP_VALIDATION.SYSTOLIC_MAX}
-                  className="w-16 text-center flex-shrink-0"
+                  className="flex-1 min-w-0 text-center"
                 />
                 <span className="text-xl text-muted-foreground">/</span>
                 <Input
@@ -278,7 +278,7 @@ function ReadingFormContent({ session, onOpenChange }) {
                   onChange={(e) => updateBpRow(index, 'diastolic', e.target.value)}
                   min={BP_VALIDATION.DIASTOLIC_MIN}
                   max={BP_VALIDATION.DIASTOLIC_MAX}
-                  className="w-16 text-center flex-shrink-0"
+                  className="flex-1 min-w-0 text-center"
                 />
                 <Input
                   ref={(el) => setInputRef(index, 'pulse', el)}
@@ -288,7 +288,7 @@ function ReadingFormContent({ session, onOpenChange }) {
                   onChange={(e) => updateBpRow(index, 'pulse', e.target.value)}
                   min={BP_VALIDATION.PULSE_MIN}
                   max={BP_VALIDATION.PULSE_MAX}
-                  className="w-16 text-center flex-shrink-0"
+                  className="flex-1 min-w-0 text-center"
                 />
                 {/* Arm selector */}
                 <div
