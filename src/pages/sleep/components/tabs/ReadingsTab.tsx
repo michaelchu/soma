@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { StickyNote, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { showWithUndo, showError } from '@/lib/toast';
 import { formatDate } from '@/lib/dateUtils';
 import {
@@ -223,29 +222,23 @@ function SleepStagesBar({ entry }: { entry: SleepEntry }) {
   ].filter((s) => s.value !== null);
 
   return (
-    <TooltipProvider delayDuration={0}>
-      <div className="mt-1.5">
-        <div className="flex h-1.5 rounded-full overflow-hidden bg-muted">
-          {stages.map((stage) => (
-            <div key={stage.key} className={stage.color} style={{ width: `${stage.value}%` }} />
-          ))}
-        </div>
-        {/* Compact legend with dots */}
-        <div className="flex gap-x-1.5 mt-1 text-[10px] text-muted-foreground">
-          {stages.map((stage) => (
-            <Tooltip key={stage.key}>
-              <TooltipTrigger asChild>
-                <span className="flex items-center gap-0.5 cursor-default">
-                  <span className={`w-1.5 h-1.5 rounded-full ${stage.color}`} />
-                  {stage.value}%
-                </span>
-              </TooltipTrigger>
-              <TooltipContent side="top">{stage.label}</TooltipContent>
-            </Tooltip>
-          ))}
-        </div>
+    <div className="mt-1.5">
+      <div className="flex h-1.5 rounded-full overflow-hidden bg-muted">
+        {stages.map((stage) => (
+          <div key={stage.key} className={stage.color} style={{ width: `${stage.value}%` }} />
+        ))}
       </div>
-    </TooltipProvider>
+      {/* Legend with labels */}
+      <div className="flex gap-x-2 mt-1 text-[10px] text-muted-foreground">
+        {stages.map((stage) => (
+          <span key={stage.key} className="flex items-center gap-0.5">
+            <span className={`w-1.5 h-1.5 rounded-full ${stage.color}`} />
+            <span>{stage.label}</span>
+            <span className="font-medium text-foreground">{stage.value}%</span>
+          </span>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -371,20 +364,23 @@ export function ReadingsTab({ entries }: ReadingsTabProps) {
                 {/* Details */}
                 <div className="flex-1 pl-3 sm:pl-4 pr-5 sm:pr-6 py-2">
                   {/* Header row */}
-                  <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-                    <span>{formatDate(entry.date, { includeWeekday: true })}</span>
+                  <div className="flex items-center gap-1.5 text-sm text-foreground">
+                    <span className="font-semibold">
+                      {formatDate(entry.date, { includeWeekday: true })}
+                    </span>
+                    {score.overall !== null && (
+                      <>
+                        <span className="text-muted-foreground">•</span>
+                        <span className="text-muted-foreground">
+                          {formatDuration(entry.durationMinutes)}
+                        </span>
+                      </>
+                    )}
                     {entry.notes && <StickyNote className="h-3 w-3 text-muted-foreground" />}
                   </div>
 
                   {/* Metrics row */}
                   <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                    {score.overall !== null && (
-                      <span>
-                        <span className="font-medium text-foreground">
-                          {formatDuration(entry.durationMinutes)}
-                        </span>
-                      </span>
-                    )}
                     {(entry.hrvLow !== null || entry.hrvHigh !== null) && (
                       <span>
                         <span className="font-semibold">HRV</span>{' '}
