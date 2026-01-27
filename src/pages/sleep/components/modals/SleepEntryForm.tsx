@@ -93,6 +93,24 @@ function SleepEntryFormContent({
     entry?.lightSleepPct ? String(entry.lightSleepPct) : ''
   );
   const [awakePct, setAwakePct] = useState(() => (entry?.awakePct ? String(entry.awakePct) : ''));
+  const [sleepIndex, setSleepIndex] = useState(() =>
+    entry?.sleepIndex ? String(entry.sleepIndex) : ''
+  );
+  const [skinTempAvg, setSkinTempAvg] = useState(() =>
+    entry?.skinTempAvg ? String(entry.skinTempAvg) : ''
+  );
+  const [restfulness, setRestfulness] = useState(() =>
+    entry?.restfulness ? String(entry.restfulness) : ''
+  );
+  const [sleepCyclesFull, setSleepCyclesFull] = useState(() =>
+    entry?.sleepCyclesFull ? String(entry.sleepCyclesFull) : ''
+  );
+  const [sleepCyclesPartial, setSleepCyclesPartial] = useState(() =>
+    entry?.sleepCyclesPartial ? String(entry.sleepCyclesPartial) : ''
+  );
+  const [movementCount, setMovementCount] = useState(() =>
+    entry?.movementCount ? String(entry.movementCount) : ''
+  );
   const [notes, setNotes] = useState(() => entry?.notes || '');
 
   const [saving, setSaving] = useState(false);
@@ -127,6 +145,12 @@ function SleepEntryFormContent({
       remSleepPct: remSleepPct ? parseInt(remSleepPct) : null,
       lightSleepPct: lightSleepPct ? parseInt(lightSleepPct) : null,
       awakePct: awakePct ? parseInt(awakePct) : null,
+      sleepIndex: sleepIndex ? parseInt(sleepIndex) : null,
+      skinTempAvg: skinTempAvg ? parseFloat(skinTempAvg) : null,
+      restfulness: restfulness ? parseInt(restfulness) : null,
+      sleepCyclesFull: sleepCyclesFull ? parseInt(sleepCyclesFull) : null,
+      sleepCyclesPartial: sleepCyclesPartial ? parseInt(sleepCyclesPartial) : null,
+      movementCount: movementCount ? parseInt(movementCount) : null,
       notes: notes || null,
     };
 
@@ -162,6 +186,12 @@ function SleepEntryFormContent({
     setRemSleepPct('');
     setLightSleepPct('');
     setAwakePct('');
+    setSleepIndex('');
+    setSkinTempAvg('');
+    setRestfulness('');
+    setSleepCyclesFull('');
+    setSleepCyclesPartial('');
+    setMovementCount('');
     setNotes('');
     setConfirmDelete(false);
   };
@@ -199,6 +229,12 @@ function SleepEntryFormContent({
           remSleepPct: deletedItem.remSleepPct,
           lightSleepPct: deletedItem.lightSleepPct,
           awakePct: deletedItem.awakePct,
+          sleepIndex: deletedItem.sleepIndex,
+          skinTempAvg: deletedItem.skinTempAvg,
+          restfulness: deletedItem.restfulness,
+          sleepCyclesFull: deletedItem.sleepCyclesFull,
+          sleepCyclesPartial: deletedItem.sleepCyclesPartial,
+          movementCount: deletedItem.movementCount,
           notes: deletedItem.notes,
         });
         if (undoError) {
@@ -212,206 +248,296 @@ function SleepEntryFormContent({
 
   return (
     <>
-      <DialogHeader>
+      {/* Header */}
+      <DialogHeader className="flex-shrink-0 px-5 py-4 border-b">
         <DialogTitle>{isEditing ? 'Edit Sleep Entry' : 'Add Sleep Entry'}</DialogTitle>
       </DialogHeader>
 
-      <div className="space-y-4 pt-2 -mx-1 px-1">
-        {/* Date */}
-        <div className="space-y-2">
-          <Label htmlFor="date">Date</Label>
-          <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-        </div>
-
-        {/* Sleep Times */}
-        <div className="space-y-2">
-          <Label>Sleep Time</Label>
-          <div className="flex items-center gap-2">
-            <Input
-              type="time"
-              value={sleepStart}
-              onChange={(e) => setSleepStart(e.target.value)}
-              className="flex-1"
-            />
-            <span className="text-muted-foreground">to</span>
-            <Input
-              type="time"
-              value={sleepEnd}
-              onChange={(e) => setSleepEnd(e.target.value)}
-              className="flex-1"
-            />
+      {/* Body - scrollable */}
+      <div className="flex-1 overflow-y-auto px-5">
+        <div className="space-y-4 py-4">
+          {/* Date */}
+          <div className="space-y-2">
+            <Label htmlFor="date">Date</Label>
+            <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </div>
-          {calculatedDuration > 0 && (
-            <p className="text-sm text-muted-foreground">
-              Duration: {formatDuration(calculatedDuration)}
+
+          {/* Sleep Times */}
+          <div className="space-y-2">
+            <Label>Sleep Time</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="time"
+                value={sleepStart}
+                onChange={(e) => setSleepStart(e.target.value)}
+                className="flex-1 min-w-0"
+              />
+              <span className="text-muted-foreground flex-shrink-0">to</span>
+              <Input
+                type="time"
+                value={sleepEnd}
+                onChange={(e) => setSleepEnd(e.target.value)}
+                className="flex-1 min-w-0"
+              />
+            </div>
+            {calculatedDuration > 0 && (
+              <p className="text-sm text-muted-foreground">
+                Duration: {formatDuration(calculatedDuration)}
+              </p>
+            )}
+          </div>
+
+          {/* HRV Range */}
+          <div className="space-y-2">
+            <Label>HRV Range (ms)</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                placeholder="Low"
+                value={hrvLow}
+                onChange={(e) => setHrvLow(e.target.value)}
+                min={1}
+                max={500}
+                className="flex-1"
+              />
+              <span className="text-muted-foreground">-</span>
+              <Input
+                type="number"
+                placeholder="High"
+                value={hrvHigh}
+                onChange={(e) => setHrvHigh(e.target.value)}
+                min={1}
+                max={500}
+                className="flex-1"
+              />
+            </div>
+          </div>
+
+          {/* Heart Rate Metrics */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="restingHr">Resting HR (bpm)</Label>
+              <Input
+                id="restingHr"
+                type="number"
+                placeholder="e.g., 52"
+                value={restingHr}
+                onChange={(e) => setRestingHr(e.target.value)}
+                min={20}
+                max={200}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lowestHrTime">Lowest HR Time</Label>
+              <Input
+                id="lowestHrTime"
+                type="time"
+                value={lowestHrTime}
+                onChange={(e) => setLowestHrTime(e.target.value)}
+              />
+            </div>
+          </div>
+          {calculatedHrDrop !== null && (
+            <p className="text-sm text-muted-foreground -mt-2">
+              HR drop: {calculatedHrDrop} mins after sleep start
             </p>
           )}
-        </div>
 
-        {/* HRV Range */}
-        <div className="space-y-2">
-          <Label>HRV Range (ms)</Label>
-          <div className="flex items-center gap-2">
-            <Input
-              type="number"
-              placeholder="Low"
-              value={hrvLow}
-              onChange={(e) => setHrvLow(e.target.value)}
-              min={1}
-              max={500}
-              className="flex-1"
-            />
-            <span className="text-muted-foreground">-</span>
-            <Input
-              type="number"
-              placeholder="High"
-              value={hrvHigh}
-              onChange={(e) => setHrvHigh(e.target.value)}
-              min={1}
-              max={500}
-              className="flex-1"
-            />
-          </div>
-        </div>
-
-        {/* Heart Rate Metrics */}
-        <div className="grid grid-cols-2 gap-3">
+          {/* Sleep Stages */}
           <div className="space-y-2">
-            <Label htmlFor="restingHr">Resting HR (bpm)</Label>
-            <Input
-              id="restingHr"
-              type="number"
-              placeholder="e.g., 52"
-              value={restingHr}
-              onChange={(e) => setRestingHr(e.target.value)}
-              min={20}
-              max={200}
-            />
+            <Label>Sleep Stages (%)</Label>
+            <div className="grid grid-cols-4 gap-2">
+              <div className="space-y-1">
+                <Input
+                  type="number"
+                  placeholder="Deep"
+                  value={deepSleepPct}
+                  onChange={(e) => setDeepSleepPct(e.target.value)}
+                  min={0}
+                  max={100}
+                  className="text-center"
+                />
+                <p className="text-xs text-muted-foreground text-center">Deep</p>
+              </div>
+              <div className="space-y-1">
+                <Input
+                  type="number"
+                  placeholder="REM"
+                  value={remSleepPct}
+                  onChange={(e) => setRemSleepPct(e.target.value)}
+                  min={0}
+                  max={100}
+                  className="text-center"
+                />
+                <p className="text-xs text-muted-foreground text-center">REM</p>
+              </div>
+              <div className="space-y-1">
+                <Input
+                  type="number"
+                  placeholder="Light"
+                  value={lightSleepPct}
+                  onChange={(e) => setLightSleepPct(e.target.value)}
+                  min={0}
+                  max={100}
+                  className="text-center"
+                />
+                <p className="text-xs text-muted-foreground text-center">Light</p>
+              </div>
+              <div className="space-y-1">
+                <Input
+                  type="number"
+                  placeholder="Awake"
+                  value={awakePct}
+                  onChange={(e) => setAwakePct(e.target.value)}
+                  min={0}
+                  max={100}
+                  className="text-center"
+                />
+                <p className="text-xs text-muted-foreground text-center">Awake</p>
+              </div>
+            </div>
           </div>
+
+          {/* Sleep Index & Restfulness */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="sleepIndex">Sleep Index (0-100)</Label>
+              <Input
+                id="sleepIndex"
+                type="number"
+                placeholder="e.g., 85"
+                value={sleepIndex}
+                onChange={(e) => setSleepIndex(e.target.value)}
+                min={0}
+                max={100}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="restfulness">Restfulness (0-100)</Label>
+              <Input
+                id="restfulness"
+                type="number"
+                placeholder="e.g., 75"
+                value={restfulness}
+                onChange={(e) => setRestfulness(e.target.value)}
+                min={0}
+                max={100}
+              />
+            </div>
+          </div>
+
+          {/* Temperature & Movement */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="skinTempAvg">Skin Temp Avg (°C)</Label>
+              <Input
+                id="skinTempAvg"
+                type="number"
+                step="0.1"
+                placeholder="e.g., 34.5"
+                value={skinTempAvg}
+                onChange={(e) => setSkinTempAvg(e.target.value)}
+                min={20}
+                max={45}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="movementCount">Movements</Label>
+              <Input
+                id="movementCount"
+                type="number"
+                placeholder="e.g., 15"
+                value={movementCount}
+                onChange={(e) => setMovementCount(e.target.value)}
+                min={0}
+                max={500}
+              />
+            </div>
+          </div>
+
+          {/* Sleep Cycles */}
           <div className="space-y-2">
-            <Label htmlFor="lowestHrTime">Lowest HR Time</Label>
-            <Input
-              id="lowestHrTime"
-              type="time"
-              value={lowestHrTime}
-              onChange={(e) => setLowestHrTime(e.target.value)}
+            <Label>Sleep Cycles</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Input
+                  type="number"
+                  placeholder="Full"
+                  value={sleepCyclesFull}
+                  onChange={(e) => setSleepCyclesFull(e.target.value)}
+                  min={0}
+                  max={20}
+                />
+                <p className="text-xs text-muted-foreground text-center">Full</p>
+              </div>
+              <div className="space-y-1">
+                <Input
+                  type="number"
+                  placeholder="Partial"
+                  value={sleepCyclesPartial}
+                  onChange={(e) => setSleepCyclesPartial(e.target.value)}
+                  min={0}
+                  max={20}
+                />
+                <p className="text-xs text-muted-foreground text-center">Partial</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div className="space-y-2">
+            <Label htmlFor="notes">Notes (optional)</Label>
+            <Textarea
+              id="notes"
+              placeholder="e.g., Late dinner, stress, alcohol..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={2}
             />
           </div>
         </div>
-        {calculatedHrDrop !== null && (
-          <p className="text-sm text-muted-foreground -mt-2">
-            HR drop: {calculatedHrDrop} mins after sleep start
-          </p>
-        )}
+      </div>
 
-        {/* Sleep Stages */}
-        <div className="space-y-2">
-          <Label>Sleep Stages (%)</Label>
-          <div className="grid grid-cols-4 gap-2">
-            <div className="space-y-1">
-              <Input
-                type="number"
-                placeholder="Deep"
-                value={deepSleepPct}
-                onChange={(e) => setDeepSleepPct(e.target.value)}
-                min={0}
-                max={100}
-                className="text-center"
-              />
-              <p className="text-xs text-muted-foreground text-center">Deep</p>
-            </div>
-            <div className="space-y-1">
-              <Input
-                type="number"
-                placeholder="REM"
-                value={remSleepPct}
-                onChange={(e) => setRemSleepPct(e.target.value)}
-                min={0}
-                max={100}
-                className="text-center"
-              />
-              <p className="text-xs text-muted-foreground text-center">REM</p>
-            </div>
-            <div className="space-y-1">
-              <Input
-                type="number"
-                placeholder="Light"
-                value={lightSleepPct}
-                onChange={(e) => setLightSleepPct(e.target.value)}
-                min={0}
-                max={100}
-                className="text-center"
-              />
-              <p className="text-xs text-muted-foreground text-center">Light</p>
-            </div>
-            <div className="space-y-1">
-              <Input
-                type="number"
-                placeholder="Awake"
-                value={awakePct}
-                onChange={(e) => setAwakePct(e.target.value)}
-                min={0}
-                max={100}
-                className="text-center"
-              />
-              <p className="text-xs text-muted-foreground text-center">Awake</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Notes */}
-        <div className="space-y-2">
-          <Label htmlFor="notes">Notes (optional)</Label>
-          <Textarea
-            id="notes"
-            placeholder="e.g., Late dinner, stress, alcohol..."
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={2}
-          />
-        </div>
-
-        {/* Actions */}
-        <div className="flex gap-2 pt-2">
-          {isEditing && (
-            <Button
-              variant={confirmDelete ? 'destructive' : 'outline'}
-              onClick={handleDelete}
-              disabled={saving || deleting}
-              className="flex-shrink-0"
-            >
-              {deleting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <>
-                  <Trash2 className="h-4 w-4" />
-                  {confirmDelete && <span className="ml-2">Confirm</span>}
-                </>
-              )}
-            </Button>
-          )}
+      {/* Footer */}
+      <div className="flex gap-2 px-5 py-4 flex-shrink-0 border-t">
+        {isEditing && (
           <Button
-            variant="outline"
-            onClick={handleReset}
-            className="flex-1"
+            variant={confirmDelete ? 'destructive' : 'outline'}
+            onClick={handleDelete}
             disabled={saving || deleting}
+            className="flex-shrink-0"
           >
-            Reset
-          </Button>
-          <Button onClick={handleSave} disabled={!isValid || saving || deleting} className="flex-1">
-            {saving ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Saving...
-              </>
+            {deleting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <>
-                <Save className="h-4 w-4 mr-2" />
-                Save
+                <Trash2 className="h-4 w-4" />
+                {confirmDelete && <span className="ml-2">Confirm</span>}
               </>
             )}
           </Button>
-        </div>
+        )}
+        <Button
+          variant="outline"
+          onClick={handleReset}
+          className="flex-1"
+          disabled={saving || deleting}
+        >
+          Reset
+        </Button>
+        <Button onClick={handleSave} disabled={!isValid || saving || deleting} className="flex-1">
+          {saving ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4 mr-2" />
+              Save
+            </>
+          )}
+        </Button>
       </div>
     </>
   );
@@ -428,7 +554,7 @@ export function SleepEntryForm({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full h-full max-w-none sm:max-w-md sm:h-auto flex flex-col rounded-none sm:rounded-lg">
+      <DialogContent className="w-full h-full max-w-none sm:max-w-md sm:max-h-[90vh] flex flex-col rounded-none sm:rounded-lg overflow-hidden p-0 gap-0">
         <SleepEntryFormContent key={entry?.id || 'new'} entry={entry} onOpenChange={onOpenChange} />
       </DialogContent>
     </Dialog>

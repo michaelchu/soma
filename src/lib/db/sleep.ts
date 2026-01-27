@@ -22,6 +22,12 @@ interface SleepEntryRow {
   rem_sleep_pct: number | null;
   light_sleep_pct: number | null;
   awake_pct: number | null;
+  sleep_index: number | null;
+  skin_temp_avg: number | null;
+  restfulness: number | null;
+  sleep_cycles_full: number | null;
+  sleep_cycles_partial: number | null;
+  movement_count: number | null;
   notes: string | null;
   created_at?: string;
   updated_at?: string;
@@ -42,6 +48,12 @@ export interface SleepEntry {
   remSleepPct: number | null;
   lightSleepPct: number | null;
   awakePct: number | null;
+  sleepIndex: number | null;
+  skinTempAvg: number | null;
+  restfulness: number | null;
+  sleepCyclesFull: number | null;
+  sleepCyclesPartial: number | null;
+  movementCount: number | null;
   notes: string | null;
 }
 
@@ -59,6 +71,12 @@ export interface SleepEntryInput {
   remSleepPct?: number | null;
   lightSleepPct?: number | null;
   awakePct?: number | null;
+  sleepIndex?: number | null;
+  skinTempAvg?: number | null;
+  restfulness?: number | null;
+  sleepCyclesFull?: number | null;
+  sleepCyclesPartial?: number | null;
+  movementCount?: number | null;
   notes?: string | null;
 }
 
@@ -103,6 +121,12 @@ function rowToEntry(row: SleepEntryRow): SleepEntry {
     remSleepPct: row.rem_sleep_pct,
     lightSleepPct: row.light_sleep_pct,
     awakePct: row.awake_pct,
+    sleepIndex: row.sleep_index,
+    skinTempAvg: row.skin_temp_avg,
+    restfulness: row.restfulness,
+    sleepCyclesFull: row.sleep_cycles_full,
+    sleepCyclesPartial: row.sleep_cycles_partial,
+    movementCount: row.movement_count,
     notes: row.notes,
   };
 }
@@ -168,6 +192,12 @@ export async function addSleepEntry(
     rem_sleep_pct: entry.remSleepPct || null,
     light_sleep_pct: entry.lightSleepPct || null,
     awake_pct: entry.awakePct || null,
+    sleep_index: entry.sleepIndex || null,
+    skin_temp_avg: entry.skinTempAvg || null,
+    restfulness: entry.restfulness || null,
+    sleep_cycles_full: entry.sleepCyclesFull || null,
+    sleep_cycles_partial: entry.sleepCyclesPartial || null,
+    movement_count: entry.movementCount || null,
     notes: sanitizedNotes,
   };
 
@@ -212,6 +242,12 @@ export async function updateSleepEntry(
     rem_sleep_pct: entry.remSleepPct || null,
     light_sleep_pct: entry.lightSleepPct || null,
     awake_pct: entry.awakePct || null,
+    sleep_index: entry.sleepIndex || null,
+    skin_temp_avg: entry.skinTempAvg || null,
+    restfulness: entry.restfulness || null,
+    sleep_cycles_full: entry.sleepCyclesFull || null,
+    sleep_cycles_partial: entry.sleepCyclesPartial || null,
+    movement_count: entry.movementCount || null,
     notes: sanitizedNotes,
   };
 
