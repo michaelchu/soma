@@ -1,6 +1,7 @@
 import type { ElementType } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Moon, Heart, Activity, Brain, Clock, TrendingDown } from 'lucide-react';
+import { formatDate } from '@/lib/dateUtils';
 import { calculateSleepStats, formatDuration, formatHrvRange } from '../../utils/sleepHelpers';
 import type { SleepEntry } from '@/lib/db/sleep';
 
@@ -50,14 +51,16 @@ export function StatisticsTab({ entries, allEntries, dateRange }: StatisticsTabP
     );
   }
 
-  const rangeLabel = dateRange === 'all' ? 'all time' : `last ${dateRange} days`;
+  // Get actual date range from entries (entries are sorted newest first)
+  const oldestEntry = entries[entries.length - 1];
+  const newestEntry = entries[0];
+  const dateRangeLabel =
+    oldestEntry && newestEntry
+      ? `${formatDate(oldestEntry.date)} – ${formatDate(newestEntry.date)}`
+      : '';
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
-        Statistics from {stats.count} entries ({rangeLabel})
-      </p>
-
       <div className="grid grid-cols-2 gap-3">
         {/* Average Duration */}
         <StatCard
@@ -147,6 +150,11 @@ export function StatisticsTab({ entries, allEntries, dateRange }: StatisticsTabP
           </CardContent>
         </Card>
       )}
+
+      {/* Entry count and date range */}
+      <p className="text-sm text-muted-foreground text-center">
+        Statistics from {stats.count} entries ({dateRangeLabel})
+      </p>
     </div>
   );
 }
