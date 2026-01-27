@@ -1,6 +1,14 @@
 {
   "apps": [
     {
+      "id": "dashboard",
+      "name": "Dashboard",
+      "description": "Overview of your health metrics and trends",
+      "icon": "📊",
+      "color": "#10b981",
+      "route": "/dashboard"
+    },
+    {
       "id": "blood-tests",
       "name": "Blood Tests",
       "description": "Track and visualize blood test results",

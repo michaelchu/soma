@@ -3,6 +3,7 @@ import { Toaster } from 'sonner';
 import { useAuth } from '@/lib/AuthContext';
 import Auth from '@/views/Auth';
 import Launcher from '@/views/Launcher';
+import Dashboard from '@/pages/Dashboard';
 import BloodTests from '@/pages/BloodTests';
 import BloodPressure from '@/pages/BloodPressure';
 import Sleep from '@/pages/Sleep';
@@ -28,6 +29,7 @@ export default function App() {
     <>
       <Routes>
         <Route path="/" element={<Launcher />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/blood-tests" element={<BloodTests />} />
         <Route path="/blood-pressure" element={<BloodPressure />} />
         <Route path="/sleep" element={<Sleep />} />
