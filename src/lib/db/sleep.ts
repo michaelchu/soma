@@ -10,6 +10,7 @@ interface SleepEntryRow {
   id: string;
   user_id: string;
   date: string;
+  timezone: string | null;
   duration_minutes: number | null;
   sleep_start: string | null;
   sleep_end: string | null;
@@ -22,9 +23,7 @@ interface SleepEntryRow {
   rem_sleep_pct: number | null;
   light_sleep_pct: number | null;
   awake_pct: number | null;
-  sleep_index: number | null;
   skin_temp_avg: number | null;
-  restfulness: number | null;
   sleep_cycles_full: number | null;
   sleep_cycles_partial: number | null;
   movement_count: number | null;
@@ -36,6 +35,7 @@ interface SleepEntryRow {
 export interface SleepEntry {
   id: string;
   date: string;
+  timezone: string | null;
   durationMinutes: number;
   sleepStart: string | null;
   sleepEnd: string | null;
@@ -48,9 +48,7 @@ export interface SleepEntry {
   remSleepPct: number | null;
   lightSleepPct: number | null;
   awakePct: number | null;
-  sleepIndex: number | null;
   skinTempAvg: number | null;
-  restfulness: number | null;
   sleepCyclesFull: number | null;
   sleepCyclesPartial: number | null;
   movementCount: number | null;
@@ -59,6 +57,7 @@ export interface SleepEntry {
 
 export interface SleepEntryInput {
   date: string;
+  timezone?: string | null;
   durationMinutes?: number | null;
   sleepStart?: string | null;
   sleepEnd?: string | null;
@@ -71,9 +70,7 @@ export interface SleepEntryInput {
   remSleepPct?: number | null;
   lightSleepPct?: number | null;
   awakePct?: number | null;
-  sleepIndex?: number | null;
   skinTempAvg?: number | null;
-  restfulness?: number | null;
   sleepCyclesFull?: number | null;
   sleepCyclesPartial?: number | null;
   movementCount?: number | null;
@@ -109,6 +106,7 @@ function rowToEntry(row: SleepEntryRow): SleepEntry {
   return {
     id: row.id,
     date: row.date,
+    timezone: row.timezone,
     durationMinutes: durationMinutes ?? 0,
     sleepStart: row.sleep_start,
     sleepEnd: row.sleep_end,
@@ -121,9 +119,7 @@ function rowToEntry(row: SleepEntryRow): SleepEntry {
     remSleepPct: row.rem_sleep_pct,
     lightSleepPct: row.light_sleep_pct,
     awakePct: row.awake_pct,
-    sleepIndex: row.sleep_index,
     skinTempAvg: row.skin_temp_avg,
-    restfulness: row.restfulness,
     sleepCyclesFull: row.sleep_cycles_full,
     sleepCyclesPartial: row.sleep_cycles_partial,
     movementCount: row.movement_count,
@@ -180,6 +176,7 @@ export async function addSleepEntry(
   const row = {
     user_id: user.id,
     date: entry.date,
+    timezone: entry.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
     duration_minutes: entry.durationMinutes || null,
     sleep_start: entry.sleepStart || null,
     sleep_end: entry.sleepEnd || null,
@@ -192,9 +189,7 @@ export async function addSleepEntry(
     rem_sleep_pct: entry.remSleepPct || null,
     light_sleep_pct: entry.lightSleepPct || null,
     awake_pct: entry.awakePct || null,
-    sleep_index: entry.sleepIndex || null,
     skin_temp_avg: entry.skinTempAvg || null,
-    restfulness: entry.restfulness || null,
     sleep_cycles_full: entry.sleepCyclesFull || null,
     sleep_cycles_partial: entry.sleepCyclesPartial || null,
     movement_count: entry.movementCount || null,
@@ -230,6 +225,7 @@ export async function updateSleepEntry(
 
   const updates = {
     date: entry.date,
+    timezone: entry.timezone || undefined,
     duration_minutes: entry.durationMinutes || null,
     sleep_start: entry.sleepStart || null,
     sleep_end: entry.sleepEnd || null,
@@ -242,9 +238,7 @@ export async function updateSleepEntry(
     rem_sleep_pct: entry.remSleepPct || null,
     light_sleep_pct: entry.lightSleepPct || null,
     awake_pct: entry.awakePct || null,
-    sleep_index: entry.sleepIndex || null,
     skin_temp_avg: entry.skinTempAvg || null,
-    restfulness: entry.restfulness || null,
     sleep_cycles_full: entry.sleepCyclesFull || null,
     sleep_cycles_partial: entry.sleepCyclesPartial || null,
     movement_count: entry.movementCount || null,

@@ -1,9 +1,16 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { StickyNote, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { showWithUndo, showError } from '@/lib/toast';
 import { formatDate } from '@/lib/dateUtils';
-import { formatDuration, formatHrvRange, getRestorativeSleepPct } from '../../utils/sleepHelpers';
+import {
+  formatDuration,
+  formatHrvRange,
+  getRestorativeSleepPct,
+  calculatePersonalBaseline,
+  calculateSleepScore,
+  getScoreColorClass,
+} from '../../utils/sleepHelpers';
 import { SleepEntryForm } from '../modals/SleepEntryForm';
 import { useSleep } from '../../context/SleepContext';
 import { TOUCH_CONSTANTS } from '@/lib/constants';
@@ -208,14 +215,14 @@ function SleepStagesBar({ entry }: { entry: SleepEntry }) {
   if (!hasStages) return null;
 
   const stages = [
-    { key: 'deep', value: entry.deepSleepPct, color: STAGE_COLORS.deep, label: 'Deep' },
+    { key: 'awake', value: entry.awakePct, color: STAGE_COLORS.awake, label: 'Awake' },
     { key: 'rem', value: entry.remSleepPct, color: STAGE_COLORS.rem, label: 'REM' },
     { key: 'light', value: entry.lightSleepPct, color: STAGE_COLORS.light, label: 'Light' },
-    { key: 'awake', value: entry.awakePct, color: STAGE_COLORS.awake, label: 'Awake' },
+    { key: 'deep', value: entry.deepSleepPct, color: STAGE_COLORS.deep, label: 'Deep' },
   ].filter((s) => s.value !== null);
 
   return (
-    <div className="mt-2">
+    <div className="mt-1.5">
       <div className="flex h-1.5 rounded-full overflow-hidden bg-muted">
         {stages.map((stage) => (
           <div
@@ -227,11 +234,11 @@ function SleepStagesBar({ entry }: { entry: SleepEntry }) {
         ))}
       </div>
       {/* Compact legend with dots */}
-      <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-1.5 text-[11px] text-muted-foreground">
+      <div className="flex gap-x-1.5 mt-1 text-[10px] text-muted-foreground">
         {stages.map((stage) => (
-          <span key={stage.key} className="flex items-center gap-1">
-            <span className={`w-2 h-2 rounded-full ${stage.color}`} />
-            {stage.label} {stage.value}%
+          <span key={stage.key} className="flex items-center gap-0.5">
+            <span className={`w-1.5 h-1.5 rounded-full ${stage.color}`} />
+            {stage.value}%
           </span>
         ))}
       </div>
@@ -273,6 +280,9 @@ export function ReadingsTab({ entries }: ReadingsTabProps) {
   const [editingEntry, setEditingEntry] = useState<SleepEntry | null>(null);
   const [notesEntry, setNotesEntry] = useState<SleepEntry | null>(null);
 
+  // Calculate personal baseline from all entries for scoring
+  const baseline = useMemo(() => calculatePersonalBaseline(entries), [entries]);
+
   const handleDelete = async (entry: SleepEntry) => {
     const { error } = await deleteEntry(entry.id);
     if (error) return;
@@ -292,9 +302,7 @@ export function ReadingsTab({ entries }: ReadingsTabProps) {
         remSleepPct: entry.remSleepPct,
         lightSleepPct: entry.lightSleepPct,
         awakePct: entry.awakePct,
-        sleepIndex: entry.sleepIndex,
         skinTempAvg: entry.skinTempAvg,
-        restfulness: entry.restfulness,
         sleepCyclesFull: entry.sleepCyclesFull,
         sleepCyclesPartial: entry.sleepCyclesPartial,
         movementCount: entry.movementCount,
@@ -326,6 +334,7 @@ export function ReadingsTab({ entries }: ReadingsTabProps) {
       <div className="md:hidden -mx-5 sm:-mx-6">
         {entries.map((entry, index) => {
           const restorative = getRestorativeSleepPct(entry);
+          const score = calculateSleepScore(entry, baseline);
 
           return (
             <SwipeableRow
@@ -336,23 +345,20 @@ export function ReadingsTab({ entries }: ReadingsTabProps) {
               isLast={index === entries.length - 1}
             >
               <div className="flex items-stretch select-none">
-                {/* Sleep Index or Duration - colored accent */}
-                <div className="flex flex-col items-center justify-center min-w-[70px] py-3 bg-violet-500/10">
-                  {entry.sleepIndex !== null ? (
-                    <>
-                      <span className="font-mono text-2xl font-bold leading-tight text-violet-600 dark:text-violet-400">
-                        {entry.sleepIndex}
-                      </span>
-                      <span className="text-[10px] text-violet-600/70 dark:text-violet-400/70 uppercase tracking-wide">
-                        Index
-                      </span>
-                    </>
+                {/* Score or Duration - colored accent */}
+                <div className="flex flex-col items-center justify-center min-w-[60px] py-2 bg-violet-500/10">
+                  {score.overall !== null ? (
+                    <span
+                      className={`font-mono text-xl font-bold leading-tight ${getScoreColorClass(score.overall)}`}
+                    >
+                      {score.overall}
+                    </span>
                   ) : (
                     <>
-                      <span className="font-mono text-xl font-bold leading-tight text-violet-600 dark:text-violet-400">
+                      <span className="font-mono text-lg font-bold leading-tight text-violet-600 dark:text-violet-400">
                         {Math.floor(entry.durationMinutes / 60)}h
                       </span>
-                      <span className="font-mono text-sm text-violet-600/70 dark:text-violet-400/70">
+                      <span className="font-mono text-xs text-violet-600/70 dark:text-violet-400/70">
                         {entry.durationMinutes % 60}m
                       </span>
                     </>
@@ -360,16 +366,16 @@ export function ReadingsTab({ entries }: ReadingsTabProps) {
                 </div>
 
                 {/* Details */}
-                <div className="flex-1 pl-3 sm:pl-4 pr-5 sm:pr-6 py-3">
+                <div className="flex-1 pl-3 sm:pl-4 pr-5 sm:pr-6 py-2">
                   {/* Header row */}
-                  <div className="flex items-center gap-1.5 text-base font-semibold text-foreground">
+                  <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
                     <span>{formatDate(entry.date, { includeWeekday: true })}</span>
-                    {entry.notes && <StickyNote className="h-3.5 w-3.5 text-muted-foreground" />}
+                    {entry.notes && <StickyNote className="h-3 w-3 text-muted-foreground" />}
                   </div>
 
                   {/* Metrics row */}
-                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-sm text-muted-foreground">
-                    {entry.sleepIndex !== null && (
+                  <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                    {score.overall !== null && (
                       <span>
                         <span className="font-medium text-foreground">
                           {formatDuration(entry.durationMinutes)}
@@ -378,7 +384,7 @@ export function ReadingsTab({ entries }: ReadingsTabProps) {
                     )}
                     {(entry.hrvLow !== null || entry.hrvHigh !== null) && (
                       <span>
-                        HRV{' '}
+                        <span className="font-semibold">HRV</span>{' '}
                         <span className="font-medium text-foreground">
                           {formatHrvRange(entry.hrvLow, entry.hrvHigh)}
                         </span>
@@ -386,18 +392,14 @@ export function ReadingsTab({ entries }: ReadingsTabProps) {
                     )}
                     {entry.restingHr !== null && (
                       <span>
-                        RHR <span className="font-medium text-foreground">{entry.restingHr}</span>
-                      </span>
-                    )}
-                    {entry.restfulness !== null && (
-                      <span>
-                        Rest{' '}
-                        <span className="font-medium text-foreground">{entry.restfulness}</span>
+                        <span className="font-semibold">RHR</span>{' '}
+                        <span className="font-medium text-foreground">{entry.restingHr}</span>
                       </span>
                     )}
                     {restorative !== null && (
                       <span>
-                        Restor <span className="font-medium text-foreground">{restorative}%</span>
+                        <span className="font-semibold">Restor</span>{' '}
+                        <span className="font-medium text-foreground">{restorative}%</span>
                       </span>
                     )}
                   </div>

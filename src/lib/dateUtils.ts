@@ -56,6 +56,24 @@ export function inputToISO(inputValue: string): string {
 export const fromDatetimeLocalFormat = inputToISO;
 
 /**
+ * Parse a date string, handling date-only strings (YYYY-MM-DD) as local dates
+ * to avoid timezone issues where UTC midnight becomes the previous day in local time
+ */
+function parseDate(date: DateInput): Date {
+  if (typeof date !== 'string') return date;
+
+  // Check if it's a date-only string (YYYY-MM-DD)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    // Parse as local date by using date components directly
+    const [year, month, day] = date.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  }
+
+  // For full ISO strings or other formats, use standard parsing
+  return new Date(date);
+}
+
+/**
  * Format a date for display
  */
 export function formatDate(date: DateInput, options: FormatDateOptions = {}): string {
@@ -67,7 +85,7 @@ export function formatDate(date: DateInput, options: FormatDateOptions = {}): st
     locale = 'en-US',
   } = options;
 
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  const dateObj = parseDate(date);
   const now = new Date();
   const isCurrentYear = dateObj.getFullYear() === now.getFullYear();
 
@@ -282,4 +300,37 @@ export function sortByDate<T extends Record<string, unknown>>(
     const dateB = new Date(b[dateKey] as string);
     return ascending ? dateA.getTime() - dateB.getTime() : dateB.getTime() - dateA.getTime();
   });
+}
+
+/**
+ * Get the current user's IANA timezone identifier
+ */
+export function getCurrentTimezone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
+}
+
+/**
+ * Get a short timezone abbreviation from IANA timezone
+ * e.g., 'America/New_York' -> 'EST' or 'EDT' depending on DST
+ */
+export function getTimezoneAbbreviation(timezone: string, date?: Date): string {
+  const d = date || new Date();
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      timeZoneName: 'short',
+    }).formatToParts(d);
+    const tzPart = parts.find((p) => p.type === 'timeZoneName');
+    return tzPart?.value || timezone;
+  } catch {
+    return timezone;
+  }
+}
+
+/**
+ * Check if a timezone differs from the current user's timezone
+ */
+export function isOtherTimezone(timezone: string | null): boolean {
+  if (!timezone) return false;
+  return timezone !== getCurrentTimezone();
 }

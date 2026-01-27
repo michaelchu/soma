@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import {
   getSleepEntries,
   addSleepEntry as addSleepEntryDb,
@@ -13,8 +13,6 @@ import { useDataManager } from '../../../hooks/useDataManager';
  * Custom hook to load and manage sleep entries from Supabase
  */
 export function useSleepEntries() {
-  const fetchFn = useMemo(() => getSleepEntries, []);
-
   const {
     data: entries,
     loading,
@@ -24,26 +22,21 @@ export function useSleepEntries() {
     deleteItem,
     refetch,
   } = useDataManager<SleepEntry>({
-    fetchFn,
+    fetchFn: getSleepEntries,
     errorMessage: 'Failed to load sleep entries',
     idField: 'id',
   });
 
-  const sortByDateDesc = useCallback(
-    (a: SleepEntry, b: SleepEntry) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-    []
-  );
-
   const addEntry = useCallback(
     async (entry: SleepEntryInput) => {
-      return addItem(() => addSleepEntryDb(entry), { sortFn: sortByDateDesc });
+      return addItem(() => addSleepEntryDb(entry), { refetchAfter: true });
     },
-    [addItem, sortByDateDesc]
+    [addItem]
   );
 
   const updateEntry = useCallback(
     async (id: string, entry: SleepEntryInput) => {
-      return updateItem(id, () => updateSleepEntryDb(id, entry));
+      return updateItem(id, () => updateSleepEntryDb(id, entry), { refetchAfter: true });
     },
     [updateItem]
   );

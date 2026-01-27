@@ -4,9 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Save, Loader2, Trash2 } from 'lucide-react';
+import { Save, Loader2 } from 'lucide-react';
 import { useSleep } from '../../context/SleepContext';
-import { showError, showSuccess, showWithUndo } from '@/lib/toast';
+import { showError, showSuccess } from '@/lib/toast';
 import type { SleepEntry } from '@/lib/db/sleep';
 
 function getLocalDateNow(): string {
@@ -70,7 +70,7 @@ function SleepEntryFormContent({
   entry: SleepEntry | null;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { addEntry, updateEntry, deleteEntry } = useSleep();
+  const { addEntry, updateEntry } = useSleep();
   const isEditing = !!entry;
 
   // Form state
@@ -93,14 +93,8 @@ function SleepEntryFormContent({
     entry?.lightSleepPct ? String(entry.lightSleepPct) : ''
   );
   const [awakePct, setAwakePct] = useState(() => (entry?.awakePct ? String(entry.awakePct) : ''));
-  const [sleepIndex, setSleepIndex] = useState(() =>
-    entry?.sleepIndex ? String(entry.sleepIndex) : ''
-  );
   const [skinTempAvg, setSkinTempAvg] = useState(() =>
     entry?.skinTempAvg ? String(entry.skinTempAvg) : ''
-  );
-  const [restfulness, setRestfulness] = useState(() =>
-    entry?.restfulness ? String(entry.restfulness) : ''
   );
   const [sleepCyclesFull, setSleepCyclesFull] = useState(() =>
     entry?.sleepCyclesFull ? String(entry.sleepCyclesFull) : ''
@@ -114,8 +108,6 @@ function SleepEntryFormContent({
   const [notes, setNotes] = useState(() => entry?.notes || '');
 
   const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
 
   // Calculate duration and HR drop from times
   const calculatedDuration = useMemo(
@@ -145,9 +137,7 @@ function SleepEntryFormContent({
       remSleepPct: remSleepPct ? parseInt(remSleepPct) : null,
       lightSleepPct: lightSleepPct ? parseInt(lightSleepPct) : null,
       awakePct: awakePct ? parseInt(awakePct) : null,
-      sleepIndex: sleepIndex ? parseInt(sleepIndex) : null,
       skinTempAvg: skinTempAvg ? parseFloat(skinTempAvg) : null,
-      restfulness: restfulness ? parseInt(restfulness) : null,
       sleepCyclesFull: sleepCyclesFull ? parseInt(sleepCyclesFull) : null,
       sleepCyclesPartial: sleepCyclesPartial ? parseInt(sleepCyclesPartial) : null,
       movementCount: movementCount ? parseInt(movementCount) : null,
@@ -186,64 +176,11 @@ function SleepEntryFormContent({
     setRemSleepPct('');
     setLightSleepPct('');
     setAwakePct('');
-    setSleepIndex('');
     setSkinTempAvg('');
-    setRestfulness('');
     setSleepCyclesFull('');
     setSleepCyclesPartial('');
     setMovementCount('');
     setNotes('');
-    setConfirmDelete(false);
-  };
-
-  const handleDelete = async () => {
-    if (!confirmDelete) {
-      setConfirmDelete(true);
-      return;
-    }
-
-    setDeleting(true);
-
-    const { error: deleteError, deletedItem } = await deleteEntry(entry!.id);
-
-    setDeleting(false);
-
-    if (deleteError) {
-      showError(deleteError.message || 'Failed to delete entry');
-      setConfirmDelete(false);
-      return;
-    }
-
-    showWithUndo('Sleep entry deleted', async () => {
-      if (deletedItem) {
-        const { error: undoError } = await addEntry({
-          date: deletedItem.date,
-          sleepStart: deletedItem.sleepStart,
-          sleepEnd: deletedItem.sleepEnd,
-          hrvLow: deletedItem.hrvLow,
-          hrvHigh: deletedItem.hrvHigh,
-          restingHr: deletedItem.restingHr,
-          lowestHrTime: deletedItem.lowestHrTime,
-          hrDropMinutes: deletedItem.hrDropMinutes,
-          deepSleepPct: deletedItem.deepSleepPct,
-          remSleepPct: deletedItem.remSleepPct,
-          lightSleepPct: deletedItem.lightSleepPct,
-          awakePct: deletedItem.awakePct,
-          sleepIndex: deletedItem.sleepIndex,
-          skinTempAvg: deletedItem.skinTempAvg,
-          restfulness: deletedItem.restfulness,
-          sleepCyclesFull: deletedItem.sleepCyclesFull,
-          sleepCyclesPartial: deletedItem.sleepCyclesPartial,
-          movementCount: deletedItem.movementCount,
-          notes: deletedItem.notes,
-        });
-        if (undoError) {
-          showError('Failed to restore entry');
-        }
-      }
-    });
-
-    onOpenChange(false);
   };
 
   return (
@@ -287,31 +224,80 @@ function SleepEntryFormContent({
             )}
           </div>
 
-          {/* HRV Range */}
+          <hr className="border-t" />
+
+          {/* Sleep Stages Section */}
+          <h3 className="text-sm font-semibold text-foreground">Sleep Stages</h3>
+
           <div className="space-y-2">
-            <Label>HRV Range (ms)</Label>
-            <div className="flex items-center gap-2">
+            <Label>Percentages</Label>
+            <div className="grid grid-cols-4 gap-2">
               <Input
                 type="number"
-                placeholder="Low"
-                value={hrvLow}
-                onChange={(e) => setHrvLow(e.target.value)}
-                min={1}
-                max={500}
-                className="flex-1"
+                placeholder="Awake"
+                value={awakePct}
+                onChange={(e) => setAwakePct(e.target.value)}
+                min={0}
+                max={100}
+                className="text-center"
               />
-              <span className="text-muted-foreground">-</span>
               <Input
                 type="number"
-                placeholder="High"
-                value={hrvHigh}
-                onChange={(e) => setHrvHigh(e.target.value)}
-                min={1}
-                max={500}
-                className="flex-1"
+                placeholder="REM"
+                value={remSleepPct}
+                onChange={(e) => setRemSleepPct(e.target.value)}
+                min={0}
+                max={100}
+                className="text-center"
+              />
+              <Input
+                type="number"
+                placeholder="Light"
+                value={lightSleepPct}
+                onChange={(e) => setLightSleepPct(e.target.value)}
+                min={0}
+                max={100}
+                className="text-center"
+              />
+              <Input
+                type="number"
+                placeholder="Deep"
+                value={deepSleepPct}
+                onChange={(e) => setDeepSleepPct(e.target.value)}
+                min={0}
+                max={100}
+                className="text-center"
               />
             </div>
           </div>
+
+          {/* Sleep Cycles */}
+          <div className="space-y-2">
+            <Label>Sleep Cycles</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                type="number"
+                placeholder="Full"
+                value={sleepCyclesFull}
+                onChange={(e) => setSleepCyclesFull(e.target.value)}
+                min={0}
+                max={20}
+              />
+              <Input
+                type="number"
+                placeholder="Partial"
+                value={sleepCyclesPartial}
+                onChange={(e) => setSleepCyclesPartial(e.target.value)}
+                min={0}
+                max={20}
+              />
+            </div>
+          </div>
+
+          <hr className="border-t" />
+
+          {/* Heart Metrics Section */}
+          <h3 className="text-sm font-semibold text-foreground">Heart Metrics</h3>
 
           {/* Heart Rate Metrics */}
           <div className="grid grid-cols-2 gap-3">
@@ -343,90 +329,37 @@ function SleepEntryFormContent({
             </p>
           )}
 
-          {/* Sleep Stages */}
+          {/* HRV Range */}
           <div className="space-y-2">
-            <Label>Sleep Stages (%)</Label>
-            <div className="grid grid-cols-4 gap-2">
-              <div className="space-y-1">
-                <Input
-                  type="number"
-                  placeholder="Deep"
-                  value={deepSleepPct}
-                  onChange={(e) => setDeepSleepPct(e.target.value)}
-                  min={0}
-                  max={100}
-                  className="text-center"
-                />
-                <p className="text-xs text-muted-foreground text-center">Deep</p>
-              </div>
-              <div className="space-y-1">
-                <Input
-                  type="number"
-                  placeholder="REM"
-                  value={remSleepPct}
-                  onChange={(e) => setRemSleepPct(e.target.value)}
-                  min={0}
-                  max={100}
-                  className="text-center"
-                />
-                <p className="text-xs text-muted-foreground text-center">REM</p>
-              </div>
-              <div className="space-y-1">
-                <Input
-                  type="number"
-                  placeholder="Light"
-                  value={lightSleepPct}
-                  onChange={(e) => setLightSleepPct(e.target.value)}
-                  min={0}
-                  max={100}
-                  className="text-center"
-                />
-                <p className="text-xs text-muted-foreground text-center">Light</p>
-              </div>
-              <div className="space-y-1">
-                <Input
-                  type="number"
-                  placeholder="Awake"
-                  value={awakePct}
-                  onChange={(e) => setAwakePct(e.target.value)}
-                  min={0}
-                  max={100}
-                  className="text-center"
-                />
-                <p className="text-xs text-muted-foreground text-center">Awake</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Sleep Index & Restfulness */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="sleepIndex">Sleep Index (0-100)</Label>
+            <Label>HRV Range (ms)</Label>
+            <div className="flex items-center gap-2">
               <Input
-                id="sleepIndex"
                 type="number"
-                placeholder="e.g., 85"
-                value={sleepIndex}
-                onChange={(e) => setSleepIndex(e.target.value)}
-                min={0}
-                max={100}
+                placeholder="Low"
+                value={hrvLow}
+                onChange={(e) => setHrvLow(e.target.value)}
+                min={1}
+                max={500}
+                className="flex-1"
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="restfulness">Restfulness (0-100)</Label>
+              <span className="text-muted-foreground">-</span>
               <Input
-                id="restfulness"
                 type="number"
-                placeholder="e.g., 75"
-                value={restfulness}
-                onChange={(e) => setRestfulness(e.target.value)}
-                min={0}
-                max={100}
+                placeholder="High"
+                value={hrvHigh}
+                onChange={(e) => setHrvHigh(e.target.value)}
+                min={1}
+                max={500}
+                className="flex-1"
               />
             </div>
           </div>
 
-          {/* Temperature & Movement */}
+          <hr className="border-t" />
+
+          {/* Body Metrics Section */}
+          <h3 className="text-sm font-semibold text-foreground">Body Metrics</h3>
+
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="skinTempAvg">Skin Temp Avg (°C)</Label>
@@ -455,34 +388,7 @@ function SleepEntryFormContent({
             </div>
           </div>
 
-          {/* Sleep Cycles */}
-          <div className="space-y-2">
-            <Label>Sleep Cycles</Label>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Input
-                  type="number"
-                  placeholder="Full"
-                  value={sleepCyclesFull}
-                  onChange={(e) => setSleepCyclesFull(e.target.value)}
-                  min={0}
-                  max={20}
-                />
-                <p className="text-xs text-muted-foreground text-center">Full</p>
-              </div>
-              <div className="space-y-1">
-                <Input
-                  type="number"
-                  placeholder="Partial"
-                  value={sleepCyclesPartial}
-                  onChange={(e) => setSleepCyclesPartial(e.target.value)}
-                  min={0}
-                  max={20}
-                />
-                <p className="text-xs text-muted-foreground text-center">Partial</p>
-              </div>
-            </div>
-          </div>
+          <hr className="border-t" />
 
           {/* Notes */}
           <div className="space-y-2">
@@ -500,32 +406,10 @@ function SleepEntryFormContent({
 
       {/* Footer */}
       <div className="flex gap-2 px-5 py-4 flex-shrink-0 border-t">
-        {isEditing && (
-          <Button
-            variant={confirmDelete ? 'destructive' : 'outline'}
-            onClick={handleDelete}
-            disabled={saving || deleting}
-            className="flex-shrink-0"
-          >
-            {deleting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <>
-                <Trash2 className="h-4 w-4" />
-                {confirmDelete && <span className="ml-2">Confirm</span>}
-              </>
-            )}
-          </Button>
-        )}
-        <Button
-          variant="outline"
-          onClick={handleReset}
-          className="flex-1"
-          disabled={saving || deleting}
-        >
+        <Button variant="outline" onClick={handleReset} className="flex-1" disabled={saving}>
           Reset
         </Button>
-        <Button onClick={handleSave} disabled={!isValid || saving || deleting} className="flex-1">
+        <Button onClick={handleSave} disabled={!isValid || saving} className="flex-1">
           {saving ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
