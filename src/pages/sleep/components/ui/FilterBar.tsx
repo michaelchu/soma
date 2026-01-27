@@ -15,9 +15,9 @@ interface FilterBarProps {
 
 export function FilterBar({ dateRange, onDateRangeChange }: FilterBarProps) {
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex flex-col xs:flex-row gap-2 xs:justify-center md:justify-start">
       <Select value={dateRange} onValueChange={onDateRangeChange}>
-        <SelectTrigger className="w-[140px]">
+        <SelectTrigger className="w-full xs:w-[140px] h-8">
           <SelectValue placeholder="Date range" />
         </SelectTrigger>
         <SelectContent>
