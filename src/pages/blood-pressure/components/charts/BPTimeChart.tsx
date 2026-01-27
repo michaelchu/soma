@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import {
   ComposedChart,
   Line,
+  Area,
   XAxis,
   YAxis,
   Tooltip as RechartsTooltip,
@@ -27,6 +28,8 @@ interface ChartDataPoint {
   systolic: number;
   diastolic: number;
   pulse?: number | null;
+  pp: number;
+  map: number;
   category: string;
   notes?: string | null;
   sysTrend?: number | null;
@@ -100,9 +103,17 @@ function CustomTooltip({ active, payload, label, getCategoryInfo }: CustomToolti
           <span className="text-blue-500">Diastolic:</span>{' '}
           <span className="font-medium">{data.diastolic} mmHg</span>
         </p>
+        <p>
+          <span className="text-rose-400/70">PP:</span>{' '}
+          <span className="font-medium">{data.pp} mmHg</span>
+        </p>
+        <p>
+          <span className="text-slate-400">MAP:</span>{' '}
+          <span className="font-medium">{data.map} mmHg</span>
+        </p>
         {data.pulse && (
           <p>
-            <span className="text-muted-foreground">Pulse:</span>{' '}
+            <span className="text-purple-500">Pulse:</span>{' '}
             <span className="font-medium">{data.pulse} bpm</span>
           </p>
         )}
@@ -141,6 +152,9 @@ interface BPTimeChartProps {
   height?: number;
   showTrendline?: boolean;
   showMarkers?: boolean;
+  showPP?: boolean;
+  showMAP?: boolean;
+  showPulse?: boolean;
   dateRange?: string;
 }
 
@@ -149,6 +163,9 @@ export function BPTimeChart({
   height = 280,
   showTrendline = true,
   showMarkers = true,
+  showPP = true,
+  showMAP = false,
+  showPulse = true,
   dateRange = 'all',
 }: BPTimeChartProps) {
   const { getCategory, getCategoryInfo } = useBPSettings();
@@ -183,12 +200,16 @@ export function BPTimeChart({
   const chartData: ChartDataPoint[] = sortedReadings.map((r) => {
     const { date } = formatDateTime(r.datetime, { hideWeekday: true });
     const category = getCategory(r.systolic, r.diastolic);
+    const pp = r.systolic - r.diastolic;
+    const map = r.diastolic + pp / 3;
     return {
       date,
       datetime: r.datetime,
       systolic: r.systolic,
       diastolic: r.diastolic,
       pulse: r.pulse,
+      pp,
+      map: Math.round(map),
       category,
       notes: r.notes,
     };
@@ -201,6 +222,12 @@ export function BPTimeChart({
   const maxValue = Math.max(...allSystolic);
   const yMin = Math.floor(minValue / 20) * 20;
   const yMax = Math.ceil(maxValue / 20) * 20;
+
+  // Calculate pulse Y-axis domain (right axis) rounded to increments of 10
+  const allPulse = chartData.filter((d) => d.pulse != null).map((d) => d.pulse as number);
+  const hasPulseData = allPulse.length > 0;
+  const pulseMin = hasPulseData ? Math.floor(Math.min(...allPulse) / 10) * 10 : 40;
+  const pulseMax = hasPulseData ? Math.ceil(Math.max(...allPulse) / 10) * 10 : 120;
 
   // Calculate linear regression trendlines
   const sysRegression = linearRegression(allSystolic);
@@ -234,7 +261,7 @@ export function BPTimeChart({
       <ResponsiveContainer width="100%" height={height}>
         <ComposedChart
           data={chartDataWithTrend}
-          margin={{ top: 10, right: 30, bottom: 5, left: 10 }}
+          margin={{ top: 10, right: showPulse && hasPulseData ? 60 : 30, bottom: 5, left: 10 }}
         >
           <CartesianGrid horizontal={true} vertical={false} stroke="hsl(var(--border))" />
           <XAxis
@@ -245,6 +272,7 @@ export function BPTimeChart({
           />
 
           <YAxis
+            yAxisId="bp"
             domain={[yMin, yMax]}
             ticks={Array.from({ length: (yMax - yMin) / 20 + 1 }, (_, i) => yMin + i * 20)}
             tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
@@ -252,13 +280,37 @@ export function BPTimeChart({
             width={55}
             axisLine={false}
             label={{
-              value: 'Sys/Dia (mmHg)',
+              value: 'mmHg',
               angle: -90,
               position: 'insideLeft',
               fontSize: 12,
               fill: 'hsl(var(--muted-foreground))',
             }}
           />
+
+          {/* Pulse Y-axis (right side) */}
+          {showPulse && hasPulseData && (
+            <YAxis
+              yAxisId="pulse"
+              orientation="right"
+              domain={[pulseMin, pulseMax]}
+              ticks={Array.from(
+                { length: (pulseMax - pulseMin) / 10 + 1 },
+                (_, i) => pulseMin + i * 10
+              )}
+              tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+              stroke="hsl(var(--muted-foreground))"
+              width={45}
+              axisLine={false}
+              label={{
+                value: 'bpm',
+                angle: 90,
+                position: 'insideRight',
+                fontSize: 12,
+                fill: 'hsl(var(--muted-foreground))',
+              }}
+            />
+          )}
 
           <RechartsTooltip content={renderTooltip} />
 
@@ -268,11 +320,42 @@ export function BPTimeChart({
             formatter={(value) => <span className="text-sm text-foreground">{value}</span>}
           />
 
+          {/* PP shaded area between systolic and diastolic */}
+          {showPP && (
+            <>
+              {/* Systolic area fills down with PP color */}
+              <Area
+                type="monotone"
+                dataKey="systolic"
+                yAxisId="bp"
+                stroke="none"
+                fill="#f43f5e"
+                fillOpacity={0.15}
+                baseValue={yMin}
+                legendType="none"
+                isAnimationActive={false}
+              />
+              {/* Diastolic area masks below with background color */}
+              <Area
+                type="monotone"
+                dataKey="diastolic"
+                yAxisId="bp"
+                stroke="none"
+                fill="hsl(var(--background))"
+                fillOpacity={1}
+                baseValue={yMin}
+                legendType="none"
+                isAnimationActive={false}
+              />
+            </>
+          )}
+
           {/* Systolic line */}
           <Line
             type="monotone"
             dataKey="systolic"
             name="Systolic"
+            yAxisId="bp"
             stroke="#f43f5e"
             strokeWidth={2}
             dot={showMarkers ? renderDot : false}
@@ -286,6 +369,7 @@ export function BPTimeChart({
             type="monotone"
             dataKey="diastolic"
             name="Diastolic"
+            yAxisId="bp"
             stroke="#3b82f6"
             strokeWidth={2}
             dot={showMarkers ? renderDot : false}
@@ -294,12 +378,41 @@ export function BPTimeChart({
             }
           />
 
+          {/* MAP line (Mean Arterial Pressure) */}
+          {showMAP && (
+            <Line
+              type="monotone"
+              dataKey="map"
+              name="MAP"
+              yAxisId="bp"
+              stroke="#94a3b8"
+              strokeWidth={1.5}
+              dot={false}
+              activeDot={{ r: 4, stroke: '#94a3b8', strokeWidth: 1, fill: '#fff' }}
+            />
+          )}
+
+          {/* Pulse line (right Y-axis) */}
+          {showPulse && hasPulseData && (
+            <Line
+              type="monotone"
+              dataKey="pulse"
+              name="Pulse"
+              yAxisId="pulse"
+              stroke="#a855f7"
+              strokeWidth={1.5}
+              dot={false}
+              activeDot={{ r: 4, stroke: '#a855f7', strokeWidth: 1, fill: '#fff' }}
+            />
+          )}
+
           {/* Systolic trendline (linear regression) */}
           {showTrendline && sysRegression && (
             <Line
               type="linear"
               dataKey="sysTrend"
               name="Sys Trend"
+              yAxisId="bp"
               stroke="#f43f5e"
               strokeWidth={2}
               strokeDasharray="5 5"
@@ -315,6 +428,7 @@ export function BPTimeChart({
               type="linear"
               dataKey="diaTrend"
               name="Dia Trend"
+              yAxisId="bp"
               stroke="#3b82f6"
               strokeWidth={2}
               strokeDasharray="5 5"
