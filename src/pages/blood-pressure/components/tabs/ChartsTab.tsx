@@ -9,6 +9,9 @@ import { BPScatterChart } from '../charts/BPScatterChart';
 export function ChartsTab({ readings, dateRange = 'all' }) {
   const [showTrendline, setShowTrendline] = useState(true);
   const [showMarkers, setShowMarkers] = useState(false);
+  const [showPP, setShowPP] = useState(true);
+  const [showMAP, setShowMAP] = useState(false);
+  const [showPulse, setShowPulse] = useState(true);
 
   if (!readings || readings.length === 0) {
     return (
@@ -37,9 +40,30 @@ export function ChartsTab({ readings, dateRange = 'all' }) {
           readings={readings}
           showTrendline={showTrendline}
           showMarkers={showMarkers}
+          showPP={showPP}
+          showMAP={showMAP}
+          showPulse={showPulse}
           dateRange={dateRange}
         />
-        <div className="flex justify-center gap-6 mt-4">
+        <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-4">
+          <div className="flex items-center gap-2">
+            <Switch id="pp" checked={showPP} onCheckedChange={setShowPP} />
+            <Label htmlFor="pp" className="text-sm cursor-pointer">
+              PP Area
+            </Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch id="map" checked={showMAP} onCheckedChange={setShowMAP} />
+            <Label htmlFor="map" className="text-sm cursor-pointer">
+              MAP
+            </Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch id="pulse" checked={showPulse} onCheckedChange={setShowPulse} />
+            <Label htmlFor="pulse" className="text-sm cursor-pointer">
+              Pulse
+            </Label>
+          </div>
           <div className="flex items-center gap-2">
             <Switch id="trendline" checked={showTrendline} onCheckedChange={setShowTrendline} />
             <Label htmlFor="trendline" className="text-sm cursor-pointer">
@@ -49,7 +73,7 @@ export function ChartsTab({ readings, dateRange = 'all' }) {
           <div className="flex items-center gap-2">
             <Switch id="markers" checked={showMarkers} onCheckedChange={setShowMarkers} />
             <Label htmlFor="markers" className="text-sm cursor-pointer">
-              Data Point Marker
+              Markers
             </Label>
           </div>
         </div>
