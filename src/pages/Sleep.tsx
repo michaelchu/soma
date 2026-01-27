@@ -123,12 +123,14 @@ function SleepContent() {
         ) : (
           <>
             {/* Filter Bar */}
-            <div className="sticky top-[49px] z-10 bg-background pb-4 mb-0 md:mb-4 -mx-5 sm:-mx-6 md:mx-0 px-5 sm:px-6 md:px-0 border-b -mt-4 pt-4">
+            <div className="sticky top-[49px] z-10 bg-background pb-2 mb-0 md:mb-4 -mx-5 sm:-mx-6 md:mx-0 px-5 sm:px-6 md:px-0 border-b -mt-4 pt-2">
               <FilterBar dateRange={dateRange} onDateRangeChange={setDateRange} />
             </div>
 
             {/* Mobile: Tab-based view with scrollable content */}
-            <div className="md:hidden">{renderMobileTabContent()}</div>
+            <div className={`md:hidden ${activeTab !== 'readings' ? 'pt-4' : ''}`}>
+              {renderMobileTabContent()}
+            </div>
 
             {/* Desktop: Full card layout */}
             <div className="hidden md:block space-y-6">
