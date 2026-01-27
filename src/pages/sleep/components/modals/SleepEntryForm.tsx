@@ -353,7 +353,7 @@ export function SleepEntryForm({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full h-full max-w-none sm:max-w-md sm:h-auto flex flex-col rounded-none sm:rounded-lg max-h-[90vh] overflow-hidden">
+      <DialogContent className="w-full h-full max-w-none sm:max-w-md sm:h-auto flex flex-col rounded-none sm:rounded-lg max-h-[90vh] overflow-hidden p-4 sm:p-6">
         <SleepEntryFormContent key={entry?.id || 'new'} entry={entry} onOpenChange={onOpenChange} />
       </DialogContent>
     </Dialog>
