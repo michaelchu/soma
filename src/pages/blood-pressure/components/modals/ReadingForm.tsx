@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +11,7 @@ import { getLocalDatetimeNow, toDatetimeLocalFormat } from '@/lib/dateUtils';
 import { BP_VALIDATION } from '@/lib/validation';
 
 function createEmptyBpRow() {
-  return { systolic: '', diastolic: '', arm: null };
+  return { systolic: '', diastolic: '', arm: null, pulse: '' };
 }
 
 // Inner form component that resets when key changes
@@ -28,16 +28,17 @@ function ReadingFormContent({ session, onOpenChange }) {
           systolic: String(r.systolic),
           diastolic: String(r.diastolic),
           arm: r.arm || null,
+          pulse: r.pulse ? String(r.pulse) : '',
         }))
       : [createEmptyBpRow()]
   );
-  const [pulse, setPulse] = useState(() => (session?.pulse ? String(session.pulse) : ''));
   const [notes, setNotes] = useState(() => session?.notes || '');
+  const scrollContainerRef = useRef(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  // Refs for auto-focus: inputRefs[rowIndex][field] where field is 'systolic' or 'diastolic'
+  // Refs for auto-focus: inputRefs[rowIndex][field] where field is 'systolic', 'diastolic', or 'pulse'
   const inputRefs = useRef({});
 
   const setInputRef = useCallback((rowIndex, field, el) => {
@@ -47,15 +48,44 @@ function ReadingFormContent({ session, onOpenChange }) {
     inputRefs.current[rowIndex][field] = el;
   }, []);
 
+  // Check if a value is likely complete based on field type and value
+  const isValueComplete = (field, value) => {
+    if (!value) return false;
+    const num = parseInt(value);
+
+    if (field === 'systolic') {
+      // Systolic is typically 90-200, so 3 digits means complete
+      return value.length === 3;
+    } else if (field === 'diastolic') {
+      // Diastolic is typically 60-120
+      // If 3 digits, definitely complete
+      // If 2 digits and >= 60, likely complete (values like 60-99)
+      if (value.length === 3) return true;
+      if (value.length === 2 && num >= 60) return true;
+      return false;
+    } else if (field === 'pulse') {
+      // Pulse is typically 50-120
+      // If 3 digits, definitely complete
+      // If 2 digits and >= 50, likely complete
+      if (value.length === 3) return true;
+      if (value.length === 2 && num >= 50) return true;
+      return false;
+    }
+    return false;
+  };
+
   const updateBpRow = (index, field, value) => {
     setBpRows((rows) => rows.map((row, i) => (i === index ? { ...row, [field]: value } : row)));
 
-    // Auto-focus to next field after 3 digits
-    if (value.length === 3) {
+    // Auto-focus to next field when value appears complete
+    if (isValueComplete(field, value)) {
       if (field === 'systolic') {
         // Move to diastolic in same row
         inputRefs.current[index]?.diastolic?.focus();
       } else if (field === 'diastolic') {
+        // Move to pulse in same row
+        inputRefs.current[index]?.pulse?.focus();
+      } else if (field === 'pulse') {
         // Move to systolic in next row if available
         inputRefs.current[index + 1]?.systolic?.focus();
       }
@@ -65,6 +95,13 @@ function ReadingFormContent({ session, onOpenChange }) {
   const addBpRow = () => {
     setBpRows((rows) => [...rows, createEmptyBpRow()]);
   };
+
+  // Auto-scroll to bottom when new row is added
+  useEffect(() => {
+    if (scrollContainerRef.current && bpRows.length > 1) {
+      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+    }
+  }, [bpRows.length]);
 
   const removeBpRow = (index) => {
     setBpRows((rows) => rows.filter((_, i) => i !== index));
@@ -95,6 +132,20 @@ function ReadingFormContent({ session, onOpenChange }) {
         )
       : null;
 
+  const rowsWithPulse = validRows.filter(
+    (row) =>
+      row.pulse &&
+      parseInt(row.pulse) >= BP_VALIDATION.PULSE_MIN &&
+      parseInt(row.pulse) <= BP_VALIDATION.PULSE_MAX
+  );
+
+  const avgPulse =
+    rowsWithPulse.length > 0
+      ? Math.round(
+          rowsWithPulse.reduce((sum, row) => sum + parseInt(row.pulse), 0) / rowsWithPulse.length
+        )
+      : null;
+
   const isValid = datetime && validRows.length > 0;
 
   const handleSave = async () => {
@@ -105,12 +156,12 @@ function ReadingFormContent({ session, onOpenChange }) {
       systolic: parseInt(row.systolic),
       diastolic: parseInt(row.diastolic),
       arm: row.arm,
+      pulse: row.pulse ? parseInt(row.pulse) : null,
     }));
 
     const sessionData = {
       datetime: new Date(datetime).toISOString(),
       readings,
-      pulse: pulse ? parseInt(pulse) : null,
       notes: notes || null,
     };
 
@@ -140,7 +191,6 @@ function ReadingFormContent({ session, onOpenChange }) {
   const handleReset = () => {
     setDatetime(getLocalDatetimeNow());
     setBpRows([createEmptyBpRow()]);
-    setPulse('');
     setNotes('');
     setConfirmDelete(false);
   };
@@ -172,8 +222,8 @@ function ReadingFormContent({ session, onOpenChange }) {
             systolic: r.systolic,
             diastolic: r.diastolic,
             arm: r.arm,
+            pulse: r.pulse,
           })),
-          pulse: deletedSession.pulse,
           notes: deletedSession.notes,
         });
         if (undoError) {
@@ -206,7 +256,7 @@ function ReadingFormContent({ session, onOpenChange }) {
         {/* Blood Pressure */}
         <div className="space-y-2">
           <Label>Blood Pressure (mmHg)</Label>
-          <div className="max-h-40 overflow-y-auto -mx-1">
+          <div ref={scrollContainerRef} className="max-h-40 overflow-y-auto -mx-1">
             {bpRows.map((row, index) => (
               <div key={index} className="flex items-center gap-2 px-1 py-1">
                 <Input
@@ -217,9 +267,9 @@ function ReadingFormContent({ session, onOpenChange }) {
                   onChange={(e) => updateBpRow(index, 'systolic', e.target.value)}
                   min={BP_VALIDATION.SYSTOLIC_MIN}
                   max={BP_VALIDATION.SYSTOLIC_MAX}
-                  className="text-center"
+                  className="flex-1 min-w-0 text-center"
                 />
-                <span className="text-2xl text-muted-foreground">/</span>
+                <span className="text-xl text-muted-foreground">/</span>
                 <Input
                   ref={(el) => setInputRef(index, 'diastolic', el)}
                   type="number"
@@ -228,7 +278,17 @@ function ReadingFormContent({ session, onOpenChange }) {
                   onChange={(e) => updateBpRow(index, 'diastolic', e.target.value)}
                   min={BP_VALIDATION.DIASTOLIC_MIN}
                   max={BP_VALIDATION.DIASTOLIC_MAX}
-                  className="text-center"
+                  className="flex-1 min-w-0 text-center"
+                />
+                <Input
+                  ref={(el) => setInputRef(index, 'pulse', el)}
+                  type="number"
+                  placeholder="Pulse"
+                  value={row.pulse}
+                  onChange={(e) => updateBpRow(index, 'pulse', e.target.value)}
+                  min={BP_VALIDATION.PULSE_MIN}
+                  max={BP_VALIDATION.PULSE_MAX}
+                  className="flex-1 min-w-0 text-center"
                 />
                 {/* Arm selector */}
                 <div
@@ -283,27 +343,9 @@ function ReadingFormContent({ session, onOpenChange }) {
           </Button>
           {validRows.length > 1 && (
             <div className="text-sm text-muted-foreground">
-              Average: {avgSystolic}/{avgDiastolic} mmHg
+              Average: {avgSystolic}/{avgDiastolic} mmHg{avgPulse && ` • ${avgPulse} bpm`}
             </div>
           )}
-        </div>
-
-        {/* Pulse */}
-        <div className="space-y-2">
-          <Label htmlFor="pulse">Pulse (optional)</Label>
-          <div className="flex items-center gap-2">
-            <Input
-              id="pulse"
-              type="number"
-              placeholder="72"
-              value={pulse}
-              onChange={(e) => setPulse(e.target.value)}
-              min={BP_VALIDATION.PULSE_MIN}
-              max={BP_VALIDATION.PULSE_MAX}
-              className="w-24"
-            />
-            <span className="text-sm text-muted-foreground">bpm</span>
-          </div>
         </div>
 
         {/* Notes */}
