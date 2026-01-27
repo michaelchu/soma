@@ -334,3 +334,22 @@ export function isOtherTimezone(timezone: string | null): boolean {
   if (!timezone) return false;
   return timezone !== getCurrentTimezone();
 }
+
+/**
+ * Format a time string (HH:MM) from 24-hour to 12-hour format
+ * e.g., "23:30" -> "11:30 PM", "09:15" -> "9:15 AM"
+ */
+export function formatTimeString(timeStr: string | null): string | null {
+  if (!timeStr) return null;
+
+  const [hourStr, minuteStr] = timeStr.split(':');
+  const hour = parseInt(hourStr, 10);
+  const minute = minuteStr || '00';
+
+  if (isNaN(hour)) return timeStr;
+
+  const period = hour >= 12 ? 'PM' : 'AM';
+  const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+
+  return `${hour12}:${minute} ${period}`;
+}
