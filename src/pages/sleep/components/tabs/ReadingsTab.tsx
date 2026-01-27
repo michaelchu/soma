@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { StickyNote, Trash2 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { showWithUndo, showError } from '@/lib/toast';
 import { formatDate } from '@/lib/dateUtils';
 import {
@@ -12,6 +11,7 @@ import {
   getScoreColorClass,
 } from '../../utils/sleepHelpers';
 import { SleepEntryForm } from '../modals/SleepEntryForm';
+import { SleepDetailModal } from '../modals/SleepDetailModal';
 import { useSleep } from '../../context/SleepContext';
 import { TOUCH_CONSTANTS } from '@/lib/constants';
 import type { SleepEntry } from '@/lib/db/sleep';
@@ -242,39 +242,10 @@ function SleepStagesBar({ entry }: { entry: SleepEntry }) {
   );
 }
 
-function NotesModal({
-  open,
-  onOpenChange,
-  entry,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  entry: SleepEntry | null;
-}) {
-  if (!entry) return null;
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Notes - {formatDate(entry.date, { includeWeekday: true })}</DialogTitle>
-        </DialogHeader>
-        <div className="py-2">
-          {entry.notes ? (
-            <p className="text-sm text-foreground whitespace-pre-wrap">{entry.notes}</p>
-          ) : (
-            <p className="text-sm text-muted-foreground italic">No notes for this entry</p>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 export function ReadingsTab({ entries }: ReadingsTabProps) {
   const { addEntry, deleteEntry } = useSleep();
   const [editingEntry, setEditingEntry] = useState<SleepEntry | null>(null);
-  const [notesEntry, setNotesEntry] = useState<SleepEntry | null>(null);
+  const [detailEntry, setDetailEntry] = useState<SleepEntry | null>(null);
 
   // Calculate personal baseline from all entries for scoring
   const baseline = useMemo(() => calculatePersonalBaseline(entries), [entries]);
@@ -311,9 +282,7 @@ export function ReadingsTab({ entries }: ReadingsTabProps) {
   };
 
   const handleTap = (entry: SleepEntry) => {
-    if (entry.notes) {
-      setNotesEntry(entry);
-    }
+    setDetailEntry(entry);
   };
 
   if (entries.length === 0) {
@@ -421,7 +390,7 @@ export function ReadingsTab({ entries }: ReadingsTabProps) {
             <div
               key={entry.id}
               className="py-4 border-b border-border last:border-b-0 cursor-pointer hover:bg-accent/30 -mx-1 px-1 rounded transition-colors"
-              onClick={() => setEditingEntry(entry)}
+              onClick={() => setDetailEntry(entry)}
             >
               {/* Header row */}
               <div className="flex items-baseline justify-between mb-1">
@@ -469,11 +438,12 @@ export function ReadingsTab({ entries }: ReadingsTabProps) {
         })}
       </div>
 
-      {/* Notes Modal */}
-      <NotesModal
-        open={!!notesEntry}
-        onOpenChange={(open) => !open && setNotesEntry(null)}
-        entry={notesEntry}
+      {/* Detail Modal */}
+      <SleepDetailModal
+        open={!!detailEntry}
+        onOpenChange={(open) => !open && setDetailEntry(null)}
+        entry={detailEntry}
+        baseline={baseline}
       />
 
       {/* Edit Entry Dialog */}
