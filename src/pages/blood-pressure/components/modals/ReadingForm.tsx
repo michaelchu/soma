@@ -38,7 +38,7 @@ function ReadingFormContent({ session, onOpenChange }) {
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  // Refs for auto-focus: inputRefs[rowIndex][field] where field is 'systolic' or 'diastolic'
+  // Refs for auto-focus: inputRefs[rowIndex][field] where field is 'systolic', 'diastolic', or 'pulse'
   const inputRefs = useRef({});
 
   const setInputRef = useCallback((rowIndex, field, el) => {
@@ -48,15 +48,44 @@ function ReadingFormContent({ session, onOpenChange }) {
     inputRefs.current[rowIndex][field] = el;
   }, []);
 
+  // Check if a value is likely complete based on field type and value
+  const isValueComplete = (field, value) => {
+    if (!value) return false;
+    const num = parseInt(value);
+
+    if (field === 'systolic') {
+      // Systolic is typically 90-200, so 3 digits means complete
+      return value.length === 3;
+    } else if (field === 'diastolic') {
+      // Diastolic is typically 60-120
+      // If 3 digits, definitely complete
+      // If 2 digits and >= 60, likely complete (values like 60-99)
+      if (value.length === 3) return true;
+      if (value.length === 2 && num >= 60) return true;
+      return false;
+    } else if (field === 'pulse') {
+      // Pulse is typically 50-120
+      // If 3 digits, definitely complete
+      // If 2 digits and >= 50, likely complete
+      if (value.length === 3) return true;
+      if (value.length === 2 && num >= 50) return true;
+      return false;
+    }
+    return false;
+  };
+
   const updateBpRow = (index, field, value) => {
     setBpRows((rows) => rows.map((row, i) => (i === index ? { ...row, [field]: value } : row)));
 
-    // Auto-focus to next field after 3 digits
-    if (value.length === 3) {
+    // Auto-focus to next field when value appears complete
+    if (isValueComplete(field, value)) {
       if (field === 'systolic') {
         // Move to diastolic in same row
         inputRefs.current[index]?.diastolic?.focus();
       } else if (field === 'diastolic') {
+        // Move to pulse in same row
+        inputRefs.current[index]?.pulse?.focus();
+      } else if (field === 'pulse') {
         // Move to systolic in next row if available
         inputRefs.current[index + 1]?.systolic?.focus();
       }
@@ -238,9 +267,9 @@ function ReadingFormContent({ session, onOpenChange }) {
                   onChange={(e) => updateBpRow(index, 'systolic', e.target.value)}
                   min={BP_VALIDATION.SYSTOLIC_MIN}
                   max={BP_VALIDATION.SYSTOLIC_MAX}
-                  className="text-center"
+                  className="w-16 text-center flex-shrink-0"
                 />
-                <span className="text-2xl text-muted-foreground">/</span>
+                <span className="text-xl text-muted-foreground">/</span>
                 <Input
                   ref={(el) => setInputRef(index, 'diastolic', el)}
                   type="number"
@@ -249,16 +278,17 @@ function ReadingFormContent({ session, onOpenChange }) {
                   onChange={(e) => updateBpRow(index, 'diastolic', e.target.value)}
                   min={BP_VALIDATION.DIASTOLIC_MIN}
                   max={BP_VALIDATION.DIASTOLIC_MAX}
-                  className="text-center"
+                  className="w-16 text-center flex-shrink-0"
                 />
                 <Input
+                  ref={(el) => setInputRef(index, 'pulse', el)}
                   type="number"
                   placeholder="Pulse"
                   value={row.pulse}
                   onChange={(e) => updateBpRow(index, 'pulse', e.target.value)}
                   min={BP_VALIDATION.PULSE_MIN}
                   max={BP_VALIDATION.PULSE_MAX}
-                  className="w-20 text-center flex-shrink-0"
+                  className="w-16 text-center flex-shrink-0"
                 />
                 {/* Arm selector */}
                 <div
