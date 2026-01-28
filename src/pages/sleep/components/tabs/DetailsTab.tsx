@@ -243,7 +243,7 @@ export function DetailsTab({ entries, allEntries }: DetailsTabProps) {
 
   if (entries.length === 0) {
     return (
-      <div className="-mx-5 sm:-mx-6 min-h-[calc(100vh-120px)] bg-gradient-to-b from-teal-900 via-teal-950 to-slate-950 flex items-center justify-center">
+      <div className="-mx-5 sm:-mx-6 min-h-[calc(100vh-120px)] bg-gradient-to-b from-teal-900 from-30% via-teal-950 via-60% to-slate-950 flex items-center justify-center">
         <p className="text-teal-200/60">No sleep entries in this period</p>
       </div>
     );
@@ -265,7 +265,7 @@ export function DetailsTab({ entries, allEntries }: DetailsTabProps) {
   const restorative = selectedEntry ? getRestorativeSleepPct(selectedEntry) : null;
 
   return (
-    <div className="-mx-5 sm:-mx-6 min-h-[calc(100vh-120px)] bg-gradient-to-b from-teal-900 via-teal-950 to-slate-950 overflow-hidden">
+    <div className="-mx-5 sm:-mx-6 min-h-[calc(100vh-120px)] bg-gradient-to-b from-teal-900 from-30% via-teal-950 via-60% to-slate-950 overflow-hidden">
       {/* Gradient Header with Score and Chart */}
       <div className="px-5 sm:px-6 pt-6 pb-4 relative z-0">
         {/* Score Header */}
@@ -284,7 +284,7 @@ export function DetailsTab({ entries, allEntries }: DetailsTabProps) {
         )}
 
         {/* Scrollable Bar Chart */}
-        <div className="relative bg-teal-900 -mx-5 sm:-mx-6 px-5 sm:px-6">
+        <div className="relative -mx-5 sm:-mx-6 px-5 sm:px-6">
           {/* Gradient overlays for scroll indication */}
           <div className="absolute left-0 top-0 bottom-0 w-12 z-10 pointer-events-none bg-gradient-to-r from-teal-900 to-teal-900/0" />
           <div className="absolute right-0 top-0 bottom-0 w-12 z-10 pointer-events-none bg-gradient-to-l from-teal-900 to-teal-900/0" />
