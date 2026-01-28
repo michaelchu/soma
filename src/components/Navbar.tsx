@@ -25,7 +25,7 @@ export default function Navbar({ leftContent, rightContent }: NavbarProps) {
           <div className="flex items-center gap-1 sm:gap-2 min-w-0">{leftContent}</div>
 
           {/* Right: Page actions + theme + logout */}
-          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 -mr-2">
             {rightContent}
             <Button
               variant="ghost"

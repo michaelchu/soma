@@ -25,13 +25,13 @@ const TIME_OF_DAY = [
 
 export function FilterBar({ dateRange, timeOfDay, onDateRangeChange, onTimeOfDayChange }) {
   return (
-    <div className="flex flex-col xs:flex-row gap-2 xs:justify-center md:justify-start">
+    <div className="flex gap-2 md:justify-start">
       <div className="flex gap-1 bg-muted rounded-md p-0.5 h-8 items-center">
         {DATE_RANGES.map((range) => (
           <button
             key={range.value}
             onClick={() => onDateRangeChange(range.value)}
-            className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
+            className={`px-2 py-1 text-sm font-medium rounded transition-colors ${
               dateRange === range.value
                 ? 'bg-background text-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground'
@@ -43,7 +43,7 @@ export function FilterBar({ dateRange, timeOfDay, onDateRangeChange, onTimeOfDay
       </div>
 
       <Select value={timeOfDay} onValueChange={onTimeOfDayChange}>
-        <SelectTrigger className="w-full xs:w-[160px] h-8">
+        <SelectTrigger className="min-w-0 flex-1 h-8">
           <SelectValue placeholder="Time of day" />
         </SelectTrigger>
         <SelectContent>

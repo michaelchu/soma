@@ -5,16 +5,24 @@ import { Button } from '@/components/ui/button';
 import AppIcon from '@/components/AppIcon';
 import Navbar from '@/components/Navbar';
 import apps from '@/config/apps.json';
-import { LauncherSettingsModal, getStoredFont, applyFont } from '@/views/LauncherSettingsModal';
+import {
+  LauncherSettingsModal,
+  getStoredFont,
+  getStoredFontSize,
+  applyFont,
+  applyFontSize,
+} from '@/views/LauncherSettingsModal';
 
 export default function Launcher() {
   const navigate = useNavigate();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [currentFont, setCurrentFont] = useState(getStoredFont);
+  const [currentFontSize, setCurrentFontSize] = useState(getStoredFontSize);
 
-  // Apply font on mount
+  // Apply font and font size on mount
   useEffect(() => {
     applyFont(currentFont);
+    applyFontSize(currentFontSize);
   }, []);
 
   const handleAppClick = (app: { route?: string; url?: string }) => {
@@ -52,6 +60,8 @@ export default function Launcher() {
         onOpenChange={setSettingsOpen}
         currentFont={currentFont}
         onFontChange={setCurrentFont}
+        currentFontSize={currentFontSize}
+        onFontSizeChange={setCurrentFontSize}
       />
 
       {/* Main Content */}
