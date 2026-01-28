@@ -36,7 +36,7 @@ function MetricItem({
   if (value === null || value === undefined || value === '') return null;
 
   return (
-    <div className="flex items-start gap-3 py-2">
+    <div className="flex items-start gap-3 py-2 px-3">
       <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
         <Icon className="h-4 w-4 text-muted-foreground" />
       </div>
@@ -59,7 +59,7 @@ function ScoreCard({
   description: string;
 }) {
   return (
-    <div className="bg-muted/50 rounded-lg p-3">
+    <div className="bg-muted/50 rounded-lg p-3 border">
       <div className="flex items-center justify-between mb-1">
         <span className="text-sm text-muted-foreground">{label}</span>
         <span className={`text-lg font-bold ${getScoreColorClass(score)}`}>
@@ -201,7 +201,7 @@ export function SleepDetailModal({ open, onOpenChange, entry, baseline }: SleepD
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
                 Sleep Time
               </h3>
-              <div className="bg-muted/30 rounded-lg divide-y divide-border">
+              <div className="bg-muted/30 rounded-lg divide-y divide-border border">
                 <MetricItem icon={Clock} label="Sleep Window" value={sleepWindow} />
                 <MetricItem
                   icon={Moon}
@@ -227,7 +227,7 @@ export function SleepDetailModal({ open, onOpenChange, entry, baseline }: SleepD
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
                   Sleep Stages
                 </h3>
-                <div className="bg-muted/30 rounded-lg p-3">
+                <div className="bg-muted/30 rounded-lg p-3 border">
                   <SleepStagesDetail entry={entry} />
                 </div>
               </div>
@@ -242,7 +242,7 @@ export function SleepDetailModal({ open, onOpenChange, entry, baseline }: SleepD
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
                   Heart Metrics
                 </h3>
-                <div className="bg-muted/30 rounded-lg divide-y divide-border">
+                <div className="bg-muted/30 rounded-lg divide-y divide-border border">
                   <MetricItem
                     icon={Activity}
                     label="HRV Range"
@@ -271,7 +271,7 @@ export function SleepDetailModal({ open, onOpenChange, entry, baseline }: SleepD
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
                   Body Metrics
                 </h3>
-                <div className="bg-muted/30 rounded-lg divide-y divide-border">
+                <div className="bg-muted/30 rounded-lg divide-y divide-border border">
                   <MetricItem icon={Brain} label="Sleep Cycles" value={sleepCycles} />
                   <MetricItem icon={Thermometer} label="Skin Temperature" value={skinTemp} />
                   <MetricItem
@@ -289,7 +289,7 @@ export function SleepDetailModal({ open, onOpenChange, entry, baseline }: SleepD
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
                   Notes
                 </h3>
-                <div className="bg-muted/30 rounded-lg p-3">
+                <div className="bg-muted/30 rounded-lg p-3 border">
                   <p className="text-sm whitespace-pre-wrap">{entry.notes}</p>
                 </div>
               </div>
