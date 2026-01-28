@@ -237,13 +237,13 @@ function ReadingFormContent({ session, onOpenChange }) {
 
   return (
     <>
-      <DialogHeader>
+      <DialogHeader className="flex-shrink-0 px-5 py-4 border-b">
         <DialogTitle>{isEditing ? 'Edit Reading' : 'Add Blood Pressure Reading'}</DialogTitle>
       </DialogHeader>
 
-      <div className="space-y-4 pt-2">
+      <div className="flex-1 flex flex-col overflow-hidden px-5 py-4 gap-4">
         {/* Date & Time */}
-        <div className="space-y-2">
+        <div className="space-y-2 flex-shrink-0">
           <Label htmlFor="datetime">Date & Time</Label>
           <Input
             id="datetime"
@@ -254,9 +254,9 @@ function ReadingFormContent({ session, onOpenChange }) {
         </div>
 
         {/* Blood Pressure */}
-        <div className="space-y-2">
-          <Label>Blood Pressure (mmHg)</Label>
-          <div ref={scrollContainerRef} className="max-h-40 overflow-y-auto -mx-1">
+        <div className="flex-1 flex flex-col min-h-0 space-y-2">
+          <Label className="flex-shrink-0">Blood Pressure (mmHg)</Label>
+          <div ref={scrollContainerRef} className="flex-1 overflow-y-auto -mx-1">
             {bpRows.map((row, index) => (
               <div key={index} className="flex items-center gap-2 px-1 py-1">
                 <Input
@@ -337,19 +337,25 @@ function ReadingFormContent({ session, onOpenChange }) {
               </div>
             ))}
           </div>
-          <Button type="button" variant="outline" size="sm" className="w-full" onClick={addBpRow}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-full flex-shrink-0"
+            onClick={addBpRow}
+          >
             <Plus className="h-4 w-4 mr-1" />
             Add Row
           </Button>
           {validRows.length > 1 && (
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-muted-foreground flex-shrink-0">
               Average: {avgSystolic}/{avgDiastolic} mmHg{avgPulse && ` • ${avgPulse} bpm`}
             </div>
           )}
         </div>
 
         {/* Notes */}
-        <div className="space-y-2">
+        <div className="space-y-2 flex-shrink-0">
           <Label htmlFor="notes">Notes (optional)</Label>
           <Textarea
             id="notes"
@@ -359,48 +365,48 @@ function ReadingFormContent({ session, onOpenChange }) {
             rows={2}
           />
         </div>
+      </div>
 
-        {/* Actions */}
-        <div className="flex gap-2 pt-2">
-          {isEditing && (
-            <Button
-              variant={confirmDelete ? 'destructive' : 'outline'}
-              onClick={handleDelete}
-              disabled={saving || deleting}
-              className="flex-shrink-0"
-            >
-              {deleting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <>
-                  <Trash2 className="h-4 w-4" />
-                  {confirmDelete && <span className="ml-2">Confirm</span>}
-                </>
-              )}
-            </Button>
-          )}
+      {/* Actions */}
+      <div className="flex gap-2 px-5 py-4 flex-shrink-0 border-t">
+        {isEditing && (
           <Button
-            variant="outline"
-            onClick={handleReset}
-            className="flex-1"
+            variant={confirmDelete ? 'destructive' : 'outline'}
+            onClick={handleDelete}
             disabled={saving || deleting}
+            className="flex-shrink-0"
           >
-            Reset
-          </Button>
-          <Button onClick={handleSave} disabled={!isValid || saving || deleting} className="flex-1">
-            {saving ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Saving...
-              </>
+            {deleting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <>
-                <Save className="h-4 w-4 mr-2" />
-                Save
+                <Trash2 className="h-4 w-4" />
+                {confirmDelete && <span className="ml-2">Confirm</span>}
               </>
             )}
           </Button>
-        </div>
+        )}
+        <Button
+          variant="outline"
+          onClick={handleReset}
+          className="flex-1"
+          disabled={saving || deleting}
+        >
+          Reset
+        </Button>
+        <Button onClick={handleSave} disabled={!isValid || saving || deleting} className="flex-1">
+          {saving ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4 mr-2" />
+              Save
+            </>
+          )}
+        </Button>
       </div>
     </>
   );
@@ -409,7 +415,7 @@ function ReadingFormContent({ session, onOpenChange }) {
 export function ReadingForm({ open, onOpenChange, session = null }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full h-full max-w-none sm:max-w-md sm:h-auto flex flex-col rounded-none sm:rounded-lg">
+      <DialogContent className="w-full h-full max-w-none sm:max-w-md sm:h-auto flex flex-col rounded-none sm:rounded-lg p-0 gap-0">
         <ReadingFormContent
           key={session?.sessionId || 'new'}
           session={session}
