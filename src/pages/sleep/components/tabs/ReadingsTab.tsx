@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { StickyNote, Trash2 } from 'lucide-react';
+import { StickyNote, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { showWithUndo, showError } from '@/lib/toast';
 import { formatDate } from '@/lib/dateUtils';
 import {
@@ -20,12 +20,12 @@ import type { SleepEntry } from '@/lib/db/sleep';
 const { SWIPE_THRESHOLD, DELETE_THRESHOLD, LONG_PRESS_DURATION, MOVEMENT_THRESHOLD } =
   TOUCH_CONSTANTS;
 
-// Sleep stage colors - designed for clear visual distinction
+// Sleep stage colors - blues with neon green accent
 const STAGE_COLORS = {
-  deep: 'bg-indigo-500',
-  rem: 'bg-teal-500',
-  light: 'bg-slate-400',
-  awake: 'bg-amber-500',
+  deep: 'bg-blue-600',
+  rem: 'bg-sky-400',
+  light: 'bg-blue-300',
+  awake: 'bg-lime-400',
 };
 
 interface ReadingsTabProps {
@@ -37,10 +37,18 @@ interface SwipeableRowProps {
   onDelete: () => void;
   onLongPress?: () => void;
   onTap?: () => void;
+  onExpandTap?: () => void;
   isLast: boolean;
 }
 
-function SwipeableRow({ children, onDelete, onLongPress, onTap, isLast }: SwipeableRowProps) {
+function SwipeableRow({
+  children,
+  onDelete,
+  onLongPress,
+  onTap,
+  onExpandTap,
+  isLast,
+}: SwipeableRowProps) {
   const [offsetX, setOffsetX] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -52,6 +60,7 @@ function SwipeableRow({ children, onDelete, onLongPress, onTap, isLast }: Swipea
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasMoved = useRef(false);
   const longPressTriggered = useRef(false);
+  const touchTarget = useRef<'expand' | 'row'>('row');
 
   const offsetXRef = useRef(offsetX);
   const isDraggingRef = useRef(isDragging);
@@ -80,6 +89,10 @@ function SwipeableRow({ children, onDelete, onLongPress, onTap, isLast }: Swipea
       isHorizontalSwipe.current = null;
       hasMoved.current = false;
       longPressTriggered.current = false;
+
+      // Check if touch started on expand button
+      const target = e.target as HTMLElement;
+      touchTarget.current = target.closest('[data-expand-button]') ? 'expand' : 'row';
 
       longPressTimer.current = setTimeout(() => {
         if (navigator.vibrate) {
@@ -144,10 +157,14 @@ function SwipeableRow({ children, onDelete, onLongPress, onTap, isLast }: Swipea
     } else {
       setOffsetX(0);
       if (!hasMoved.current && !longPressTriggered.current) {
-        onTap?.();
+        if (touchTarget.current === 'expand') {
+          onExpandTap?.();
+        } else {
+          onTap?.();
+        }
       }
     }
-  }, [clearLongPressTimer, onDelete, onTap]);
+  }, [clearLongPressTimer, onDelete, onTap, onExpandTap]);
 
   useEffect(() => {
     const element = contentRef.current;
@@ -224,7 +241,7 @@ function SleepStagesBar({ entry }: { entry: SleepEntry }) {
 
   return (
     <div className="mt-1.5">
-      <div className="flex h-1.5 rounded-full overflow-hidden bg-muted">
+      <div className="flex h-2 rounded-full overflow-hidden bg-muted">
         {stages.map((stage) => (
           <div key={stage.key} className={stage.color} style={{ width: `${stage.value}%` }} />
         ))}
@@ -247,9 +264,27 @@ export function ReadingsTab({ entries }: ReadingsTabProps) {
   const { addEntry, deleteEntry } = useSleep();
   const [editingEntry, setEditingEntry] = useState<SleepEntry | null>(null);
   const [detailEntry, setDetailEntry] = useState<SleepEntry | null>(null);
+  const [expandedEntryId, setExpandedEntryId] = useState<string | null>(null);
 
   // Calculate personal baseline from all entries for scoring
   const baseline = useMemo(() => calculatePersonalBaseline(entries), [entries]);
+
+  // Check if entry has expandable details
+  const hasExpandableDetails = (entry: SleepEntry) => {
+    const restorative = getRestorativeSleepPct(entry);
+    return (
+      entry.hrvLow !== null ||
+      entry.hrvHigh !== null ||
+      entry.restingHr !== null ||
+      restorative !== null
+    );
+  };
+
+  const handleExpandToggle = (entry: SleepEntry) => {
+    if (hasExpandableDetails(entry)) {
+      setExpandedEntryId(expandedEntryId === entry.id ? null : entry.id);
+    }
+  };
 
   const handleDelete = async (entry: SleepEntry) => {
     const { error } = await deleteEntry(entry.id);
@@ -301,85 +336,109 @@ export function ReadingsTab({ entries }: ReadingsTabProps) {
         {entries.map((entry, index) => {
           const restorative = getRestorativeSleepPct(entry);
           const score = calculateSleepScore(entry, baseline);
+          const isExpanded = expandedEntryId === entry.id;
+          const canExpand = hasExpandableDetails(entry);
 
           return (
-            <SwipeableRow
-              key={entry.id}
-              onDelete={() => handleDelete(entry)}
-              onLongPress={() => setEditingEntry(entry)}
-              onTap={() => handleTap(entry)}
-              isLast={index === entries.length - 1}
-            >
-              <div className="flex items-stretch select-none">
-                {/* Score or Duration - colored accent */}
-                <div
-                  className={`flex flex-col items-center justify-center min-w-[60px] py-2 ${score.overall !== null ? getScoreBgClass(score.overall) : 'bg-violet-500/10'}`}
-                >
-                  {score.overall !== null ? (
-                    <span
-                      className={`font-mono text-xl font-bold leading-tight ${getScoreColorClass(score.overall)}`}
-                    >
-                      {score.overall}
-                    </span>
-                  ) : (
-                    <>
-                      <span className="font-mono text-lg font-bold leading-tight text-violet-600 dark:text-violet-400">
-                        {Math.floor(entry.durationMinutes / 60)}h
+            <div key={entry.id}>
+              <SwipeableRow
+                onDelete={() => handleDelete(entry)}
+                onLongPress={() => setEditingEntry(entry)}
+                onTap={() => handleTap(entry)}
+                onExpandTap={() => handleExpandToggle(entry)}
+                isLast={index === entries.length - 1 && !isExpanded}
+              >
+                <div className="flex items-stretch select-none">
+                  {/* Score or Duration - colored accent */}
+                  <div
+                    className={`flex flex-col items-center justify-center min-w-[60px] py-3 ${score.overall !== null ? getScoreBgClass(score.overall) : 'bg-violet-500/10'}`}
+                  >
+                    {score.overall !== null ? (
+                      <span
+                        className={`font-mono text-xl font-bold leading-tight ${getScoreColorClass(score.overall)}`}
+                      >
+                        {score.overall}
                       </span>
-                      <span className="font-mono text-xs text-violet-600/70 dark:text-violet-400/70">
-                        {entry.durationMinutes % 60}m
-                      </span>
-                    </>
-                  )}
-                </div>
-
-                {/* Details */}
-                <div className="flex-1 pl-3 sm:pl-4 pr-5 sm:pr-6 py-2">
-                  {/* Header row */}
-                  <div className="flex items-center gap-1.5 text-sm text-foreground">
-                    <span className="font-semibold">
-                      {formatDate(entry.date, { includeWeekday: true })}
-                    </span>
-                    {score.overall !== null && (
+                    ) : (
                       <>
-                        <span className="text-muted-foreground">•</span>
-                        <span className="text-muted-foreground">
-                          {formatDuration(entry.durationMinutes)}
+                        <span className="font-mono text-lg font-bold leading-tight text-violet-600 dark:text-violet-400">
+                          {Math.floor(entry.durationMinutes / 60)}h
+                        </span>
+                        <span className="font-mono text-xs text-violet-600/70 dark:text-violet-400/70">
+                          {entry.durationMinutes % 60}m
                         </span>
                       </>
                     )}
-                    {entry.notes && <StickyNote className="h-3 w-3 text-muted-foreground" />}
                   </div>
 
-                  {/* Metrics row */}
-                  <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                  {/* Details */}
+                  <div className="flex-1 pl-3 sm:pl-4 py-3">
+                    {/* Header row */}
+                    <div className="flex items-center gap-1.5 text-base text-foreground">
+                      <span className="font-semibold">
+                        {formatDate(entry.date, { includeWeekday: true })}
+                      </span>
+                      <span className="text-muted-foreground">•</span>
+                      <span className="text-muted-foreground">
+                        {formatDuration(entry.durationMinutes)}
+                      </span>
+                      {entry.notes && <StickyNote className="h-3.5 w-3.5 text-muted-foreground" />}
+                    </div>
+
+                    {/* Sleep stages bar */}
+                    <SleepStagesBar entry={entry} />
+                  </div>
+
+                  {/* Expand indicator */}
+                  {canExpand && (
+                    <div
+                      className="w-12 flex items-center justify-center text-muted-foreground active:bg-muted"
+                      data-expand-button="true"
+                    >
+                      {isExpanded ? (
+                        <ChevronUp className="h-5 w-5" />
+                      ) : (
+                        <ChevronDown className="h-5 w-5" />
+                      )}
+                    </div>
+                  )}
+                </div>
+              </SwipeableRow>
+
+              {/* Expanded details */}
+              {isExpanded && (
+                <div className="bg-muted/30 border-b px-5 sm:px-6 py-3">
+                  <div className="flex justify-center gap-x-3 text-sm">
                     {(entry.hrvLow !== null || entry.hrvHigh !== null) && (
-                      <span>
-                        <span className="font-semibold">HRV</span>{' '}
+                      <div>
+                        <span className="text-muted-foreground">HRV</span>{' '}
                         <span className="font-medium text-foreground">
                           {formatHrvRange(entry.hrvLow, entry.hrvHigh)}
                         </span>
-                      </span>
+                      </div>
                     )}
                     {entry.restingHr !== null && (
-                      <span>
-                        <span className="font-semibold">RHR</span>{' '}
+                      <div>
+                        <span className="text-muted-foreground">RHR</span>{' '}
                         <span className="font-medium text-foreground">{entry.restingHr}</span>
-                      </span>
+                      </div>
                     )}
                     {restorative !== null && (
-                      <span>
-                        <span className="font-semibold">Restor</span>{' '}
+                      <div>
+                        <span className="text-muted-foreground">Restor</span>{' '}
                         <span className="font-medium text-foreground">{restorative}%</span>
-                      </span>
+                      </div>
                     )}
                   </div>
-
-                  {/* Sleep stages bar */}
-                  <SleepStagesBar entry={entry} />
+                  {entry.notes && (
+                    <div className="flex justify-center items-start gap-1.5 mt-2">
+                      <StickyNote className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                      <p className="text-sm text-muted-foreground">{entry.notes}</p>
+                    </div>
+                  )}
                 </div>
-              </div>
-            </SwipeableRow>
+              )}
+            </div>
           );
         })}
       </div>
