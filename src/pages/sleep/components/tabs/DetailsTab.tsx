@@ -7,7 +7,6 @@ import {
   getRestorativeSleepPct,
   calculateSleepScore,
   calculatePersonalBaseline,
-  getScoreColorClass,
   getScoreLabel,
   STAGE_COLORS,
 } from '../../utils/sleepHelpers';
@@ -55,7 +54,7 @@ function SleepScoreBar({
       {/* Score label */}
       <span
         className={`text-sm font-bold mb-1 transition-colors ${
-          isSelected ? 'text-foreground' : 'text-muted-foreground'
+          isSelected ? 'text-white' : 'text-teal-200/70'
         }`}
       >
         {score ?? '-'}
@@ -63,14 +62,14 @@ function SleepScoreBar({
 
       {/* Bar */}
       <div
-        className={`w-full rounded-lg transition-all duration-200 ${isSelected ? 'bg-white shadow-lg' : 'bg-gradient-to-t from-teal-600/80 to-teal-400/80'}`}
+        className={`w-full rounded-lg transition-all duration-200 ${isSelected ? 'bg-white shadow-lg shadow-teal-500/20' : 'bg-gradient-to-t from-teal-500/90 to-teal-300/90'}`}
         style={{ height: normalizedHeight }}
       />
 
       {/* Day label */}
       <span
         className={`text-xs mt-2 transition-colors ${
-          isSelected ? 'text-foreground font-semibold' : 'text-muted-foreground'
+          isSelected ? 'text-white font-semibold' : 'text-teal-200/60'
         }`}
       >
         {dayName}
@@ -95,18 +94,18 @@ function MetricCard({
   if (value === null || value === undefined || value === '') return null;
 
   return (
-    <div className="bg-card rounded-xl p-4 border shadow-sm">
+    <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
       <div className="flex items-center gap-2 mb-2">
-        <div className="w-8 h-8 rounded-lg bg-teal-500/10 flex items-center justify-center">
-          <Icon className="h-4 w-4 text-teal-600 dark:text-teal-400" />
+        <div className="w-8 h-8 rounded-lg bg-teal-500/20 flex items-center justify-center">
+          <Icon className="h-4 w-4 text-teal-400" />
         </div>
-        <span className="text-xs text-muted-foreground uppercase tracking-wide">{label}</span>
+        <span className="text-xs text-slate-400 uppercase tracking-wide">{label}</span>
       </div>
       <div className="flex items-baseline gap-1">
-        <span className="text-2xl font-bold">{value}</span>
-        {unit && <span className="text-sm text-muted-foreground">{unit}</span>}
+        <span className="text-2xl font-bold text-white">{value}</span>
+        {unit && <span className="text-sm text-slate-400">{unit}</span>}
       </div>
-      {subValue && <p className="text-xs text-muted-foreground mt-1">{subValue}</p>}
+      {subValue && <p className="text-xs text-slate-500 mt-1">{subValue}</p>}
     </div>
   );
 }
@@ -128,11 +127,11 @@ function SleepStagesDisplay({ entry }: { entry: SleepEntry }) {
   ].filter((s) => s.value !== null);
 
   return (
-    <div className="bg-card rounded-xl p-4 border shadow-sm">
-      <h4 className="text-xs text-muted-foreground uppercase tracking-wide mb-3">Sleep Stages</h4>
+    <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
+      <h4 className="text-xs text-slate-400 uppercase tracking-wide mb-3">Sleep Stages</h4>
 
       {/* Bar */}
-      <div className="flex h-3 rounded-full overflow-hidden bg-muted mb-3">
+      <div className="flex h-3 rounded-full overflow-hidden bg-slate-700/50 mb-3">
         {stages.map((stage) => (
           <div key={stage.key} className={stage.color} style={{ width: `${stage.value}%` }} />
         ))}
@@ -143,8 +142,8 @@ function SleepStagesDisplay({ entry }: { entry: SleepEntry }) {
         {stages.map((stage) => (
           <div key={stage.key} className="flex items-center gap-2">
             <span className={`w-2.5 h-2.5 rounded-full ${stage.color}`} />
-            <span className="text-xs text-muted-foreground flex-1">{stage.label}</span>
-            <span className="text-xs font-semibold">{stage.value}%</span>
+            <span className="text-xs text-slate-400 flex-1">{stage.label}</span>
+            <span className="text-xs font-semibold text-white">{stage.value}%</span>
           </div>
         ))}
       </div>
@@ -241,8 +240,8 @@ export function DetailsTab({ entries, allEntries }: DetailsTabProps) {
 
   if (entries.length === 0) {
     return (
-      <div className="flex items-center justify-center h-40 text-muted-foreground">
-        No sleep entries in this period
+      <div className="-mx-5 sm:-mx-6 min-h-[calc(100vh-120px)] bg-gradient-to-b from-teal-900 via-teal-950 to-slate-950 flex items-center justify-center">
+        <p className="text-teal-200/60">No sleep entries in this period</p>
       </div>
     );
   }
@@ -263,83 +262,82 @@ export function DetailsTab({ entries, allEntries }: DetailsTabProps) {
   const restorative = selectedEntry ? getRestorativeSleepPct(selectedEntry) : null;
 
   return (
-    <div className="space-y-4 pt-4">
-      {/* Score Header */}
-      {selectedEntry && (
-        <div className="text-center">
-          <p className="text-sm text-muted-foreground mb-1">
-            {formatDate(selectedEntry.date, { includeWeekday: true })}
-          </p>
-          <div
-            className={`text-5xl font-bold font-mono ${getScoreColorClass(selectedScore?.overall ?? null)}`}
-          >
-            {selectedScore?.overall ?? '-'}
-          </div>
-          <p
-            className={`text-sm font-medium ${getScoreColorClass(selectedScore?.overall ?? null)}`}
-          >
-            {getScoreLabel(selectedScore?.overall ?? null)}
-          </p>
-        </div>
-      )}
-
-      {/* Scrollable Bar Chart */}
-      <div className="relative">
-        {/* Gradient overlays for scroll indication */}
-        <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
-        <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
-
-        {/* Center indicator line */}
-        <div className="absolute left-1/2 top-0 bottom-8 w-0.5 -translate-x-1/2 bg-teal-500/30 z-0" />
-
-        <div
-          ref={scrollContainerRef}
-          className="flex items-end overflow-x-auto scrollbar-hide py-4"
-          style={{
-            scrollSnapType: 'x mandatory',
-            WebkitOverflowScrolling: 'touch',
-          }}
-        >
-          {/* Left padding to allow first item to center */}
-          <div
-            style={{
-              minWidth: `calc(50% - ${BAR_WIDTH / 2}px)`,
-              flexShrink: 0,
-            }}
-          />
-
-          {entriesWithScores.map((data, index) => (
-            <div
-              key={data.entry.id}
-              className="flex-shrink-0"
-              style={{
-                scrollSnapAlign: 'center',
-                marginRight: index < entriesWithScores.length - 1 ? BAR_GAP : 0,
-              }}
-            >
-              <SleepScoreBar
-                entry={data.entry}
-                score={data.score.overall}
-                isSelected={index === selectedIndex}
-                maxScore={maxScore}
-                minScore={minScore}
-              />
+    <div className="-mx-5 sm:-mx-6 min-h-[calc(100vh-120px)] bg-gradient-to-b from-teal-900 via-teal-950 to-slate-950">
+      {/* Gradient Header with Score and Chart */}
+      <div className="px-5 sm:px-6 pt-6 pb-4">
+        {/* Score Header */}
+        {selectedEntry && (
+          <div className="text-center mb-2">
+            <p className="text-sm text-teal-200/70 mb-1">
+              {formatDate(selectedEntry.date, { includeWeekday: true })}
+            </p>
+            <div className="text-5xl font-bold font-mono text-white">
+              {selectedScore?.overall ?? '-'}
             </div>
-          ))}
+            <p className="text-sm font-medium text-teal-200/80">
+              {getScoreLabel(selectedScore?.overall ?? null)}
+            </p>
+          </div>
+        )}
 
-          {/* Right padding to allow last item to center */}
+        {/* Scrollable Bar Chart */}
+        <div className="relative">
+          {/* Gradient overlays for scroll indication */}
+          <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-teal-900 to-transparent z-10 pointer-events-none" />
+          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-teal-900 to-transparent z-10 pointer-events-none" />
+
+          {/* Center indicator line */}
+          <div className="absolute left-1/2 top-0 bottom-8 w-0.5 -translate-x-1/2 bg-teal-400/20 z-0" />
+
           <div
+            ref={scrollContainerRef}
+            className="flex items-end overflow-x-auto scrollbar-hide py-4"
             style={{
-              minWidth: `calc(50% - ${BAR_WIDTH / 2}px)`,
-              flexShrink: 0,
+              scrollSnapType: 'x mandatory',
+              WebkitOverflowScrolling: 'touch',
             }}
-          />
+          >
+            {/* Left padding to allow first item to center */}
+            <div
+              style={{
+                minWidth: `calc(50% - ${BAR_WIDTH / 2}px)`,
+                flexShrink: 0,
+              }}
+            />
+
+            {entriesWithScores.map((data, index) => (
+              <div
+                key={data.entry.id}
+                className="flex-shrink-0"
+                style={{
+                  scrollSnapAlign: 'center',
+                  marginRight: index < entriesWithScores.length - 1 ? BAR_GAP : 0,
+                }}
+              >
+                <SleepScoreBar
+                  entry={data.entry}
+                  score={data.score.overall}
+                  isSelected={index === selectedIndex}
+                  maxScore={maxScore}
+                  minScore={minScore}
+                />
+              </div>
+            ))}
+
+            {/* Right padding to allow last item to center */}
+            <div
+              style={{
+                minWidth: `calc(50% - ${BAR_WIDTH / 2}px)`,
+                flexShrink: 0,
+              }}
+            />
+          </div>
         </div>
       </div>
 
       {/* Selected Day Stats */}
       {selectedEntry && (
-        <div className="space-y-4 px-1">
+        <div className="space-y-4 px-5 sm:px-6 pb-8">
           {/* Primary Stats Grid */}
           <div className="grid grid-cols-2 gap-3">
             <MetricCard
@@ -401,19 +399,17 @@ export function DetailsTab({ entries, allEntries }: DetailsTabProps) {
 
           {/* Sleep Window */}
           {sleepWindow && (
-            <div className="bg-card rounded-xl p-4 border shadow-sm text-center">
-              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-                Sleep Window
-              </p>
-              <p className="text-lg font-semibold">{sleepWindow}</p>
+            <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50 text-center">
+              <p className="text-xs text-slate-400 uppercase tracking-wide mb-1">Sleep Window</p>
+              <p className="text-lg font-semibold text-white">{sleepWindow}</p>
             </div>
           )}
 
           {/* Notes */}
           {selectedEntry.notes && (
-            <div className="bg-card rounded-xl p-4 border shadow-sm">
-              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Notes</p>
-              <p className="text-sm whitespace-pre-wrap">{selectedEntry.notes}</p>
+            <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
+              <p className="text-xs text-slate-400 uppercase tracking-wide mb-2">Notes</p>
+              <p className="text-sm whitespace-pre-wrap text-slate-200">{selectedEntry.notes}</p>
             </div>
           )}
         </div>
