@@ -1,7 +1,7 @@
 import type { ElementType } from 'react';
 import { useRef, useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { Moon, Heart, Activity, Brain, Thermometer, Move, Clock, BedDouble } from 'lucide-react';
-import { formatTimeString } from '@/lib/dateUtils';
+import { formatDate, formatTimeString } from '@/lib/dateUtils';
 import {
   formatHrvRange,
   getRestorativeSleepPct,
@@ -262,8 +262,17 @@ export function DetailsTab({ entries, allEntries }: DetailsTabProps) {
 
   return (
     <div className="-mx-5 sm:-mx-6 min-h-[calc(100vh-120px)] bg-gradient-to-b from-teal-900 from-30% via-teal-950 via-60% to-slate-950 overflow-hidden">
+      {/* Selected Date Header */}
+      {selectedEntry && (
+        <div className="text-center pt-6 pb-2 px-5 sm:px-6">
+          <p className="text-lg font-semibold text-white">
+            {formatDate(selectedEntry.date, { includeWeekday: true })}
+          </p>
+        </div>
+      )}
+
       {/* Scrollable Bar Chart */}
-      <div className="px-5 sm:px-6 pt-6 pb-4 relative z-0">
+      <div className="px-5 sm:px-6 pt-2 pb-4 relative z-0">
         <div className="relative -mx-5 sm:-mx-6 px-5 sm:px-6">
           {/* Gradient overlays for scroll indication */}
           <div className="absolute left-0 top-0 bottom-0 w-12 z-10 pointer-events-none bg-gradient-to-r from-teal-900 to-teal-900/0" />
