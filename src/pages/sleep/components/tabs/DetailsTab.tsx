@@ -51,20 +51,23 @@ function SleepScoreBar({
       className="flex flex-col items-center justify-end"
       style={{ width: BAR_WIDTH, minWidth: BAR_WIDTH }}
     >
-      {/* Score label */}
-      <span
-        className={`text-sm font-bold mb-1 transition-colors ${
-          isSelected ? 'text-white' : 'text-teal-200/70'
-        }`}
-      >
-        {score ?? '-'}
-      </span>
-
-      {/* Bar */}
+      {/* Bar with score inside */}
       <div
-        className={`w-full rounded-lg transition-all duration-200 ${isSelected ? 'bg-white shadow-lg shadow-teal-500/20' : 'bg-gradient-to-t from-teal-500/90 to-teal-300/90'}`}
+        className={`w-full rounded-lg transition-all duration-200 flex items-start justify-center pt-1.5 ${
+          isSelected
+            ? 'bg-white shadow-lg shadow-teal-500/20'
+            : 'bg-gradient-to-t from-teal-500/90 to-teal-300/90'
+        }`}
         style={{ height: normalizedHeight }}
-      />
+      >
+        <span
+          className={`text-sm font-bold transition-colors ${
+            isSelected ? 'text-teal-900' : 'text-teal-900/80'
+          }`}
+        >
+          {score ?? '-'}
+        </span>
+      </div>
 
       {/* Day label */}
       <span
@@ -262,9 +265,9 @@ export function DetailsTab({ entries, allEntries }: DetailsTabProps) {
   const restorative = selectedEntry ? getRestorativeSleepPct(selectedEntry) : null;
 
   return (
-    <div className="-mx-5 sm:-mx-6 min-h-[calc(100vh-120px)] bg-gradient-to-b from-teal-900 via-teal-950 to-slate-950">
+    <div className="-mx-5 sm:-mx-6 min-h-[calc(100vh-120px)] bg-gradient-to-b from-teal-900 via-teal-950 to-slate-950 overflow-hidden">
       {/* Gradient Header with Score and Chart */}
-      <div className="px-5 sm:px-6 pt-6 pb-4">
+      <div className="px-5 sm:px-6 pt-6 pb-4 relative z-0">
         {/* Score Header */}
         {selectedEntry && (
           <div className="text-center mb-2">
