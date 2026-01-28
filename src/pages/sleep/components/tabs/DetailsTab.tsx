@@ -288,11 +288,15 @@ export function DetailsTab({ entries, allEntries }: DetailsTabProps) {
           {/* Gradient overlays for scroll indication */}
           <div
             className="absolute left-0 top-0 bottom-0 w-12 z-10 pointer-events-none"
-            style={{ background: 'linear-gradient(to right, rgb(19 78 74), transparent)' }}
+            style={{
+              background: 'linear-gradient(to right, rgba(19, 78, 74, 1), rgba(19, 78, 74, 0))',
+            }}
           />
           <div
             className="absolute right-0 top-0 bottom-0 w-12 z-10 pointer-events-none"
-            style={{ background: 'linear-gradient(to left, rgb(19 78 74), transparent)' }}
+            style={{
+              background: 'linear-gradient(to left, rgba(19, 78, 74, 1), rgba(19, 78, 74, 0))',
+            }}
           />
 
           {/* Center indicator line */}
