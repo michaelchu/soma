@@ -4,7 +4,7 @@ export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     fontFamily: {
-      sans: ['"LINE Seed JP"', 'system-ui', 'sans-serif'],
+      sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
     },
     container: {
       center: true,

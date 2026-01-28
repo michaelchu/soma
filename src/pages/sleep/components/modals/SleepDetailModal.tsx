@@ -61,12 +61,12 @@ function ScoreCard({
   return (
     <div className="bg-muted/50 rounded-lg p-3">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-xs text-muted-foreground">{label}</span>
-        <span className={`text-sm font-bold ${getScoreColorClass(score)}`}>
+        <span className="text-sm text-muted-foreground">{label}</span>
+        <span className={`text-lg font-bold ${getScoreColorClass(score)}`}>
           {score !== null ? score : '-'}
         </span>
       </div>
-      <p className="text-[10px] text-muted-foreground leading-tight">{description}</p>
+      <p className="text-xs text-muted-foreground leading-tight">{description}</p>
     </div>
   );
 }
