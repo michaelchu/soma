@@ -1,11 +1,21 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Activity } from 'lucide-react';
+import { Activity, Settings } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import AppIcon from '@/components/AppIcon';
 import Navbar from '@/components/Navbar';
 import apps from '@/config/apps.json';
+import { LauncherSettingsModal, getStoredFont, applyFont } from '@/views/LauncherSettingsModal';
 
 export default function Launcher() {
   const navigate = useNavigate();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [currentFont, setCurrentFont] = useState(getStoredFont);
+
+  // Apply font on mount
+  useEffect(() => {
+    applyFont(currentFont);
+  }, []);
 
   const handleAppClick = (app: { route?: string; url?: string }) => {
     if (app.route) {
@@ -24,6 +34,24 @@ export default function Launcher() {
             <span className="text-xl font-bold">Soma</span>
           </div>
         }
+        rightContent={
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setSettingsOpen(true)}
+            title="Settings"
+          >
+            <Settings className="h-5 w-5" />
+          </Button>
+        }
+      />
+
+      <LauncherSettingsModal
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        currentFont={currentFont}
+        onFontChange={setCurrentFont}
       />
 
       {/* Main Content */}

@@ -6,7 +6,11 @@ import { AuthProvider } from './lib/AuthContext';
 import { SettingsProvider } from './lib/SettingsContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import App from './App';
+import { getStoredFont, applyFont } from './views/LauncherSettingsModal';
 import './index.css';
+
+// Apply stored font preference on app load
+applyFont(getStoredFont());
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
