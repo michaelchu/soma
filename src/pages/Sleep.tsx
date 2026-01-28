@@ -9,13 +9,14 @@ import { SleepProvider, useSleep } from './sleep/context/SleepContext';
 import { BottomNav } from './sleep/components/ui/BottomNav';
 import { FilterBar, filterEntries } from './sleep/components/ui/FilterBar';
 import { ReadingsTab } from './sleep/components/tabs/ReadingsTab';
+import { DetailsTab } from './sleep/components/tabs/DetailsTab';
 import { StatisticsTab } from './sleep/components/tabs/StatisticsTab';
 import { SleepEntryForm } from './sleep/components/modals/SleepEntryForm';
 import { ExportModal } from './sleep/components/modals/ExportModal';
 import { LatestEntry } from './sleep/components/ui/LatestEntry';
 import { calculateSleepStats } from './sleep/utils/sleepHelpers';
 
-const VALID_TABS = ['readings', 'statistics'];
+const VALID_TABS = ['readings', 'details', 'statistics'];
 
 function SleepContent() {
   const navigate = useNavigate();
@@ -69,6 +70,8 @@ function SleepContent() {
     switch (activeTab) {
       case 'readings':
         return <ReadingsTab entries={filteredEntries} />;
+      case 'details':
+        return <DetailsTab entries={filteredEntries} allEntries={entries} />;
       case 'statistics':
         return (
           <StatisticsTab entries={filteredEntries} allEntries={entries} dateRange={dateRange} />
