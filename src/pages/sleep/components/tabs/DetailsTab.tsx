@@ -1,13 +1,12 @@
 import type { ElementType } from 'react';
 import { useRef, useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { Moon, Heart, Activity, Brain, Thermometer, Move, Clock, BedDouble } from 'lucide-react';
-import { formatDate, formatTimeString } from '@/lib/dateUtils';
+import { formatTimeString } from '@/lib/dateUtils';
 import {
   formatHrvRange,
   getRestorativeSleepPct,
   calculateSleepScore,
   calculatePersonalBaseline,
-  getScoreLabel,
   STAGE_COLORS,
 } from '../../utils/sleepHelpers';
 import type { SleepEntry } from '@/lib/db/sleep';
@@ -17,8 +16,8 @@ interface DetailsTabProps {
   allEntries: SleepEntry[];
 }
 
-const BAR_WIDTH = 48;
-const BAR_GAP = 8;
+const BAR_WIDTH = 36;
+const BAR_GAP = 10;
 const BAR_TOTAL_WIDTH = BAR_WIDTH + BAR_GAP;
 const MAX_BAR_HEIGHT = 120;
 const MIN_BAR_HEIGHT = 40;
@@ -53,16 +52,14 @@ function SleepScoreBar({
     >
       {/* Bar with score inside */}
       <div
-        className={`w-full rounded-lg transition-all duration-200 flex items-start justify-center pt-1.5 ${
-          isSelected
-            ? 'bg-white shadow-lg shadow-teal-500/20'
-            : 'bg-gradient-to-t from-teal-500/90 to-teal-300/90'
+        className={`w-full rounded-lg transition-all duration-200 flex items-start justify-center pt-2 ${
+          isSelected ? 'bg-white/90' : 'bg-teal-400/40'
         }`}
         style={{ height: normalizedHeight }}
       >
         <span
-          className={`text-sm font-bold transition-colors ${
-            isSelected ? 'text-teal-900' : 'text-teal-900/80'
+          className={`text-xs font-bold transition-colors ${
+            isSelected ? 'text-teal-900' : 'text-white/90'
           }`}
         >
           {score ?? '-'}
@@ -189,7 +186,6 @@ export function DetailsTab({ entries, allEntries }: DetailsTabProps) {
   // Selected entry data
   const selectedData = entriesWithScores[selectedIndex] || entriesWithScores[0];
   const selectedEntry = selectedData?.entry;
-  const selectedScore = selectedData?.score;
 
   // Handle scroll to auto-select centered bar
   const handleScroll = useCallback(() => {
@@ -266,31 +262,12 @@ export function DetailsTab({ entries, allEntries }: DetailsTabProps) {
 
   return (
     <div className="-mx-5 sm:-mx-6 min-h-[calc(100vh-120px)] bg-gradient-to-b from-teal-900 from-30% via-teal-950 via-60% to-slate-950 overflow-hidden">
-      {/* Gradient Header with Score and Chart */}
+      {/* Scrollable Bar Chart */}
       <div className="px-5 sm:px-6 pt-6 pb-4 relative z-0">
-        {/* Score Header */}
-        {selectedEntry && (
-          <div className="text-center mb-2">
-            <p className="text-sm text-teal-200/70 mb-1">
-              {formatDate(selectedEntry.date, { includeWeekday: true })}
-            </p>
-            <div className="text-5xl font-bold font-mono text-white">
-              {selectedScore?.overall ?? '-'}
-            </div>
-            <p className="text-sm font-medium text-teal-200/80">
-              {getScoreLabel(selectedScore?.overall ?? null)}
-            </p>
-          </div>
-        )}
-
-        {/* Scrollable Bar Chart */}
         <div className="relative -mx-5 sm:-mx-6 px-5 sm:px-6">
           {/* Gradient overlays for scroll indication */}
           <div className="absolute left-0 top-0 bottom-0 w-12 z-10 pointer-events-none bg-gradient-to-r from-teal-900 to-teal-900/0" />
           <div className="absolute right-0 top-0 bottom-0 w-12 z-10 pointer-events-none bg-gradient-to-l from-teal-900 to-teal-900/0" />
-
-          {/* Center indicator line */}
-          <div className="absolute left-1/2 top-0 bottom-8 w-0.5 -translate-x-1/2 bg-teal-400/20 z-0" />
 
           <div
             ref={scrollContainerRef}
