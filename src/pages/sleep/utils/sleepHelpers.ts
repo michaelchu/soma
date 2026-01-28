@@ -476,7 +476,7 @@ export function getScoreColorClass(score: number | null): string {
   if (score === null) return 'text-muted-foreground';
   if (score >= 85) return 'text-green-600 dark:text-green-400';
   if (score >= 70) return 'text-emerald-600 dark:text-emerald-400';
-  if (score >= 55) return 'text-foreground';
+  if (score >= 55) return 'text-yellow-600 dark:text-yellow-400';
   if (score >= 40) return 'text-amber-600 dark:text-amber-400';
   return 'text-red-600 dark:text-red-400';
 }
@@ -488,7 +488,7 @@ export function getScoreBgClass(score: number | null): string {
   if (score === null) return 'bg-muted/50';
   if (score >= 85) return 'bg-green-500/10';
   if (score >= 70) return 'bg-emerald-500/10';
-  if (score >= 55) return 'bg-muted/50';
+  if (score >= 55) return 'bg-yellow-500/10';
   if (score >= 40) return 'bg-amber-500/10';
   return 'bg-red-500/10';
 }
