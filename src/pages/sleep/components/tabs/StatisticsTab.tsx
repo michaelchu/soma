@@ -53,6 +53,14 @@ function ChangeIndicator({
   const diff = current - previous;
   const truncatedDiff = Math.round(diff);
 
+  // Truncate to 1 decimal place (floor for positive, ceil for negative)
+  const truncateToOneDecimal = (val: number) => {
+    const factor = val >= 0 ? Math.floor : Math.ceil;
+    return factor(val * 10) / 10;
+  };
+
+  const pctChange = previous !== 0 ? truncateToOneDecimal((diff / previous) * 100) : 0;
+
   if (truncatedDiff === 0) {
     return (
       <span className="flex items-center justify-center gap-1 text-muted-foreground">
@@ -74,12 +82,17 @@ function ChangeIndicator({
   const sign = truncatedDiff > 0 ? '+' : '';
   const displayDiff = formatValue ? formatValue(Math.abs(truncatedDiff)) : truncatedDiff;
   const displaySign = truncatedDiff > 0 ? '+' : truncatedDiff < 0 ? '-' : '';
+  const pctSign = pctChange > 0 ? '+' : '';
 
   return (
-    <span className={`inline-flex items-center justify-center whitespace-nowrap ${colorClass}`}>
+    <span className={`inline-flex flex-wrap items-center justify-center gap-0.5 ${colorClass}`}>
       <span className="font-medium">
         {formatValue ? displaySign : sign}
         {displayDiff}
+      </span>
+      <span className="text-xs opacity-75">
+        ({pctSign}
+        {pctChange}%)
       </span>
     </span>
   );
@@ -89,7 +102,6 @@ interface StatRowConfig {
   label: string;
   key: keyof DetailedSleepStats;
   type: 'higherIsBetter' | 'lowerIsBetter';
-  unit?: string;
   formatValue?: (val: number) => string;
   formatDisplay?: (val: number) => string;
 }
@@ -105,117 +117,91 @@ function StatsTable({
 }) {
   const rows: StatRowConfig[] = [
     {
-      label: 'Duration',
-      key: 'duration',
+      label: 'Deep Sleep',
+      key: 'deepSleepPct',
       type: 'higherIsBetter',
-      formatValue: (val) => formatDuration(val),
-      formatDisplay: (val) => formatDuration(val),
     },
     {
       label: 'Restorative',
       key: 'restorative',
       type: 'higherIsBetter',
-      unit: '%',
-    },
-    {
-      label: 'Deep Sleep',
-      key: 'deepSleepPct',
-      type: 'higherIsBetter',
-      unit: '%',
-    },
-    {
-      label: 'REM Sleep',
-      key: 'remSleepPct',
-      type: 'higherIsBetter',
-      unit: '%',
     },
     {
       label: 'Resting HR',
       key: 'restingHr',
       type: 'lowerIsBetter',
-      unit: ' bpm',
     },
     {
-      label: 'HRV Low',
-      key: 'hrvLow',
+      label: 'REM Sleep',
+      key: 'remSleepPct',
       type: 'higherIsBetter',
-      unit: ' ms',
-    },
-    {
-      label: 'HRV High',
-      key: 'hrvHigh',
-      type: 'higherIsBetter',
-      unit: ' ms',
     },
     {
       label: 'HR Drop',
       key: 'hrDrop',
       type: 'lowerIsBetter',
-      unit: ' min',
     },
   ];
 
   const formatCell = (val: number | null, row: StatRowConfig): string => {
     if (val === null) return '—';
     if (row.formatDisplay) return row.formatDisplay(val);
-    return `${Math.round(val)}${row.unit || ''}`;
+    return String(Math.round(val));
   };
 
   return (
-    <div>
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b">
-            <th className="text-left py-2 pr-3 font-medium text-muted-foreground">Metric</th>
-            <th className="text-center py-2 px-2 font-medium text-muted-foreground">Min</th>
-            <th className="text-center py-2 px-2 font-medium text-muted-foreground">Max</th>
-            <th className="text-center py-2 px-2 font-medium text-muted-foreground">Avg</th>
-            <th className="text-center py-2 pl-2 font-medium text-muted-foreground">vs Prev</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => {
-            const current = currentStats?.[row.key] as
-              | { min: number | null; max: number | null; avg: number | null }
-              | undefined;
-            const previous = previousStats?.[row.key] as
-              | { min: number | null; max: number | null; avg: number | null }
-              | undefined;
+    <table className="w-full text-sm">
+      <thead>
+        <tr className="border-b">
+          <th className="text-left py-2 pr-3 font-medium text-muted-foreground">Metric</th>
+          <th className="text-center py-2 px-2 font-medium text-muted-foreground">Min</th>
+          <th className="text-center py-2 px-2 font-medium text-muted-foreground">Max</th>
+          <th className="text-center py-2 px-2 font-medium text-muted-foreground">Avg</th>
+          <th className="text-center py-2 pl-2 font-medium text-muted-foreground">vs Prev</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row) => {
+          const current = currentStats?.[row.key] as
+            | { min: number | null; max: number | null; avg: number | null }
+            | undefined;
+          const previous = previousStats?.[row.key] as
+            | { min: number | null; max: number | null; avg: number | null }
+            | undefined;
 
-            // Skip row if no data
-            if (!current || current.avg === null) {
-              return null;
-            }
+          // Skip row if no data
+          if (!current || current.avg === null) {
+            return null;
+          }
 
-            return (
-              <tr key={row.key} className="border-b last:border-0">
-                <td className="py-3 pr-3">
-                  <span className="font-medium">{row.label}</span>
-                </td>
-                <td className="py-3 px-2 text-center font-mono text-xs">
-                  {formatCell(current.min, row)}
-                </td>
-                <td className="py-3 px-2 text-center font-mono text-xs">
-                  {formatCell(current.max, row)}
-                </td>
-                <td className="py-3 px-2 text-center font-mono font-semibold">
-                  {formatCell(current.avg, row)}
-                </td>
-                <td className="py-3 pl-2 text-center text-xs">
-                  <ChangeIndicator
-                    current={current.avg}
-                    previous={previous?.avg ?? null}
-                    type={row.type}
-                    disabled={dateRange === 'all'}
-                    formatValue={row.formatValue}
-                  />
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+          return (
+            <tr key={row.key} className="border-b last:border-0">
+              <td className="py-3 pr-3">
+                <span className="font-medium">{row.label}</span>
+              </td>
+              <td className="py-3 px-2 text-center font-mono text-xs">
+                {formatCell(current.min, row)}
+              </td>
+              <td className="py-3 px-2 text-center font-mono text-xs">
+                {formatCell(current.max, row)}
+              </td>
+              <td className="py-3 px-2 text-center font-mono font-semibold">
+                {formatCell(current.avg, row)}
+              </td>
+              <td className="py-3 pl-2 text-center text-xs">
+                <ChangeIndicator
+                  current={current.avg}
+                  previous={previous?.avg ?? null}
+                  type={row.type}
+                  disabled={dateRange === 'all'}
+                  formatValue={row.formatValue}
+                />
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
   );
 }
 
@@ -256,28 +242,42 @@ export function StatisticsTab({ entries, allEntries, dateRange }: StatisticsTabP
 
   const hasPreviousData = previousStats !== null;
 
+  // Check if we have HRV data
+  const hasHrvData = currentStats.hrvLow?.avg != null && currentStats.hrvHigh?.avg != null;
+  const hasPreviousHrv =
+    previousStats != null &&
+    previousStats.hrvLow?.avg != null &&
+    previousStats.hrvHigh?.avg != null;
+
   return (
     <div className="space-y-6">
-      {/* Average Duration Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      {/* Key Metrics Header */}
+      <div className="grid grid-cols-2 gap-4">
+        {/* Average Duration */}
         <div>
-          <p className="text-sm text-muted-foreground mb-1">Average Sleep Duration</p>
-          <p className="text-3xl font-bold">{formatDuration(currentStats.duration.avg)}</p>
+          <p className="text-sm text-muted-foreground mb-1">Avg Duration</p>
+          <p className="text-2xl font-bold">{formatDuration(currentStats.duration.avg)}</p>
+          {hasPreviousData && dateRange !== 'all' && (
+            <p className="text-sm text-muted-foreground">
+              prev: {formatDuration(previousStats.duration.avg)}
+            </p>
+          )}
         </div>
 
-        {hasPreviousData && dateRange !== 'all' && (
-          <div className="sm:text-right">
-            <p className="text-sm text-muted-foreground mb-1">Previous Period</p>
-            <p className="text-xl font-semibold text-muted-foreground">
-              {formatDuration(previousStats.duration.avg)}
+        {/* HRV */}
+        {hasHrvData && (
+          <div>
+            <p className="text-sm text-muted-foreground mb-1">Avg HRV</p>
+            <p className="text-2xl font-bold">
+              {Math.round(currentStats.hrvLow!.avg!)}–{Math.round(currentStats.hrvHigh!.avg!)}
+              <span className="text-base font-normal text-muted-foreground ml-1">ms</span>
             </p>
-          </div>
-        )}
-
-        {!hasPreviousData && dateRange !== 'all' && (
-          <div className="sm:text-right">
-            <p className="text-sm text-muted-foreground">Previous Period</p>
-            <p className="text-sm text-muted-foreground italic">No data</p>
+            {hasPreviousHrv && dateRange !== 'all' && (
+              <p className="text-sm text-muted-foreground">
+                prev: {Math.round(previousStats!.hrvLow!.avg!)}–
+                {Math.round(previousStats!.hrvHigh!.avg!)}
+              </p>
+            )}
           </div>
         )}
       </div>
@@ -348,13 +348,22 @@ export function StatisticsTab({ entries, allEntries, dateRange }: StatisticsTabP
               </td>
               <td className="py-3 pl-3 text-right font-mono">40–50%</td>
             </tr>
-            <tr className="border-b last:border-0">
+            <tr className="border-b">
               <td className="py-3 pr-3">
                 <span className="font-medium">Resting HR</span>
               </td>
               <td className="py-3 pl-3 text-right font-mono">
                 <div>40–60 bpm</div>
                 <div className="text-muted-foreground text-xs">(athletes: 40–50)</div>
+              </td>
+            </tr>
+            <tr className="border-b last:border-0">
+              <td className="py-3 pr-3">
+                <span className="font-medium">HR Drop</span>
+              </td>
+              <td className="py-3 pl-3 text-right font-mono">
+                <div>120–240 min</div>
+                <div className="text-muted-foreground text-xs">(first half of sleep)</div>
               </td>
             </tr>
           </tbody>
