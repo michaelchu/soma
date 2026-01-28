@@ -284,20 +284,10 @@ export function DetailsTab({ entries, allEntries }: DetailsTabProps) {
         )}
 
         {/* Scrollable Bar Chart */}
-        <div className="relative">
+        <div className="relative bg-teal-900 -mx-5 sm:-mx-6 px-5 sm:px-6">
           {/* Gradient overlays for scroll indication */}
-          <div
-            className="absolute left-0 top-0 bottom-0 w-12 z-10 pointer-events-none"
-            style={{
-              background: 'linear-gradient(to right, rgba(19, 78, 74, 1), rgba(19, 78, 74, 0))',
-            }}
-          />
-          <div
-            className="absolute right-0 top-0 bottom-0 w-12 z-10 pointer-events-none"
-            style={{
-              background: 'linear-gradient(to left, rgba(19, 78, 74, 1), rgba(19, 78, 74, 0))',
-            }}
-          />
+          <div className="absolute left-0 top-0 bottom-0 w-12 z-10 pointer-events-none bg-gradient-to-r from-teal-900 to-teal-900/0" />
+          <div className="absolute right-0 top-0 bottom-0 w-12 z-10 pointer-events-none bg-gradient-to-l from-teal-900 to-teal-900/0" />
 
           {/* Center indicator line */}
           <div className="absolute left-1/2 top-0 bottom-8 w-0.5 -translate-x-1/2 bg-teal-400/20 z-0" />
