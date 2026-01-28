@@ -138,14 +138,22 @@ function StatsTable({ currentStats, previousStats, dateRange, normalThresholds }
 
   return (
     <div>
-      <table className="w-full text-sm">
+      <table className="w-full text-sm table-fixed">
         <thead>
           <tr className="border-b">
-            <th className="text-left py-2 pr-3 font-medium text-muted-foreground">Metric</th>
-            <th className="text-center py-2 px-3 font-medium text-muted-foreground">Min</th>
-            <th className="text-center py-2 px-3 font-medium text-muted-foreground">Max</th>
-            <th className="text-center py-2 px-3 font-medium text-muted-foreground">Avg</th>
-            <th className="text-center py-2 pl-3 font-medium text-muted-foreground">vs Prev.</th>
+            <th className="text-left py-2 pr-2 font-medium text-muted-foreground w-[72px]">
+              Metric
+            </th>
+            <th className="text-center py-2 px-1 font-medium text-muted-foreground w-[48px]">
+              Min
+            </th>
+            <th className="text-center py-2 px-1 font-medium text-muted-foreground w-[48px]">
+              Max
+            </th>
+            <th className="text-center py-2 px-1 font-medium text-muted-foreground w-[48px]">
+              Avg
+            </th>
+            <th className="text-right py-2 pl-1 font-medium text-muted-foreground">vs Prev.</th>
           </tr>
         </thead>
         <tbody>
@@ -160,21 +168,21 @@ function StatsTable({ currentStats, previousStats, dateRange, normalThresholds }
 
             return (
               <tr key={row.key} className="border-b last:border-0">
-                <td className="py-3 pr-3">
+                <td className="py-3 pr-2">
                   <span className="font-medium" title={row.tooltip}>
                     {row.label}
                   </span>
                 </td>
-                <td className="py-3 px-3 text-center font-mono">
+                <td className="py-3 px-1 text-center font-mono">
                   {current?.min != null ? Math.floor(current.min) : '—'}
                 </td>
-                <td className="py-3 px-3 text-center font-mono">
+                <td className="py-3 px-1 text-center font-mono">
                   {current?.max != null ? Math.floor(current.max) : '—'}
                 </td>
-                <td className="py-3 px-3 text-center font-mono font-semibold">
+                <td className="py-3 px-1 text-center font-mono font-semibold">
                   {current?.avg != null ? Math.floor(current.avg) : '—'}
                 </td>
-                <td className="py-3 pl-3 text-center">
+                <td className="py-3 pl-1 text-right">
                   <ChangeIndicator
                     current={current?.avg}
                     previous={previous?.avg}
@@ -243,7 +251,7 @@ export function StatisticsTab({ readings, allReadings, dateRange, timeOfDay }) {
   const hasPreviousData = previousStats !== null;
 
   return (
-    <div className="space-y-6 pt-4">
+    <div className="space-y-6 pt-4 overflow-x-hidden">
       {/* Average BP Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>

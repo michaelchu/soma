@@ -43,7 +43,7 @@ export function ChartsTab({ readings, dateRange = 'all' }) {
           showMAP={showMAP}
           dateRange={dateRange}
         />
-        <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-4">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-2 mt-4 w-fit mx-auto">
           <div className="flex items-center gap-2">
             <Switch id="pp" checked={showPP} onCheckedChange={setShowPP} />
             <Label htmlFor="pp" className="text-sm cursor-pointer">
