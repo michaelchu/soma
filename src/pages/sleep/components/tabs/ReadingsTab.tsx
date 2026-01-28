@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { StickyNote, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { showWithUndo, showError } from '@/lib/toast';
 import { formatDate } from '@/lib/dateUtils';
 import {
@@ -240,23 +241,30 @@ function SleepStagesBar({ entry }: { entry: SleepEntry }) {
   ].filter((s) => s.value !== null);
 
   return (
-    <div className="mt-1.5">
-      <div className="flex h-2 rounded-full overflow-hidden bg-muted">
-        {stages.map((stage) => (
-          <div key={stage.key} className={stage.color} style={{ width: `${stage.value}%` }} />
-        ))}
-      </div>
-      {/* Legend with labels */}
-      <div className="flex gap-x-2 mt-1 text-[10px] text-muted-foreground">
-        {stages.map((stage) => (
-          <span key={stage.key} className="flex items-center gap-0.5">
-            <span className={`w-1.5 h-1.5 rounded-full ${stage.color}`} />
-            <span>{stage.label}</span>
-            <span className="font-medium text-foreground">{stage.value}%</span>
-          </span>
-        ))}
-      </div>
-    </div>
+    <TooltipProvider>
+      <Tooltip delayDuration={0}>
+        <TooltipTrigger asChild>
+          <div className="mt-1.5 cursor-pointer">
+            <div className="flex h-2 rounded-full overflow-hidden bg-muted">
+              {stages.map((stage) => (
+                <div key={stage.key} className={stage.color} style={{ width: `${stage.value}%` }} />
+              ))}
+            </div>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="bg-popover text-popover-foreground border">
+          <div className="flex gap-x-3 text-xs">
+            {stages.map((stage) => (
+              <span key={stage.key} className="flex items-center gap-1">
+                <span className={`w-2 h-2 rounded-full ${stage.color}`} />
+                <span className="text-muted-foreground">{stage.label}</span>
+                <span className="font-medium">{stage.value}%</span>
+              </span>
+            ))}
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
