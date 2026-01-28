@@ -274,7 +274,6 @@ export function DetailsTab({ entries, allEntries }: DetailsTabProps) {
       {/* Scrollable Bar Chart */}
       <div className="px-5 sm:px-6 pt-2 pb-4 relative z-0">
         <div className="relative -mx-5 sm:-mx-6 px-5 sm:px-6">
-
           <div
             ref={scrollContainerRef}
             className="flex items-end overflow-x-auto scrollbar-hide py-4"
@@ -386,7 +385,9 @@ export function DetailsTab({ entries, allEntries }: DetailsTabProps) {
           {/* Sleep Window */}
           {sleepWindow && (
             <div className="bg-muted/50 rounded-xl p-4 border border-border text-center">
-              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Sleep Window</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                Sleep Window
+              </p>
               <p className="text-lg font-semibold text-foreground">{sleepWindow}</p>
             </div>
           )}
