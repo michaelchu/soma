@@ -315,13 +315,13 @@ function zScore(
 
 /**
  * Convert z-score to a 0-100 scale score
- * 50 = average, each std dev = 10 points
+ * 65 = average (your baseline), each std dev = 20 points
  * Clamped to 0-100 range
  */
 function zScoreToPoints(z: number | null, invertDirection = false): number | null {
   if (z === null) return null;
   const adjusted = invertDirection ? -z : z;
-  return Math.max(0, Math.min(100, 50 + adjusted * 10));
+  return Math.max(0, Math.min(100, 65 + adjusted * 20));
 }
 
 /**
@@ -462,10 +462,10 @@ export function calculateSleepScore(
  */
 export function getScoreLabel(score: number | null): string {
   if (score === null) return 'N/A';
-  if (score >= 70) return 'Excellent';
-  if (score >= 55) return 'Good';
-  if (score >= 45) return 'Average';
-  if (score >= 30) return 'Below Avg';
+  if (score >= 85) return 'Excellent';
+  if (score >= 70) return 'Good';
+  if (score >= 55) return 'Average';
+  if (score >= 40) return 'Below Avg';
   return 'Poor';
 }
 
@@ -474,10 +474,10 @@ export function getScoreLabel(score: number | null): string {
  */
 export function getScoreColorClass(score: number | null): string {
   if (score === null) return 'text-muted-foreground';
-  if (score >= 70) return 'text-green-600 dark:text-green-400';
-  if (score >= 55) return 'text-emerald-600 dark:text-emerald-400';
-  if (score >= 45) return 'text-foreground';
-  if (score >= 30) return 'text-amber-600 dark:text-amber-400';
+  if (score >= 85) return 'text-green-600 dark:text-green-400';
+  if (score >= 70) return 'text-emerald-600 dark:text-emerald-400';
+  if (score >= 55) return 'text-yellow-600 dark:text-yellow-400';
+  if (score >= 40) return 'text-amber-600 dark:text-amber-400';
   return 'text-red-600 dark:text-red-400';
 }
 
@@ -486,9 +486,9 @@ export function getScoreColorClass(score: number | null): string {
  */
 export function getScoreBgClass(score: number | null): string {
   if (score === null) return 'bg-muted/50';
-  if (score >= 70) return 'bg-green-500/10';
-  if (score >= 55) return 'bg-emerald-500/10';
-  if (score >= 45) return 'bg-muted/50';
-  if (score >= 30) return 'bg-amber-500/10';
+  if (score >= 85) return 'bg-green-500/10';
+  if (score >= 70) return 'bg-emerald-500/10';
+  if (score >= 55) return 'bg-yellow-500/10';
+  if (score >= 40) return 'bg-amber-500/10';
   return 'bg-red-500/10';
 }
