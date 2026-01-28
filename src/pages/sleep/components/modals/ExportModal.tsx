@@ -272,8 +272,6 @@ function generateCSV(entries: SleepEntry[]) {
 }
 
 export function ExportModal({ entries, onClose }: { entries: SleepEntry[]; onClose: () => void }) {
-  const itemCount = `${entries?.length || 0} ${entries?.length === 1 ? 'entry' : 'entries'}`;
-
   return (
     <SharedExportModal
       onClose={onClose}
@@ -281,7 +279,6 @@ export function ExportModal({ entries, onClose }: { entries: SleepEntry[]; onClo
       generateMarkdown={() => generateMarkdown(entries)}
       generateCSV={() => generateCSV(entries)}
       downloadFilename="sleep-export"
-      itemCount={itemCount}
     />
   );
 }

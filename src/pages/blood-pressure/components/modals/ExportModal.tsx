@@ -114,8 +114,6 @@ export function ExportModal({ readings, onClose }) {
   const { getCategory, getCategoryInfo } = useBPSettings();
   const stats = calculateStats(readings);
 
-  const itemCount = `${readings?.length || 0} reading${readings?.length !== 1 ? 's' : ''}`;
-
   return (
     <SharedExportModal
       onClose={onClose}
@@ -123,7 +121,6 @@ export function ExportModal({ readings, onClose }) {
       generateMarkdown={() => generateMarkdown(readings, stats, getCategory, getCategoryInfo)}
       generateCSV={() => generateCSV(readings, getCategory, getCategoryInfo)}
       downloadFilename="blood-pressure-export"
-      itemCount={itemCount}
     />
   );
 }

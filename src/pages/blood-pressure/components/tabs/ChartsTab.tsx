@@ -11,7 +11,6 @@ export function ChartsTab({ readings, dateRange = 'all' }) {
   const [showMarkers, setShowMarkers] = useState(false);
   const [showPP, setShowPP] = useState(true);
   const [showMAP, setShowMAP] = useState(true);
-  const [showPulse, setShowPulse] = useState(false);
 
   if (!readings || readings.length === 0) {
     return (
@@ -42,7 +41,6 @@ export function ChartsTab({ readings, dateRange = 'all' }) {
           showMarkers={showMarkers}
           showPP={showPP}
           showMAP={showMAP}
-          showPulse={showPulse}
           dateRange={dateRange}
         />
         <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-4">
@@ -56,12 +54,6 @@ export function ChartsTab({ readings, dateRange = 'all' }) {
             <Switch id="map" checked={showMAP} onCheckedChange={setShowMAP} />
             <Label htmlFor="map" className="text-sm cursor-pointer">
               MAP
-            </Label>
-          </div>
-          <div className="flex items-center gap-2">
-            <Switch id="pulse" checked={showPulse} onCheckedChange={setShowPulse} />
-            <Label htmlFor="pulse" className="text-sm cursor-pointer">
-              Pulse
             </Label>
           </div>
           <div className="flex items-center gap-2">

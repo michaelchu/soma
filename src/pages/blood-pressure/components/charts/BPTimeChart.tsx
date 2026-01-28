@@ -111,12 +111,6 @@ function CustomTooltip({ active, payload, label, getCategoryInfo }: CustomToolti
           <span className="text-slate-400">MAP:</span>{' '}
           <span className="font-medium">{data.map} mmHg</span>
         </p>
-        {data.pulse && (
-          <p>
-            <span className="text-purple-500">Pulse:</span>{' '}
-            <span className="font-medium">{data.pulse} bpm</span>
-          </p>
-        )}
         <p className={`${info.textClass} font-medium`}>{info.label}</p>
       </div>
     </div>
@@ -154,7 +148,6 @@ interface BPTimeChartProps {
   showMarkers?: boolean;
   showPP?: boolean;
   showMAP?: boolean;
-  showPulse?: boolean;
   dateRange?: string;
 }
 
@@ -165,7 +158,6 @@ export function BPTimeChart({
   showMarkers = true,
   showPP = true,
   showMAP = false,
-  showPulse = true,
   dateRange = 'all',
 }: BPTimeChartProps) {
   const { getCategory, getCategoryInfo } = useBPSettings();
@@ -223,12 +215,6 @@ export function BPTimeChart({
   const yMin = Math.floor(minValue / 20) * 20;
   const yMax = Math.ceil(maxValue / 20) * 20;
 
-  // Calculate pulse Y-axis domain (right axis) rounded to increments of 10
-  const allPulse = chartData.filter((d) => d.pulse != null).map((d) => d.pulse as number);
-  const hasPulseData = allPulse.length > 0;
-  const pulseMin = hasPulseData ? Math.floor(Math.min(...allPulse) / 10) * 10 : 40;
-  const pulseMax = hasPulseData ? Math.ceil(Math.max(...allPulse) / 10) * 10 : 120;
-
   // Calculate linear regression trendlines
   const sysRegression = linearRegression(allSystolic);
   const diaRegression = linearRegression(allDiastolic);
@@ -261,7 +247,7 @@ export function BPTimeChart({
       <ResponsiveContainer width="100%" height={height}>
         <ComposedChart
           data={chartDataWithTrend}
-          margin={{ top: 10, right: showPulse && hasPulseData ? 60 : 30, bottom: 5, left: 10 }}
+          margin={{ top: 10, right: 30, bottom: 5, left: 10 }}
         >
           <CartesianGrid horizontal={true} vertical={false} stroke="hsl(var(--border))" />
           <XAxis
@@ -287,30 +273,6 @@ export function BPTimeChart({
               fill: 'hsl(var(--muted-foreground))',
             }}
           />
-
-          {/* Pulse Y-axis (right side) */}
-          {showPulse && hasPulseData && (
-            <YAxis
-              yAxisId="pulse"
-              orientation="right"
-              domain={[pulseMin, pulseMax]}
-              ticks={Array.from(
-                { length: (pulseMax - pulseMin) / 10 + 1 },
-                (_, i) => pulseMin + i * 10
-              )}
-              tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-              stroke="hsl(var(--muted-foreground))"
-              width={45}
-              axisLine={false}
-              label={{
-                value: 'bpm',
-                angle: 90,
-                position: 'insideRight',
-                fontSize: 12,
-                fill: 'hsl(var(--muted-foreground))',
-              }}
-            />
-          )}
 
           <RechartsTooltip content={renderTooltip} />
 
@@ -389,20 +351,6 @@ export function BPTimeChart({
               strokeWidth={1.5}
               dot={false}
               activeDot={{ r: 4, stroke: '#94a3b8', strokeWidth: 1, fill: '#fff' }}
-            />
-          )}
-
-          {/* Pulse line (right Y-axis) */}
-          {showPulse && hasPulseData && (
-            <Line
-              type="monotone"
-              dataKey="pulse"
-              name="Pulse"
-              yAxisId="pulse"
-              stroke="#a855f7"
-              strokeWidth={1.5}
-              dot={false}
-              activeDot={{ r: 4, stroke: '#a855f7', strokeWidth: 1, fill: '#fff' }}
             />
           )}
 

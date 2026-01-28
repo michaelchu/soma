@@ -103,8 +103,6 @@ export function ExportModal({
   reports,
   ignoredMetrics = new Set<string>(),
 }: ExportModalProps) {
-  const itemCount = `${reports.length} report${reports.length !== 1 ? 's' : ''}`;
-
   return (
     <SharedExportModal
       onClose={onClose}
@@ -112,7 +110,6 @@ export function ExportModal({
       generateMarkdown={() => generateMarkdown(reports, ignoredMetrics)}
       generateCSV={() => generateCSV(reports, ignoredMetrics)}
       downloadFilename="blood-tests-export"
-      itemCount={itemCount}
     />
   );
 }
