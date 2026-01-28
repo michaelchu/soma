@@ -315,13 +315,13 @@ function zScore(
 
 /**
  * Convert z-score to a 0-100 scale score
- * 50 = average, each std dev = 20 points
+ * 65 = average (your baseline), each std dev = 20 points
  * Clamped to 0-100 range
  */
 function zScoreToPoints(z: number | null, invertDirection = false): number | null {
   if (z === null) return null;
   const adjusted = invertDirection ? -z : z;
-  return Math.max(0, Math.min(100, 50 + adjusted * 20));
+  return Math.max(0, Math.min(100, 65 + adjusted * 20));
 }
 
 /**
