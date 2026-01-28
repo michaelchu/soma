@@ -11,7 +11,7 @@ interface SleepEntryRow {
   user_id: string;
   date: string;
   timezone: string | null;
-  duration_minutes: number | null;
+  total_sleep_minutes: number | null;
   sleep_start: string | null;
   sleep_end: string | null;
   hrv_low: number | null;
@@ -36,7 +36,8 @@ export interface SleepEntry {
   id: string;
   date: string;
   timezone: string | null;
-  durationMinutes: number;
+  durationMinutes: number; // Time in bed (calculated from sleep times)
+  totalSleepMinutes: number | null; // Actual sleep time (externally calculated)
   sleepStart: string | null;
   sleepEnd: string | null;
   hrvLow: number | null;
@@ -58,7 +59,7 @@ export interface SleepEntry {
 export interface SleepEntryInput {
   date: string;
   timezone?: string | null;
-  durationMinutes?: number | null;
+  totalSleepMinutes?: number | null; // Actual sleep time (externally calculated)
   sleepStart?: string | null;
   sleepEnd?: string | null;
   hrvLow?: number | null;
@@ -97,9 +98,9 @@ function calculateDurationFromTimes(start: string, end: string): number {
 }
 
 function rowToEntry(row: SleepEntryRow): SleepEntry {
-  // Calculate duration from times if not directly stored
-  let durationMinutes = row.duration_minutes;
-  if (durationMinutes === null && row.sleep_start && row.sleep_end) {
+  // Calculate time in bed from sleep times
+  let durationMinutes = 0;
+  if (row.sleep_start && row.sleep_end) {
     durationMinutes = calculateDurationFromTimes(row.sleep_start, row.sleep_end);
   }
 
@@ -107,7 +108,8 @@ function rowToEntry(row: SleepEntryRow): SleepEntry {
     id: row.id,
     date: row.date,
     timezone: row.timezone,
-    durationMinutes: durationMinutes ?? 0,
+    durationMinutes, // Time in bed (always calculated from times)
+    totalSleepMinutes: row.total_sleep_minutes, // Actual sleep time (from DB)
     sleepStart: row.sleep_start,
     sleepEnd: row.sleep_end,
     hrvLow: row.hrv_low,
@@ -177,7 +179,7 @@ export async function addSleepEntry(
     user_id: user.id,
     date: entry.date,
     timezone: entry.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-    duration_minutes: entry.durationMinutes || null,
+    total_sleep_minutes: entry.totalSleepMinutes || null,
     sleep_start: entry.sleepStart || null,
     sleep_end: entry.sleepEnd || null,
     hrv_low: entry.hrvLow || null,
@@ -226,7 +228,7 @@ export async function updateSleepEntry(
   const updates = {
     date: entry.date,
     timezone: entry.timezone || undefined,
-    duration_minutes: entry.durationMinutes || null,
+    total_sleep_minutes: entry.totalSleepMinutes || null,
     sleep_start: entry.sleepStart || null,
     sleep_end: entry.sleepEnd || null,
     hrv_low: entry.hrvLow || null,

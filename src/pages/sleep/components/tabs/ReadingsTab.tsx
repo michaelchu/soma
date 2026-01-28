@@ -258,7 +258,7 @@ export function ReadingsTab({ entries }: ReadingsTabProps) {
     showWithUndo('Sleep entry deleted', async () => {
       const { error: undoError } = await addEntry({
         date: entry.date,
-        durationMinutes: entry.durationMinutes,
+        totalSleepMinutes: entry.totalSleepMinutes,
         sleepStart: entry.sleepStart,
         sleepEnd: entry.sleepEnd,
         hrvLow: entry.hrvLow,

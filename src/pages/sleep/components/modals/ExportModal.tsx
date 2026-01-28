@@ -207,8 +207,10 @@ function generateCSV(entries: SleepEntry[]) {
 
   const headers = [
     'Date',
-    'Duration (min)',
-    'Duration',
+    'Time In Bed (min)',
+    'Time In Bed',
+    'Total Sleep (min)',
+    'Total Sleep',
     'Sleep Start',
     'Sleep End',
     'Deep Sleep %',
@@ -246,6 +248,8 @@ function generateCSV(entries: SleepEntry[]) {
       formatDate(entry.date),
       entry.durationMinutes.toString(),
       formatDuration(entry.durationMinutes),
+      entry.totalSleepMinutes?.toString() || '',
+      entry.totalSleepMinutes ? formatDuration(entry.totalSleepMinutes) : '',
       entry.sleepStart ? formatTimeString(entry.sleepStart) || entry.sleepStart : '',
       entry.sleepEnd ? formatTimeString(entry.sleepEnd) || entry.sleepEnd : '',
       entry.deepSleepPct?.toString() || '',

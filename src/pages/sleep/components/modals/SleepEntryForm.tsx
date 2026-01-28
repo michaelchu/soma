@@ -106,6 +106,12 @@ function SleepEntryFormContent({
   const [movementCount, setMovementCount] = useState(() =>
     entry?.movementCount ? String(entry.movementCount) : ''
   );
+  const [totalSleepHours, setTotalSleepHours] = useState(() =>
+    entry?.totalSleepMinutes ? String(Math.floor(entry.totalSleepMinutes / 60)) : ''
+  );
+  const [totalSleepMins, setTotalSleepMins] = useState(() =>
+    entry?.totalSleepMinutes ? String(entry.totalSleepMinutes % 60) : ''
+  );
   const [notes, setNotes] = useState(() => entry?.notes || '');
 
   const [saving, setSaving] = useState(false);
@@ -120,6 +126,13 @@ function SleepEntryFormContent({
     [sleepStart, lowestHrTime]
   );
 
+  // Total sleep from manual input (in minutes)
+  const totalSleepManual = useMemo(() => {
+    const hours = totalSleepHours ? parseInt(totalSleepHours) : 0;
+    const mins = totalSleepMins ? parseInt(totalSleepMins) : 0;
+    return hours > 0 || mins > 0 ? hours * 60 + mins : null;
+  }, [totalSleepHours, totalSleepMins]);
+
   const isValid = date && sleepStart && sleepEnd && calculatedDuration > 0;
 
   const handleSave = async () => {
@@ -127,6 +140,7 @@ function SleepEntryFormContent({
 
     const entryData = {
       date,
+      totalSleepMinutes: totalSleepManual,
       sleepStart: sleepStart || null,
       sleepEnd: sleepEnd || null,
       hrvLow: hrvLow ? parseInt(hrvLow) : null,
@@ -181,6 +195,8 @@ function SleepEntryFormContent({
     setSleepCyclesFull('');
     setSleepCyclesPartial('');
     setMovementCount('');
+    setTotalSleepHours('');
+    setTotalSleepMins('');
     setNotes('');
   };
 
@@ -224,6 +240,36 @@ function SleepEntryFormContent({
                 {formatDuration(calculatedDuration)})
               </p>
             )}
+          </div>
+
+          {/* Total Sleep (actual sleep time, separate from time in bed) */}
+          <div className="space-y-2">
+            <Label>Total Sleep</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                placeholder="Hours"
+                value={totalSleepHours}
+                onChange={(e) => setTotalSleepHours(e.target.value)}
+                min={0}
+                max={24}
+                className="flex-1"
+              />
+              <span className="text-muted-foreground">h</span>
+              <Input
+                type="number"
+                placeholder="Min"
+                value={totalSleepMins}
+                onChange={(e) => setTotalSleepMins(e.target.value)}
+                min={0}
+                max={59}
+                className="flex-1"
+              />
+              <span className="text-muted-foreground">m</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Actual time asleep (vs time in bed above)
+            </p>
           </div>
 
           <hr className="border-t" />
@@ -440,7 +486,10 @@ export function SleepEntryForm({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full h-full max-w-none sm:max-w-md sm:max-h-[90vh] flex flex-col rounded-none sm:rounded-lg overflow-hidden p-0 gap-0">
+      <DialogContent
+        className="w-full h-full max-w-none sm:max-w-md sm:max-h-[90vh] flex flex-col rounded-none sm:rounded-lg overflow-hidden p-0 gap-0"
+        onPointerDownOutside={(e) => e.preventDefault()}
+      >
         <SleepEntryFormContent key={entry?.id || 'new'} entry={entry} onOpenChange={onOpenChange} />
       </DialogContent>
     </Dialog>

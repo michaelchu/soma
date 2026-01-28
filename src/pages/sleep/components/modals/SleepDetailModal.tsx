@@ -211,12 +211,19 @@ export function SleepDetailModal({ open, onOpenChange, entry, baseline }: SleepD
                 Sleep Time
               </h3>
               <div className="bg-muted/30 rounded-lg divide-y divide-border">
+                <MetricItem icon={Clock} label="Sleep Window" value={sleepWindow} />
                 <MetricItem
                   icon={Moon}
-                  label="Duration"
+                  label="Time in Bed"
                   value={formatDuration(entry.durationMinutes)}
                 />
-                <MetricItem icon={Clock} label="Sleep Window" value={sleepWindow} />
+                {entry.totalSleepMinutes !== null && (
+                  <MetricItem
+                    icon={Moon}
+                    label="Total Sleep"
+                    value={formatDuration(entry.totalSleepMinutes)}
+                  />
+                )}
               </div>
             </div>
 
