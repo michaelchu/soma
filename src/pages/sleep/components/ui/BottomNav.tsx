@@ -1,4 +1,4 @@
-import { List, BarChart3 } from 'lucide-react';
+import { List, BarChart3, CalendarDays } from 'lucide-react';
 
 interface BottomNavProps {
   activeTab: string;
@@ -8,6 +8,7 @@ interface BottomNavProps {
 export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   const tabs = [
     { id: 'readings', label: 'Entries', icon: List },
+    { id: 'details', label: 'Details', icon: CalendarDays },
     { id: 'statistics', label: 'Statistics', icon: BarChart3 },
   ];
 
