@@ -17,7 +17,7 @@ interface DetailsTabProps {
 }
 
 const BAR_WIDTH = 36;
-const BAR_GAP = 10;
+const BAR_GAP = 4;
 const BAR_TOTAL_WIDTH = BAR_WIDTH + BAR_GAP;
 const MAX_BAR_HEIGHT = 120;
 const MIN_BAR_HEIGHT = 40;
@@ -52,7 +52,7 @@ function SleepScoreBar({
     >
       {/* Bar with score inside */}
       <div
-        className={`w-full rounded-lg transition-all duration-200 flex items-start justify-center pt-2 ${
+        className={`w-full rounded-t-lg transition-all duration-200 flex items-start justify-center pt-2 ${
           isSelected ? 'bg-white/90' : 'bg-teal-400/40'
         }`}
         style={{ height: normalizedHeight }}
