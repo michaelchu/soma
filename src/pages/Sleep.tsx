@@ -10,13 +10,12 @@ import { BottomNav } from './sleep/components/ui/BottomNav';
 import { FilterBar, filterEntries } from './sleep/components/ui/FilterBar';
 import { ReadingsTab } from './sleep/components/tabs/ReadingsTab';
 import { StatisticsTab } from './sleep/components/tabs/StatisticsTab';
-import { ChartsTab } from './sleep/components/tabs/ChartsTab';
 import { SleepEntryForm } from './sleep/components/modals/SleepEntryForm';
 import { ExportModal } from './sleep/components/modals/ExportModal';
 import { LatestEntry } from './sleep/components/ui/LatestEntry';
 import { calculateSleepStats } from './sleep/utils/sleepHelpers';
 
-const VALID_TABS = ['readings', 'statistics', 'charts'];
+const VALID_TABS = ['readings', 'statistics'];
 
 function SleepContent() {
   const navigate = useNavigate();
@@ -74,8 +73,6 @@ function SleepContent() {
         return (
           <StatisticsTab entries={filteredEntries} allEntries={entries} dateRange={dateRange} />
         );
-      case 'charts':
-        return <ChartsTab entries={filteredEntries} />;
       default:
         return <ReadingsTab entries={filteredEntries} />;
     }
@@ -185,11 +182,6 @@ function SleepContent() {
                     );
                   })()}
                 </div>
-              </div>
-
-              {/* Charts Section */}
-              <div className="rounded-lg border bg-card shadow-sm p-6">
-                <ChartsTab entries={filteredEntries} />
               </div>
 
               {/* Readings Table */}

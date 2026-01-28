@@ -1,4 +1,4 @@
-import { List, BarChart3, LineChart } from 'lucide-react';
+import { List, BarChart3 } from 'lucide-react';
 
 interface BottomNavProps {
   activeTab: string;
@@ -9,7 +9,6 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   const tabs = [
     { id: 'readings', label: 'Entries', icon: List },
     { id: 'statistics', label: 'Statistics', icon: BarChart3 },
-    { id: 'charts', label: 'Charts', icon: LineChart },
   ];
 
   return (

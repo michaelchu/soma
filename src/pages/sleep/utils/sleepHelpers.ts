@@ -1,6 +1,16 @@
 import type { SleepEntry } from '../../../lib/db/sleep';
 
 /**
+ * Sleep stage colors for consistent styling across components
+ */
+export const STAGE_COLORS = {
+  deep: 'bg-blue-600',
+  rem: 'bg-sky-400',
+  light: 'bg-blue-300',
+  awake: 'bg-lime-400',
+};
+
+/**
  * Format duration in minutes to hours and minutes string
  */
 export function formatDuration(minutes: number): string {

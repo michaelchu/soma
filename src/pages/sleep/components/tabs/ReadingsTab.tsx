@@ -11,6 +11,7 @@ import {
   calculateSleepScore,
   getScoreColorClass,
   getScoreBgClass,
+  STAGE_COLORS,
 } from '../../utils/sleepHelpers';
 import { SleepEntryForm } from '../modals/SleepEntryForm';
 import { SleepDetailModal } from '../modals/SleepDetailModal';
@@ -20,14 +21,6 @@ import type { SleepEntry } from '@/lib/db/sleep';
 
 const { SWIPE_THRESHOLD, DELETE_THRESHOLD, LONG_PRESS_DURATION, MOVEMENT_THRESHOLD } =
   TOUCH_CONSTANTS;
-
-// Sleep stage colors - blues with neon green accent
-const STAGE_COLORS = {
-  deep: 'bg-blue-600',
-  rem: 'bg-sky-400',
-  light: 'bg-blue-300',
-  awake: 'bg-lime-400',
-};
 
 interface ReadingsTabProps {
   entries: SleepEntry[];
@@ -234,10 +227,10 @@ function SleepStagesBar({ entry }: { entry: SleepEntry }) {
   if (!hasStages) return null;
 
   const stages = [
-    { key: 'awake', value: entry.awakePct, color: STAGE_COLORS.awake, label: 'Awake' },
+    { key: 'deep', value: entry.deepSleepPct, color: STAGE_COLORS.deep, label: 'Deep' },
     { key: 'rem', value: entry.remSleepPct, color: STAGE_COLORS.rem, label: 'REM' },
     { key: 'light', value: entry.lightSleepPct, color: STAGE_COLORS.light, label: 'Light' },
-    { key: 'deep', value: entry.deepSleepPct, color: STAGE_COLORS.deep, label: 'Deep' },
+    { key: 'awake', value: entry.awakePct, color: STAGE_COLORS.awake, label: 'Awake' },
   ].filter((s) => s.value !== null);
 
   return (
@@ -370,10 +363,10 @@ export function ReadingsTab({ entries }: ReadingsTabProps) {
                     ) : (
                       <>
                         <span className="font-mono text-lg font-bold leading-tight text-violet-600 dark:text-violet-400">
-                          {Math.floor(entry.durationMinutes / 60)}h
+                          {Math.floor((entry.totalSleepMinutes ?? entry.durationMinutes) / 60)}h
                         </span>
                         <span className="font-mono text-xs text-violet-600/70 dark:text-violet-400/70">
-                          {entry.durationMinutes % 60}m
+                          {(entry.totalSleepMinutes ?? entry.durationMinutes) % 60}m
                         </span>
                       </>
                     )}
@@ -388,7 +381,7 @@ export function ReadingsTab({ entries }: ReadingsTabProps) {
                       </span>
                       <span className="text-muted-foreground">•</span>
                       <span className="text-muted-foreground">
-                        {formatDuration(entry.durationMinutes)}
+                        {formatDuration(entry.totalSleepMinutes ?? entry.durationMinutes)}
                       </span>
                       {entry.notes && <StickyNote className="h-3.5 w-3.5 text-muted-foreground" />}
                     </div>
@@ -468,7 +461,7 @@ export function ReadingsTab({ entries }: ReadingsTabProps) {
                   {formatDate(entry.date, { includeWeekday: true })}
                 </span>
                 <span className="text-lg font-semibold">
-                  {formatDuration(entry.durationMinutes)}
+                  {formatDuration(entry.totalSleepMinutes ?? entry.durationMinutes)}
                 </span>
               </div>
 

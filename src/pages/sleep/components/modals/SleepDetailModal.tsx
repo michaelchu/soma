@@ -10,16 +10,10 @@ import {
   calculateSleepScore,
   getScoreColorClass,
   getScoreLabel,
+  STAGE_COLORS,
   type PersonalBaseline,
 } from '../../utils/sleepHelpers';
 import type { SleepEntry } from '@/lib/db/sleep';
-
-const STAGE_COLORS = {
-  deep: 'bg-indigo-500',
-  rem: 'bg-teal-500',
-  light: 'bg-slate-400',
-  awake: 'bg-amber-500',
-};
 
 interface SleepDetailModalProps {
   open: boolean;
@@ -87,10 +81,10 @@ function SleepStagesDetail({ entry }: { entry: SleepEntry }) {
   if (!hasStages) return null;
 
   const stages = [
-    { key: 'awake', value: entry.awakePct, color: STAGE_COLORS.awake, label: 'Awake' },
+    { key: 'deep', value: entry.deepSleepPct, color: STAGE_COLORS.deep, label: 'Deep' },
     { key: 'rem', value: entry.remSleepPct, color: STAGE_COLORS.rem, label: 'REM' },
     { key: 'light', value: entry.lightSleepPct, color: STAGE_COLORS.light, label: 'Light' },
-    { key: 'deep', value: entry.deepSleepPct, color: STAGE_COLORS.deep, label: 'Deep' },
+    { key: 'awake', value: entry.awakePct, color: STAGE_COLORS.awake, label: 'Awake' },
   ].filter((s) => s.value !== null);
 
   const restorative = getRestorativeSleepPct(entry);
@@ -178,9 +172,6 @@ export function SleepDetailModal({ open, onOpenChange, entry, baseline }: SleepD
                 </div>
                 <p className={`text-sm font-medium ${getScoreColorClass(score.overall)}`}>
                   {getScoreLabel(score.overall)}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Based on {score.componentsAvailable} of {score.componentsTotal} components
                 </p>
 
                 {/* Score breakdown */}
