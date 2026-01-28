@@ -53,13 +53,13 @@ function SleepScoreBar({
       {/* Bar with score inside */}
       <div
         className={`w-full rounded-t-lg transition-all duration-200 flex items-start justify-center pt-2 ${
-          isSelected ? 'bg-white/90' : 'bg-teal-400/40'
+          isSelected ? 'bg-foreground' : 'bg-muted-foreground/40'
         }`}
         style={{ height: normalizedHeight }}
       >
         <span
           className={`text-xs font-bold transition-colors ${
-            isSelected ? 'text-teal-900' : 'text-white/90'
+            isSelected ? 'text-background' : 'text-foreground/90'
           }`}
         >
           {score ?? '-'}
@@ -69,7 +69,7 @@ function SleepScoreBar({
       {/* Day label */}
       <span
         className={`text-xs mt-2 transition-colors ${
-          isSelected ? 'text-white font-semibold' : 'text-teal-200/60'
+          isSelected ? 'text-foreground font-semibold' : 'text-muted-foreground'
         }`}
       >
         {dayName}
@@ -94,18 +94,18 @@ function MetricCard({
   if (value === null || value === undefined || value === '') return null;
 
   return (
-    <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
+    <div className="bg-muted/50 rounded-xl p-4 border border-border">
       <div className="flex items-center gap-2 mb-2">
-        <div className="w-8 h-8 rounded-lg bg-teal-500/20 flex items-center justify-center">
-          <Icon className="h-4 w-4 text-teal-400" />
+        <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+          <Icon className="h-4 w-4 text-muted-foreground" />
         </div>
-        <span className="text-xs text-slate-400 uppercase tracking-wide">{label}</span>
+        <span className="text-xs text-muted-foreground uppercase tracking-wide">{label}</span>
       </div>
       <div className="flex items-baseline gap-1">
-        <span className="text-2xl font-bold text-white">{value}</span>
-        {unit && <span className="text-sm text-slate-400">{unit}</span>}
+        <span className="text-2xl font-bold text-foreground">{value}</span>
+        {unit && <span className="text-sm text-muted-foreground">{unit}</span>}
       </div>
-      {subValue && <p className="text-xs text-slate-500 mt-1">{subValue}</p>}
+      {subValue && <p className="text-xs text-muted-foreground mt-1">{subValue}</p>}
     </div>
   );
 }
@@ -127,11 +127,11 @@ function SleepStagesDisplay({ entry }: { entry: SleepEntry }) {
   ].filter((s) => s.value !== null);
 
   return (
-    <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
-      <h4 className="text-xs text-slate-400 uppercase tracking-wide mb-3">Sleep Stages</h4>
+    <div className="bg-muted/50 rounded-xl p-4 border border-border">
+      <h4 className="text-xs text-muted-foreground uppercase tracking-wide mb-3">Sleep Stages</h4>
 
       {/* Bar */}
-      <div className="flex h-3 rounded-full overflow-hidden bg-slate-700/50 mb-3">
+      <div className="flex h-3 rounded-full overflow-hidden bg-muted mb-3">
         {stages.map((stage) => (
           <div key={stage.key} className={stage.color} style={{ width: `${stage.value}%` }} />
         ))}
@@ -142,8 +142,8 @@ function SleepStagesDisplay({ entry }: { entry: SleepEntry }) {
         {stages.map((stage) => (
           <div key={stage.key} className="flex items-center gap-2">
             <span className={`w-2.5 h-2.5 rounded-full ${stage.color}`} />
-            <span className="text-xs text-slate-400 flex-1">{stage.label}</span>
-            <span className="text-xs font-semibold text-white">{stage.value}%</span>
+            <span className="text-xs text-muted-foreground flex-1">{stage.label}</span>
+            <span className="text-xs font-semibold text-foreground">{stage.value}%</span>
           </div>
         ))}
       </div>
@@ -239,8 +239,8 @@ export function DetailsTab({ entries, allEntries }: DetailsTabProps) {
 
   if (entries.length === 0) {
     return (
-      <div className="-mx-5 sm:-mx-6 min-h-[calc(100vh-120px)] bg-gradient-to-b from-teal-900 from-30% via-teal-950 via-60% to-slate-950 flex items-center justify-center">
-        <p className="text-teal-200/60">No sleep entries in this period</p>
+      <div className="-mx-5 sm:-mx-6 min-h-[calc(100vh-120px)] flex items-center justify-center">
+        <p className="text-muted-foreground">No sleep entries in this period</p>
       </div>
     );
   }
@@ -261,11 +261,11 @@ export function DetailsTab({ entries, allEntries }: DetailsTabProps) {
   const restorative = selectedEntry ? getRestorativeSleepPct(selectedEntry) : null;
 
   return (
-    <div className="-mx-5 sm:-mx-6 min-h-[calc(100vh-120px)] bg-gradient-to-b from-teal-900 from-30% via-teal-950 via-60% to-slate-950 overflow-hidden">
+    <div className="-mx-5 sm:-mx-6 min-h-[calc(100vh-120px)] overflow-hidden">
       {/* Selected Date Header */}
       {selectedEntry && (
         <div className="text-center pt-6 pb-2 px-5 sm:px-6">
-          <p className="text-lg font-semibold text-white">
+          <p className="text-lg font-semibold text-foreground">
             {formatDate(selectedEntry.date, { includeWeekday: true })}
           </p>
         </div>
@@ -274,9 +274,6 @@ export function DetailsTab({ entries, allEntries }: DetailsTabProps) {
       {/* Scrollable Bar Chart */}
       <div className="px-5 sm:px-6 pt-2 pb-4 relative z-0">
         <div className="relative -mx-5 sm:-mx-6 px-5 sm:px-6">
-          {/* Gradient overlays for scroll indication */}
-          <div className="absolute left-0 top-0 bottom-0 w-12 z-10 pointer-events-none bg-gradient-to-r from-teal-900 to-teal-900/0" />
-          <div className="absolute right-0 top-0 bottom-0 w-12 z-10 pointer-events-none bg-gradient-to-l from-teal-900 to-teal-900/0" />
 
           <div
             ref={scrollContainerRef}
@@ -388,17 +385,17 @@ export function DetailsTab({ entries, allEntries }: DetailsTabProps) {
 
           {/* Sleep Window */}
           {sleepWindow && (
-            <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50 text-center">
-              <p className="text-xs text-slate-400 uppercase tracking-wide mb-1">Sleep Window</p>
-              <p className="text-lg font-semibold text-white">{sleepWindow}</p>
+            <div className="bg-muted/50 rounded-xl p-4 border border-border text-center">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Sleep Window</p>
+              <p className="text-lg font-semibold text-foreground">{sleepWindow}</p>
             </div>
           )}
 
           {/* Notes */}
           {selectedEntry.notes && (
-            <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
-              <p className="text-xs text-slate-400 uppercase tracking-wide mb-2">Notes</p>
-              <p className="text-sm whitespace-pre-wrap text-slate-200">{selectedEntry.notes}</p>
+            <div className="bg-muted/50 rounded-xl p-4 border border-border">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Notes</p>
+              <p className="text-sm whitespace-pre-wrap text-foreground">{selectedEntry.notes}</p>
             </div>
           )}
         </div>
