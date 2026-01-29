@@ -7,7 +7,12 @@ interface ActivityChartProps {
   allActivities: Activity[];
   selectedDate: string | null;
   onSelectDate: (date: string) => void;
+  dateRange: string;
 }
+
+type ChartItem =
+  | { type: 'activity'; date: string; dayData: DayActivities }
+  | { type: 'placeholder'; date: string };
 
 const BAR_WIDTH = 36;
 const BAR_GAP = 4;
@@ -80,11 +85,30 @@ function DailyScoreBar({
   );
 }
 
+function PlaceholderBar({ date }: { date: string }) {
+  const dateObj = new Date(date + 'T00:00:00');
+  const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+
+  return (
+    <div
+      className="flex flex-col items-center justify-end"
+      style={{ width: BAR_WIDTH, minWidth: BAR_WIDTH }}
+    >
+      {/* Thin baseline where bar would start */}
+      <div className="w-full h-[2px] rounded-full bg-muted-foreground/20" />
+
+      {/* Day label */}
+      <span className="text-xs mt-2 text-muted-foreground/50">{dayName}</span>
+    </div>
+  );
+}
+
 export function ActivityChart({
   activities,
   allActivities,
   selectedDate,
   onSelectDate,
+  dateRange,
 }: ActivityChartProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -94,19 +118,80 @@ export function ActivityChart({
     [activities, allActivities]
   );
 
+  // Create a map of daily data by date for quick lookup
+  const dailyDataByDate = useMemo(() => {
+    const map = new Map<string, DayActivities>();
+    for (const day of dailyData) {
+      map.set(day.date, day);
+    }
+    return map;
+  }, [dailyData]);
+
+  // Generate all dates in the range
+  const allDatesInRange = useMemo(() => {
+    const days = dateRange === 'all' ? null : parseInt(dateRange, 10);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let startDate: Date;
+    if (days === null) {
+      // For 'all', use the earliest activity date or today
+      if (dailyData.length > 0) {
+        startDate = new Date(dailyData[0].date);
+      } else {
+        startDate = today;
+      }
+    } else {
+      startDate = new Date(today);
+      startDate.setDate(startDate.getDate() - days + 1);
+    }
+
+    const dates: string[] = [];
+    const current = new Date(startDate);
+    while (current <= today) {
+      const dateStr = current.toISOString().split('T')[0];
+      dates.push(dateStr);
+      current.setDate(current.getDate() + 1);
+    }
+    return dates;
+  }, [dailyData, dateRange]);
+
+  // Build chart items combining activities and placeholders
+  const chartItems = useMemo((): ChartItem[] => {
+    return allDatesInRange.map((date) => {
+      const dayData = dailyDataByDate.get(date);
+      if (dayData) {
+        return { type: 'activity' as const, date, dayData };
+      }
+      return { type: 'placeholder' as const, date };
+    });
+  }, [allDatesInRange, dailyDataByDate]);
+
+  // Get only days with activities for min/max calculation
+  const daysWithActivities = useMemo(() => {
+    return chartItems.filter(
+      (item): item is ChartItem & { type: 'activity' } => item.type === 'activity'
+    );
+  }, [chartItems]);
+
   // Get min/max scores for bar height scaling
   const { minScore, maxScore } = useMemo(() => {
-    const scores = dailyData.map((d) => d.totalScore);
+    const scores = daysWithActivities.map((d) => d.dayData.totalScore);
     if (scores.length === 0) return { minScore: 0, maxScore: 100 };
     return {
       minScore: Math.max(0, Math.min(...scores) - 20),
       maxScore: Math.max(...scores) + 20,
     };
-  }, [dailyData]);
+  }, [daysWithActivities]);
 
-  // The effective selected date - use latest if none selected
-  const effectiveSelectedDate =
-    selectedDate || (dailyData.length > 0 ? dailyData[dailyData.length - 1].date : null);
+  // The effective selected date - use latest activity date if none selected
+  const effectiveSelectedDate = useMemo(() => {
+    if (selectedDate) return selectedDate;
+    if (daysWithActivities.length > 0) {
+      return daysWithActivities[daysWithActivities.length - 1].date;
+    }
+    return null;
+  }, [selectedDate, daysWithActivities]);
 
   // Scroll to a specific index
   const scrollToIndex = useCallback((index: number) => {
@@ -126,7 +211,7 @@ export function ActivityChart({
   // Handle scroll to auto-select centered bar
   const handleScroll = useCallback(() => {
     const container = scrollContainerRef.current;
-    if (!container || dailyData.length === 0) return;
+    if (!container || chartItems.length === 0) return;
 
     const scrollLeft = container.scrollLeft;
     const containerWidth = container.clientWidth;
@@ -138,27 +223,35 @@ export function ActivityChart({
 
     // Calculate which bar is centered
     const centeredIndex = Math.round(adjustedOffset / BAR_TOTAL_WIDTH);
-    const clampedIndex = Math.max(0, Math.min(centeredIndex, dailyData.length - 1));
+    const clampedIndex = Math.max(0, Math.min(centeredIndex, chartItems.length - 1));
 
-    if (dailyData[clampedIndex]) {
-      onSelectDate(dailyData[clampedIndex].date);
+    const item = chartItems[clampedIndex];
+    if (item && item.type === 'activity') {
+      onSelectDate(item.date);
     }
-  }, [dailyData, onSelectDate]);
+  }, [chartItems, onSelectDate]);
 
-  // Initial scroll to the latest entry (rightmost)
+  // Initial scroll to the latest entry (rightmost activity)
   useLayoutEffect(() => {
     const container = scrollContainerRef.current;
-    if (!container || dailyData.length === 0) return;
+    if (!container || chartItems.length === 0) return;
 
-    // Scroll to the latest entry (last in sorted array)
-    const lastIndex = dailyData.length - 1;
+    // Find the last activity index
+    let lastActivityIndex = chartItems.length - 1;
+    for (let i = chartItems.length - 1; i >= 0; i--) {
+      if (chartItems[i].type === 'activity') {
+        lastActivityIndex = i;
+        break;
+      }
+    }
+
     const containerWidth = container.clientWidth;
     const paddingLeft = containerWidth / 2 - BAR_WIDTH / 2;
     const targetScroll =
-      lastIndex * BAR_TOTAL_WIDTH - containerWidth / 2 + paddingLeft + BAR_WIDTH / 2;
+      lastActivityIndex * BAR_TOTAL_WIDTH - containerWidth / 2 + paddingLeft + BAR_WIDTH / 2;
 
     container.scrollLeft = Math.max(0, targetScroll);
-  }, [dailyData.length]);
+  }, [chartItems.length]);
 
   // Add scroll listener
   useEffect(() => {
@@ -195,25 +288,31 @@ export function ActivityChart({
           }}
         />
 
-        {dailyData.map((day, index) => (
+        {chartItems.map((item, index) => (
           <div
-            key={day.date}
-            className="flex-shrink-0 cursor-pointer"
+            key={item.date}
+            className={`flex-shrink-0 ${item.type === 'activity' ? 'cursor-pointer' : ''}`}
             style={{
               scrollSnapAlign: 'center',
-              marginRight: index < dailyData.length - 1 ? BAR_GAP : 0,
+              marginRight: index < chartItems.length - 1 ? BAR_GAP : 0,
             }}
             onClick={() => {
-              onSelectDate(day.date);
-              scrollToIndex(index);
+              if (item.type === 'activity') {
+                onSelectDate(item.date);
+                scrollToIndex(index);
+              }
             }}
           >
-            <DailyScoreBar
-              day={day}
-              isSelected={day.date === effectiveSelectedDate}
-              maxScore={maxScore}
-              minScore={minScore}
-            />
+            {item.type === 'activity' ? (
+              <DailyScoreBar
+                day={item.dayData}
+                isSelected={item.date === effectiveSelectedDate}
+                maxScore={maxScore}
+                minScore={minScore}
+              />
+            ) : (
+              <PlaceholderBar date={item.date} />
+            )}
           </div>
         ))}
 

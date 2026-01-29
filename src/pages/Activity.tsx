@@ -118,6 +118,7 @@ function ActivityContent() {
               allActivities={activities}
               selectedDate={selectedDate}
               onSelectDate={setSelectedDate}
+              dateRange={dateRange}
             />
 
             {/* Activity Timeline */}
