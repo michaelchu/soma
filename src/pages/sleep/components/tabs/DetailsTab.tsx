@@ -98,13 +98,12 @@ function PlaceholderBar({ date }: { date: string }) {
 }
 
 function MetricCard({
-  icon: Icon,
   label,
   value,
   unit,
   subValue,
 }: {
-  icon: ElementType;
+  icon?: ElementType;
   label: string;
   value: string | number | null;
   unit?: string;
@@ -114,16 +113,11 @@ function MetricCard({
 
   return (
     <div className="bg-muted/50 rounded-xl p-4 border border-border">
-      <div className="flex items-center gap-2 mb-2">
-        <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
-          <Icon className="h-4 w-4 text-muted-foreground" />
-        </div>
-        <span className="text-xs text-muted-foreground uppercase tracking-wide">{label}</span>
-      </div>
       <div className="flex items-baseline gap-1">
-        <span className="text-2xl font-bold text-foreground">{value}</span>
-        {unit && <span className="text-sm text-muted-foreground">{unit}</span>}
+        <span className="text-3xl font-bold text-foreground">{value}</span>
+        {unit && <span className="text-lg text-muted-foreground">{unit}</span>}
       </div>
+      <span className="text-xs text-muted-foreground uppercase tracking-wide">{label}</span>
       {subValue && <p className="text-xs text-muted-foreground mt-1">{subValue}</p>}
     </div>
   );
