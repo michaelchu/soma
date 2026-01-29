@@ -88,11 +88,8 @@ function PlaceholderBar({ date }: { date: string }) {
       className="flex flex-col items-center justify-end"
       style={{ width: BAR_WIDTH, minWidth: BAR_WIDTH }}
     >
-      {/* Empty placeholder - just a small dot */}
-      <div
-        className="w-2 h-2 rounded-full bg-muted-foreground/20"
-        style={{ marginBottom: MIN_BAR_HEIGHT / 2 - 4 }}
-      />
+      {/* Thin baseline where bar would start */}
+      <div className="w-full h-[2px] rounded-full bg-muted-foreground/20" />
 
       {/* Day label */}
       <span className="text-xs mt-2 text-muted-foreground/50">{dayName}</span>
