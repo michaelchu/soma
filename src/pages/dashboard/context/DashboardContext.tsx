@@ -2,7 +2,9 @@ import React, { createContext, useContext, useState, useEffect, useMemo } from '
 import { getReadings as getBPReadings } from '@/lib/db/bloodPressure';
 import { getSleepEntries, type SleepEntry } from '@/lib/db/sleep';
 import { getReports as getBloodTestReports } from '@/lib/db/bloodTests';
+import { getActivities } from '@/lib/db/activity';
 import { calculateHealthScore, type HealthScoreResult } from '../utils/healthScore';
+import type { Activity } from '@/types/activity';
 
 interface BPReading {
   datetime: string;
@@ -14,9 +16,9 @@ interface BPReading {
 
 interface TimelineEntry {
   id: string;
-  type: 'bp' | 'sleep';
+  type: 'bp' | 'sleep' | 'activity';
   date: Date;
-  data: BPReading | SleepEntry;
+  data: BPReading | SleepEntry | Activity;
 }
 
 interface MetricData {
@@ -43,6 +45,7 @@ interface DashboardContextType {
   healthScore: HealthScoreResult | null;
   bpReadings: BPReading[];
   sleepEntries: SleepEntry[];
+  activities: Activity[];
   bloodTestReports: BloodTestReport[];
   timeline: TimelineEntry[];
   periodDays: number;
@@ -57,6 +60,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [allBpReadings, setAllBpReadings] = useState<BPReading[]>([]);
   const [allSleepEntries, setAllSleepEntries] = useState<SleepEntry[]>([]);
+  const [allActivities, setAllActivities] = useState<Activity[]>([]);
   const [bloodTestReports, setBloodTestReports] = useState<BloodTestReport[]>([]);
   const [periodDays, setPeriodDays] = useState(7);
 
@@ -65,10 +69,11 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     setError(null);
 
     try {
-      const [bpResult, sleepResult, bloodTestResult] = await Promise.all([
+      const [bpResult, sleepResult, bloodTestResult, activityResult] = await Promise.all([
         getBPReadings(),
         getSleepEntries(),
         getBloodTestReports(),
+        getActivities(),
       ]);
 
       if (bpResult.error) {
@@ -79,6 +84,9 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       }
       if (bloodTestResult.error) {
         console.error('Blood test fetch error:', bloodTestResult.error);
+      }
+      if (activityResult.error) {
+        console.error('Activity fetch error:', activityResult.error);
       }
 
       // Flatten BP sessions to individual readings
@@ -98,6 +106,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
       setAllBpReadings(bpReadings);
       setAllSleepEntries((sleepResult.data as SleepEntry[]) || []);
+      setAllActivities((activityResult.data as Activity[]) || []);
       setBloodTestReports((bloodTestResult.data as BloodTestReport[]) || []);
     } catch (err) {
       setError('Failed to load dashboard data');
@@ -112,9 +121,13 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Filter data by period (0 = all time)
-  const { bpReadings, sleepEntries } = useMemo(() => {
+  const { bpReadings, sleepEntries, activities } = useMemo(() => {
     if (periodDays === 0) {
-      return { bpReadings: allBpReadings, sleepEntries: allSleepEntries };
+      return {
+        bpReadings: allBpReadings,
+        sleepEntries: allSleepEntries,
+        activities: allActivities,
+      };
     }
 
     const cutoff = new Date();
@@ -123,9 +136,10 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
     const filteredBp = allBpReadings.filter((r) => new Date(r.datetime) >= cutoff);
     const filteredSleep = allSleepEntries.filter((e) => new Date(e.date) >= cutoff);
+    const filteredActivities = allActivities.filter((a) => new Date(a.date) >= cutoff);
 
-    return { bpReadings: filteredBp, sleepEntries: filteredSleep };
-  }, [allBpReadings, allSleepEntries, periodDays]);
+    return { bpReadings: filteredBp, sleepEntries: filteredSleep, activities: filteredActivities };
+  }, [allBpReadings, allSleepEntries, allActivities, periodDays]);
 
   // Calculate health score
   const healthScore = useMemo(() => {
@@ -157,11 +171,21 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       });
     });
 
+    // Add activity entries
+    activities.forEach((a) => {
+      entries.push({
+        id: `activity-${a.id}`,
+        type: 'activity',
+        date: new Date(a.date),
+        data: a,
+      });
+    });
+
     // Sort by date descending
     entries.sort((a, b) => b.date.getTime() - a.date.getTime());
 
     return entries;
-  }, [bpReadings, sleepEntries]);
+  }, [bpReadings, sleepEntries, activities]);
 
   return (
     <DashboardContext.Provider
@@ -171,6 +195,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         healthScore,
         bpReadings,
         sleepEntries,
+        activities,
         bloodTestReports,
         timeline,
         periodDays,

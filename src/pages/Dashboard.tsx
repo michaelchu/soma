@@ -7,6 +7,11 @@ import { DashboardProvider, useDashboard } from './dashboard/context/DashboardCo
 import { getHealthScoreColor, getHealthScoreLabel } from './dashboard/utils/healthScore';
 import { formatDate, formatTimeString } from '@/lib/dateUtils';
 import { ExportModal } from './dashboard/components/ExportModal';
+import {
+  getActivityTypeLabel,
+  formatDuration as formatActivityDuration,
+} from './activity/utils/activityHelpers';
+import type { Activity as ActivityType } from '@/types/activity';
 
 // Period selector component
 function PeriodSelector() {
@@ -373,8 +378,10 @@ function Timeline() {
   const handleEntryClick = (entry: (typeof timeline)[0]) => {
     if (entry.type === 'bp') {
       navigate('/blood-pressure');
-    } else {
+    } else if (entry.type === 'sleep') {
       navigate('/sleep');
+    } else if (entry.type === 'activity') {
+      navigate('/activity');
     }
   };
 
@@ -422,7 +429,7 @@ function Timeline() {
                           ).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                         </span>
                       </div>
-                    ) : (
+                    ) : entry.type === 'sleep' ? (
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span className="text-violet-500">😴</span>
@@ -439,6 +446,19 @@ function Timeline() {
                             {formatTimeString((entry.data as { sleepStart: string }).sleepStart)}
                           </span>
                         )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-green-500">🏃</span>
+                          <span className="text-sm">
+                            {getActivityTypeLabel((entry.data as ActivityType).activityType)}:{' '}
+                            {formatActivityDuration((entry.data as ActivityType).durationMinutes)}
+                          </span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {(entry.data as ActivityType).timeOfDay.replace('_', ' ')}
+                        </span>
                       </div>
                     )}
                   </button>
