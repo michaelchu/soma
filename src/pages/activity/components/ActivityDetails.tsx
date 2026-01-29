@@ -128,7 +128,7 @@ export function ActivityDetails({
   const dates = Array.from(groupedActivities.keys());
 
   return (
-    <div ref={scrollContainerRef} className="mt-6 max-h-[50vh] overflow-y-auto scrollbar-hide">
+    <div ref={scrollContainerRef} className="mt-6 flex-1 min-h-0 overflow-y-auto scrollbar-hide">
       {/* Timeline */}
       <div className="relative">
         {dates.map((date, dateIndex) => {
