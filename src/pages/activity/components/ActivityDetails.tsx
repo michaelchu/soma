@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Clock, Flame, StickyNote } from 'lucide-react';
 import { formatDate } from '@/lib/dateUtils';
 import {
@@ -14,6 +14,7 @@ interface ActivityDetailsProps {
   activities: Activity[];
   allActivities: Activity[];
   onEditActivity: (activity: Activity) => void;
+  selectedDate: string | null;
 }
 
 // Group activities by date for timeline display
@@ -96,28 +97,63 @@ export function ActivityDetails({
   activities,
   allActivities,
   onEditActivity,
+  selectedDate,
 }: ActivityDetailsProps) {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const dateRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  // Scroll to selected date when it changes
+  useEffect(() => {
+    if (!selectedDate) return;
+
+    const dateElement = dateRefs.current.get(selectedDate);
+    if (dateElement && scrollContainerRef.current) {
+      const container = scrollContainerRef.current;
+      const containerRect = container.getBoundingClientRect();
+      const elementRect = dateElement.getBoundingClientRect();
+
+      // Check if element is outside visible area
+      const isAbove = elementRect.top < containerRect.top;
+      const isBelow = elementRect.bottom > containerRect.bottom;
+
+      if (isAbove || isBelow) {
+        dateElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }, [selectedDate]);
+
   if (activities.length === 0) return null;
 
   const groupedActivities = groupByDate(activities);
   const dates = Array.from(groupedActivities.keys());
 
   return (
-    <div className="mt-6">
+    <div ref={scrollContainerRef} className="mt-6 max-h-[50vh] overflow-y-auto scrollbar-hide">
       {/* Timeline */}
       <div className="relative">
         {dates.map((date, dateIndex) => {
           const dayActivities = groupedActivities.get(date) || [];
           const dayScore = calculateDailyActivityScore(dayActivities, allActivities);
           const totalDuration = dayActivities.reduce((sum, a) => sum + a.durationMinutes, 0);
+          const isSelected = date === selectedDate;
 
           return (
-            <div key={date} className="relative">
+            <div
+              key={date}
+              ref={(el) => {
+                if (el) dateRefs.current.set(date, el);
+              }}
+              className="relative"
+            >
               {/* Date Header */}
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-3 h-3 rounded-full bg-foreground" />
+                <div
+                  className={`w-3 h-3 rounded-full transition-colors ${
+                    isSelected ? 'bg-foreground' : 'bg-muted-foreground/50'
+                  }`}
+                />
                 <div className="flex-1">
-                  <span className="font-semibold">
+                  <span className={`font-semibold ${isSelected ? '' : 'text-muted-foreground'}`}>
                     {formatDate(date, { includeWeekday: true })}
                   </span>
                   <span className="text-sm text-muted-foreground ml-3">

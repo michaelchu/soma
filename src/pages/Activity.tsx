@@ -21,6 +21,7 @@ function ActivityContent() {
   const [showExport, setShowExport] = useState(false);
   const [dateRange, setDateRange] = useState('30');
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const filteredActivities = useMemo(
     () => filterActivities(activities, dateRange),
@@ -112,7 +113,12 @@ function ActivityContent() {
             </div>
 
             {/* Activity Chart */}
-            <ActivityChart activities={filteredActivities} allActivities={activities} />
+            <ActivityChart
+              activities={filteredActivities}
+              allActivities={activities}
+              selectedDate={selectedDate}
+              onSelectDate={setSelectedDate}
+            />
 
             {/* Activity Timeline */}
             {filteredActivities.length > 0 && (
@@ -120,6 +126,7 @@ function ActivityContent() {
                 activities={filteredActivities}
                 allActivities={activities}
                 onEditActivity={setEditingActivity}
+                selectedDate={selectedDate}
               />
             )}
           </>

@@ -1,10 +1,12 @@
-import { useRef, useMemo, useCallback, useLayoutEffect, useEffect, useState } from 'react';
+import { useRef, useMemo, useCallback, useLayoutEffect, useEffect } from 'react';
 import { groupActivitiesByDay, type DayActivities } from '../utils/activityHelpers';
 import type { Activity } from '@/types/activity';
 
 interface ActivityChartProps {
   activities: Activity[];
   allActivities: Activity[];
+  selectedDate: string | null;
+  onSelectDate: (date: string) => void;
 }
 
 const BAR_WIDTH = 36;
@@ -78,9 +80,13 @@ function DailyScoreBar({
   );
 }
 
-export function ActivityChart({ activities, allActivities }: ActivityChartProps) {
+export function ActivityChart({
+  activities,
+  allActivities,
+  selectedDate,
+  onSelectDate,
+}: ActivityChartProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   // Group activities by day
   const dailyData = useMemo(
@@ -135,9 +141,9 @@ export function ActivityChart({ activities, allActivities }: ActivityChartProps)
     const clampedIndex = Math.max(0, Math.min(centeredIndex, dailyData.length - 1));
 
     if (dailyData[clampedIndex]) {
-      setSelectedDate(dailyData[clampedIndex].date);
+      onSelectDate(dailyData[clampedIndex].date);
     }
-  }, [dailyData]);
+  }, [dailyData, onSelectDate]);
 
   // Initial scroll to the latest entry (rightmost)
   useLayoutEffect(() => {
@@ -198,7 +204,7 @@ export function ActivityChart({ activities, allActivities }: ActivityChartProps)
               marginRight: index < dailyData.length - 1 ? BAR_GAP : 0,
             }}
             onClick={() => {
-              setSelectedDate(day.date);
+              onSelectDate(day.date);
               scrollToIndex(index);
             }}
           >
