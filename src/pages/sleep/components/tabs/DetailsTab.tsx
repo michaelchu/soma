@@ -14,6 +14,7 @@ import type { SleepEntry } from '@/lib/db/sleep';
 interface DetailsTabProps {
   entries: SleepEntry[];
   allEntries: SleepEntry[];
+  dateRange: string;
 }
 
 const BAR_WIDTH = 36;
@@ -74,6 +75,27 @@ function SleepScoreBar({
       >
         {dayName}
       </span>
+    </div>
+  );
+}
+
+function PlaceholderBar({ date }: { date: string }) {
+  const dateObj = new Date(date);
+  const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+
+  return (
+    <div
+      className="flex flex-col items-center justify-end"
+      style={{ width: BAR_WIDTH, minWidth: BAR_WIDTH }}
+    >
+      {/* Empty placeholder - just a small dot */}
+      <div
+        className="w-2 h-2 rounded-full bg-muted-foreground/20"
+        style={{ marginBottom: MIN_BAR_HEIGHT / 2 - 4 }}
+      />
+
+      {/* Day label */}
+      <span className="text-xs mt-2 text-muted-foreground/50">{dayName}</span>
     </div>
   );
 }
@@ -151,7 +173,16 @@ function SleepStagesDisplay({ entry }: { entry: SleepEntry }) {
   );
 }
 
-export function DetailsTab({ entries, allEntries }: DetailsTabProps) {
+type ChartItem =
+  | {
+      type: 'entry';
+      date: string;
+      entry: SleepEntry;
+      score: ReturnType<typeof calculateSleepScore>;
+    }
+  | { type: 'placeholder'; date: string };
+
+export function DetailsTab({ entries, allEntries, dateRange }: DetailsTabProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -163,13 +194,64 @@ export function DetailsTab({ entries, allEntries }: DetailsTabProps) {
   // Calculate baseline for scoring
   const baseline = useMemo(() => calculatePersonalBaseline(allEntries), [allEntries]);
 
-  // Calculate scores for all entries
+  // Create a map of entries by date for quick lookup
+  const entriesByDate = useMemo(() => {
+    const map = new Map<string, SleepEntry>();
+    for (const entry of sortedEntries) {
+      map.set(entry.date, entry);
+    }
+    return map;
+  }, [sortedEntries]);
+
+  // Generate all dates in the range
+  const allDatesInRange = useMemo(() => {
+    if (sortedEntries.length === 0) return [];
+
+    const days = dateRange === 'all' ? null : parseInt(dateRange, 10);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let startDate: Date;
+    if (days === null) {
+      // For 'all', use the earliest entry date
+      startDate = new Date(sortedEntries[0].date);
+    } else {
+      startDate = new Date(today);
+      startDate.setDate(startDate.getDate() - days + 1);
+    }
+
+    const dates: string[] = [];
+    const current = new Date(startDate);
+    while (current <= today) {
+      const dateStr = current.toISOString().split('T')[0];
+      dates.push(dateStr);
+      current.setDate(current.getDate() + 1);
+    }
+    return dates;
+  }, [sortedEntries, dateRange]);
+
+  // Build chart items combining entries and placeholders
+  const chartItems = useMemo((): ChartItem[] => {
+    return allDatesInRange.map((date) => {
+      const entry = entriesByDate.get(date);
+      if (entry) {
+        return {
+          type: 'entry' as const,
+          date,
+          entry,
+          score: calculateSleepScore(entry, baseline),
+        };
+      }
+      return { type: 'placeholder' as const, date };
+    });
+  }, [allDatesInRange, entriesByDate, baseline]);
+
+  // Get only entries with scores for min/max calculation
   const entriesWithScores = useMemo(() => {
-    return sortedEntries.map((entry) => ({
-      entry,
-      score: calculateSleepScore(entry, baseline),
-    }));
-  }, [sortedEntries, baseline]);
+    return chartItems.filter(
+      (item): item is ChartItem & { type: 'entry' } => item.type === 'entry'
+    );
+  }, [chartItems]);
 
   // Get min/max scores for bar height scaling
   const { minScore, maxScore } = useMemo(() => {
@@ -183,9 +265,24 @@ export function DetailsTab({ entries, allEntries }: DetailsTabProps) {
     };
   }, [entriesWithScores]);
 
-  // Selected entry data
-  const selectedData = entriesWithScores[selectedIndex] || entriesWithScores[0];
-  const selectedEntry = selectedData?.entry;
+  // Selected entry data - find the closest entry when a placeholder is selected
+  const selectedItem = chartItems[selectedIndex];
+  const selectedEntry = useMemo(() => {
+    if (!selectedItem) return entriesWithScores[0]?.entry;
+    if (selectedItem.type === 'entry') return selectedItem.entry;
+    // For placeholder, find nearest entry (prefer earlier date)
+    for (let i = selectedIndex; i >= 0; i--) {
+      if (chartItems[i].type === 'entry') {
+        return (chartItems[i] as ChartItem & { type: 'entry' }).entry;
+      }
+    }
+    for (let i = selectedIndex; i < chartItems.length; i++) {
+      if (chartItems[i].type === 'entry') {
+        return (chartItems[i] as ChartItem & { type: 'entry' }).entry;
+      }
+    }
+    return undefined;
+  }, [selectedItem, selectedIndex, chartItems, entriesWithScores]);
 
   // Handle scroll to auto-select centered bar
   const handleScroll = useCallback(() => {
@@ -202,12 +299,12 @@ export function DetailsTab({ entries, allEntries }: DetailsTabProps) {
 
     // Calculate which bar is centered
     const centeredIndex = Math.round(adjustedOffset / BAR_TOTAL_WIDTH);
-    const clampedIndex = Math.max(0, Math.min(centeredIndex, sortedEntries.length - 1));
+    const clampedIndex = Math.max(0, Math.min(centeredIndex, chartItems.length - 1));
 
     if (clampedIndex !== selectedIndex) {
       setSelectedIndex(clampedIndex);
     }
-  }, [sortedEntries.length, selectedIndex]);
+  }, [chartItems.length, selectedIndex]);
 
   // Scroll to a specific bar index
   const scrollToIndex = useCallback((index: number) => {
@@ -228,10 +325,10 @@ export function DetailsTab({ entries, allEntries }: DetailsTabProps) {
   // Using useLayoutEffect to run synchronously before paint, avoiding visual flash
   useLayoutEffect(() => {
     const container = scrollContainerRef.current;
-    if (!container || sortedEntries.length === 0) return;
+    if (!container || chartItems.length === 0) return;
 
-    // Scroll to the latest entry (last in sorted array)
-    const lastIndex = sortedEntries.length - 1;
+    // Scroll to the latest item (last in sorted array)
+    const lastIndex = chartItems.length - 1;
     const containerWidth = container.clientWidth;
     const paddingLeft = containerWidth / 2 - BAR_WIDTH / 2;
     const targetScroll =
@@ -241,7 +338,7 @@ export function DetailsTab({ entries, allEntries }: DetailsTabProps) {
     // Set initial index - this is intentional initialization, not a cascading update
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedIndex(lastIndex);
-  }, [sortedEntries.length]);
+  }, [chartItems.length]);
 
   // Add scroll listener
   useEffect(() => {
@@ -305,23 +402,27 @@ export function DetailsTab({ entries, allEntries }: DetailsTabProps) {
               }}
             />
 
-            {entriesWithScores.map((data, index) => (
+            {chartItems.map((item, index) => (
               <div
-                key={data.entry.id}
-                className="flex-shrink-0 cursor-pointer"
+                key={item.date}
+                className={`flex-shrink-0 ${item.type === 'entry' ? 'cursor-pointer' : ''}`}
                 style={{
                   scrollSnapAlign: 'center',
-                  marginRight: index < entriesWithScores.length - 1 ? BAR_GAP : 0,
+                  marginRight: index < chartItems.length - 1 ? BAR_GAP : 0,
                 }}
-                onClick={() => scrollToIndex(index)}
+                onClick={() => item.type === 'entry' && scrollToIndex(index)}
               >
-                <SleepScoreBar
-                  entry={data.entry}
-                  score={data.score.overall}
-                  isSelected={index === selectedIndex}
-                  maxScore={maxScore}
-                  minScore={minScore}
-                />
+                {item.type === 'entry' ? (
+                  <SleepScoreBar
+                    entry={item.entry}
+                    score={item.score.overall}
+                    isSelected={index === selectedIndex}
+                    maxScore={maxScore}
+                    minScore={minScore}
+                  />
+                ) : (
+                  <PlaceholderBar date={item.date} />
+                )}
               </div>
             ))}
 
