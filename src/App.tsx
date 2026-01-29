@@ -7,6 +7,7 @@ import Dashboard from '@/pages/Dashboard';
 import BloodTests from '@/pages/BloodTests';
 import BloodPressure from '@/pages/BloodPressure';
 import Sleep from '@/pages/Sleep';
+import Activity from '@/pages/Activity';
 
 export default function App() {
   const { user, loading } = useAuth();
@@ -33,6 +34,7 @@ export default function App() {
         <Route path="/blood-tests" element={<BloodTests />} />
         <Route path="/blood-pressure" element={<BloodPressure />} />
         <Route path="/sleep" element={<Sleep />} />
+        <Route path="/activity" element={<Activity />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <Toaster

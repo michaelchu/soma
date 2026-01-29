@@ -31,6 +31,14 @@
       "icon": "😴",
       "color": "#8b5cf6",
       "route": "/sleep"
+    },
+    {
+      "id": "activity",
+      "name": "Activity",
+      "description": "Track workouts and exercise",
+      "icon": "🏃",
+      "color": "#f97316",
+      "route": "/activity"
     }
   ]
 }
