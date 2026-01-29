@@ -6,7 +6,7 @@ import {
   formatDuration,
   getIntensityLabel,
   getIntensityColor,
-  getTimeOfDayLabel,
+  getActivityTypeLabel,
 } from '../utils/activityHelpers';
 import type { Activity } from '@/types/activity';
 
@@ -67,9 +67,9 @@ function ActivityItem({ activity, onLongPress }: { activity: Activity; onLongPre
       onTouchCancel={handlePressEnd}
       onContextMenu={(e) => e.preventDefault()}
     >
-      {/* Time and Duration */}
+      {/* Activity Type and Details */}
       <div className="flex items-center gap-2 text-sm">
-        <span className="font-medium">{getTimeOfDayLabel(activity.timeOfDay)}</span>
+        <span className="font-medium">{getActivityTypeLabel(activity.activityType)}</span>
         <span className="text-muted-foreground">·</span>
         <span className="text-muted-foreground flex items-center gap-1">
           <Clock className="h-3 w-3" />
