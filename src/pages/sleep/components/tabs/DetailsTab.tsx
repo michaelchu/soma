@@ -209,6 +209,21 @@ export function DetailsTab({ entries, allEntries }: DetailsTabProps) {
     }
   }, [sortedEntries.length, selectedIndex]);
 
+  // Scroll to a specific bar index
+  const scrollToIndex = useCallback((index: number) => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const containerWidth = container.clientWidth;
+    const paddingLeft = containerWidth / 2 - BAR_WIDTH / 2;
+    const targetScroll = index * BAR_TOTAL_WIDTH - containerWidth / 2 + paddingLeft + BAR_WIDTH / 2;
+
+    container.scrollTo({
+      left: Math.max(0, targetScroll),
+      behavior: 'smooth',
+    });
+  }, []);
+
   // Initial scroll to the latest entry (rightmost)
   // Using useLayoutEffect to run synchronously before paint, avoiding visual flash
   useLayoutEffect(() => {
@@ -293,11 +308,12 @@ export function DetailsTab({ entries, allEntries }: DetailsTabProps) {
             {entriesWithScores.map((data, index) => (
               <div
                 key={data.entry.id}
-                className="flex-shrink-0"
+                className="flex-shrink-0 cursor-pointer"
                 style={{
                   scrollSnapAlign: 'center',
                   marginRight: index < entriesWithScores.length - 1 ? BAR_GAP : 0,
                 }}
+                onClick={() => scrollToIndex(index)}
               >
                 <SleepScoreBar
                   entry={data.entry}
