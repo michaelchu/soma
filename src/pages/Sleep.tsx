@@ -71,7 +71,7 @@ function SleepContent() {
       case 'readings':
         return <ReadingsTab entries={filteredEntries} />;
       case 'details':
-        return <DetailsTab entries={filteredEntries} allEntries={entries} />;
+        return <DetailsTab entries={filteredEntries} allEntries={entries} dateRange={dateRange} />;
       case 'statistics':
         return (
           <StatisticsTab entries={filteredEntries} allEntries={entries} dateRange={dateRange} />
