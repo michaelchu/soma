@@ -12,7 +12,7 @@ const ACTIVITY_ICONS: Record<string, { src: string; alt: string }> = {
   pickleball: { src: '/icons/pickleball.png', alt: 'Pickleball' },
 };
 
-// PNG icon component with invert filter
+// PNG icon component with dark mode aware invert filter
 function PngIcon({
   src,
   alt,
@@ -25,8 +25,7 @@ function PngIcon({
       alt={alt}
       width={size}
       height={size}
-      className={`${className} invert`}
-      style={{ filter: 'invert(1)' }}
+      className={`${className} invert dark:invert-0`}
     />
   );
 }
