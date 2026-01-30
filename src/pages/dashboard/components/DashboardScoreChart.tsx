@@ -16,14 +16,32 @@ interface MetricCardProps {
   unit?: string;
   icon?: ReactNode;
   iconColorClass?: string;
+  accentColor?: 'bp' | 'sleep' | 'activity' | 'blood-tests';
   onClick?: () => void;
 }
 
-function MetricCard({ label, value, unit, icon, iconColorClass, onClick }: MetricCardProps) {
+const accentGradients = {
+  bp: 'bg-gradient-to-br from-bp/20 via-bp/5 to-transparent',
+  sleep: 'bg-gradient-to-br from-sleep/20 via-sleep/5 to-transparent',
+  activity: 'bg-gradient-to-br from-activity/20 via-activity/5 to-transparent',
+  'blood-tests': 'bg-gradient-to-br from-blood-tests/20 via-blood-tests/5 to-transparent',
+};
+
+function MetricCard({
+  label,
+  value,
+  unit,
+  icon,
+  iconColorClass,
+  accentColor,
+  onClick,
+}: MetricCardProps) {
+  const gradientClass = accentColor ? accentGradients[accentColor] : '';
+
   return (
     <button
       onClick={onClick}
-      className="bg-muted/50 rounded-xl p-3 border border-border text-left w-full hover:bg-muted/70 hover:border-primary/30 transition-colors active:scale-[0.98]"
+      className={`rounded-xl p-3 border border-white/10 text-left w-full hover:border-white/20 transition-colors active:scale-[0.98] ${gradientClass}`}
     >
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-baseline gap-0.5">
@@ -235,6 +253,7 @@ export function DashboardScoreChart({ children }: DashboardScoreChartProps) {
             }
             icon={<Activity size={18} />}
             iconColorClass="text-bp"
+            accentColor="bp"
             onClick={() => navigate('/blood-pressure')}
           />
           <MetricCard
@@ -242,6 +261,7 @@ export function DashboardScoreChart({ children }: DashboardScoreChartProps) {
             value={selectedDayData.sleepScore}
             icon={<Moon size={18} />}
             iconColorClass="text-sleep"
+            accentColor="sleep"
             onClick={() => navigate('/sleep')}
           />
           <MetricCard
@@ -249,12 +269,13 @@ export function DashboardScoreChart({ children }: DashboardScoreChartProps) {
             value={selectedDayData.activityScore}
             icon={<Flame size={18} />}
             iconColorClass="text-activity"
+            accentColor="activity"
             onClick={() => navigate('/activity')}
           />
           {bloodTestCounts ? (
             <button
               onClick={() => navigate('/blood-tests')}
-              className="bg-muted/50 rounded-xl p-3 border border-border text-left w-full hover:bg-muted/70 hover:border-primary/30 transition-colors active:scale-[0.98]"
+              className="rounded-xl p-3 border border-white/10 text-left w-full hover:border-white/20 transition-colors active:scale-[0.98] bg-gradient-to-br from-blood-tests/20 via-blood-tests/5 to-transparent"
             >
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
@@ -283,6 +304,7 @@ export function DashboardScoreChart({ children }: DashboardScoreChartProps) {
               value={null}
               icon={<FlaskConical size={18} />}
               iconColorClass="text-blood-tests"
+              accentColor="blood-tests"
               onClick={() => navigate('/blood-tests')}
             />
           )}

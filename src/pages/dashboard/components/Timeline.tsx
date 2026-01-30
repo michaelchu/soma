@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { Activity, Moon, Flame } from 'lucide-react';
 import { useDashboard } from '../context/DashboardContext';
 import { formatDate, formatTimeString } from '@/lib/dateUtils';
 import {
@@ -92,7 +93,7 @@ export function Timeline() {
                     {entry.type === 'bp' ? (
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className="text-pink-500">💓</span>
+                          <Activity className="h-4 w-4 text-bp" />
                           <span className="text-sm">
                             BP: {(entry.data as { systolic: number; diastolic: number }).systolic}/
                             {(entry.data as { systolic: number; diastolic: number }).diastolic}
@@ -107,7 +108,7 @@ export function Timeline() {
                     ) : entry.type === 'sleep' ? (
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className="text-violet-500">😴</span>
+                          <Moon className="h-4 w-4 text-sleep" />
                           <span className="text-sm">
                             Sleep:{' '}
                             {Math.floor(
@@ -125,7 +126,7 @@ export function Timeline() {
                     ) : (
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className="text-green-500">🏃</span>
+                          <Flame className="h-4 w-4 text-activity" />
                           <span className="text-sm">
                             {getActivityTypeLabel((entry.data as ActivityType).activityType)}:{' '}
                             {formatActivityDuration((entry.data as ActivityType).durationMinutes)}
