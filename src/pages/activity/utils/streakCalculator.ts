@@ -10,7 +10,6 @@ export interface WeekData {
 export interface StreakData {
   currentStreak: number; // Consecutive weeks with activity
   streakActivities: number; // Total activities in current streak
-  weeklyData: WeekData[]; // Data for weeks in the displayed month
 }
 
 /**
@@ -100,7 +99,7 @@ export function getActivitiesInWeek(
  */
 export function calculateStreak(activities: Activity[], today: Date = new Date()): StreakData {
   if (activities.length === 0) {
-    return { currentStreak: 0, streakActivities: 0, weeklyData: [] };
+    return { currentStreak: 0, streakActivities: 0 };
   }
 
   const { start: currentWeekStart, end: currentWeekEnd } = getWeekBounds(today);
@@ -140,7 +139,7 @@ export function calculateStreak(activities: Activity[], today: Date = new Date()
     checkWeekEnd.setDate(checkWeekEnd.getDate() - 7);
   }
 
-  return { currentStreak: streak, streakActivities, weeklyData: [] };
+  return { currentStreak: streak, streakActivities };
 }
 
 /**

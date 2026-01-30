@@ -13,6 +13,13 @@ import {
   type WeekData,
 } from '../utils/streakCalculator';
 
+// Layout constants for streak bar calculations
+const ROW_HEIGHT = 48; // h-12 in pixels
+const ROW_GAP = 4; // gap-1 in pixels
+const ROW_TOTAL = ROW_HEIGHT + ROW_GAP; // 52px per row
+const ICON_SIZE = 24; // h-6 in pixels
+const ICON_OFFSET = (ROW_HEIGHT - ICON_SIZE) / 2; // 12px - centers icon in row
+
 interface ActivityCalendarProps {
   activities: Activity[];
   onEditActivity: (activity: Activity) => void;
@@ -94,26 +101,20 @@ function WeekStreakIndicator({
   streakCount: number;
   isViewingCurrentMonth: boolean;
 }) {
-  // Current week in a streak shows streak count instead of checkmark (only when viewing current month)
-  if (isCurrentWeek && isInStreak && streakCount > 0 && isViewingCurrentMonth) {
-    return (
-      <div className="h-12 w-10 flex items-center justify-center relative z-10">
-        <div className="h-6 w-6 rounded-full flex items-center justify-center bg-orange-500">
-          <span className="text-white font-bold text-xs">{streakCount}</span>
-        </div>
-      </div>
-    );
-  }
+  const showStreakCount = isCurrentWeek && isInStreak && streakCount > 0 && isViewingCurrentMonth;
+  const showCheckmark = (hasActivity || isInStreak) && !showStreakCount;
+
+  const circleClassName = isInStreak
+    ? 'bg-orange-500'
+    : hasActivity
+      ? 'bg-muted-foreground'
+      : 'border-2 border-muted-foreground/30';
 
   return (
     <div className="h-12 w-10 flex items-center justify-center relative z-10">
-      <div
-        className={`
-          h-6 w-6 rounded-full flex items-center justify-center
-          ${isInStreak ? 'bg-orange-500' : hasActivity ? 'bg-muted-foreground' : 'border-2 border-muted-foreground/30'}
-        `}
-      >
-        {(hasActivity || isInStreak) && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
+      <div className={`h-6 w-6 rounded-full flex items-center justify-center ${circleClassName}`}>
+        {showStreakCount && <span className="text-white font-bold text-xs">{streakCount}</span>}
+        {showCheckmark && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
       </div>
     </div>
   );
@@ -173,11 +174,8 @@ function StreakBar({
           <div
             className="absolute left-1/2 -translate-x-1/2 w-8 bg-orange-500/20 rounded-full"
             style={{
-              // Each row = h-12 (48px) + gap-1 (4px) = 52px
-              // Icon is h-6 (24px), centered in h-12 container, so 12px padding above/below
-              top: `${firstStreakIndex * 52 + 12}px`,
-              // Height: span all rows from first to last, plus extra to reach bottom icon
-              height: `${(lastStreakIndex - firstStreakIndex) * 52 + 72}px`,
+              top: `${firstStreakIndex * ROW_TOTAL + ICON_OFFSET}px`,
+              height: `${(lastStreakIndex - firstStreakIndex) * ROW_TOTAL + ICON_SIZE + ROW_HEIGHT}px`,
             }}
           />
         )}
