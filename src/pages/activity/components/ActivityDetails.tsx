@@ -7,6 +7,7 @@ import {
   getIntensityLabel,
   getIntensityColor,
   getActivityTypeLabel,
+  getActivityTypeIcon,
 } from '../utils/activityHelpers';
 import type { Activity } from '@/types/activity';
 
@@ -40,6 +41,14 @@ function ActivityItem({ activity, onLongPress }: { activity: Activity; onLongPre
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isPressing, setIsPressing] = useState(false);
 
+  const cancelPress = useCallback(() => {
+    setIsPressing(false);
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
   const handlePressStart = useCallback(() => {
     setIsPressing(true);
     timerRef.current = setTimeout(() => {
@@ -49,38 +58,42 @@ function ActivityItem({ activity, onLongPress }: { activity: Activity; onLongPre
   }, [onLongPress]);
 
   const handlePressEnd = useCallback(() => {
-    setIsPressing(false);
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-  }, []);
+    cancelPress();
+  }, [cancelPress]);
+
+  const handleTouchMove = useCallback(() => {
+    // Cancel long-press if user starts scrolling
+    cancelPress();
+  }, [cancelPress]);
 
   return (
     <div
-      className={`space-y-1 select-none transition-opacity ${isPressing ? 'opacity-60' : ''}`}
+      className={`select-none transition-opacity p-2 rounded-lg hover:bg-muted/50 ${isPressing ? 'opacity-60' : ''}`}
       onMouseDown={handlePressStart}
       onMouseUp={handlePressEnd}
       onMouseLeave={handlePressEnd}
       onTouchStart={handlePressStart}
       onTouchEnd={handlePressEnd}
       onTouchCancel={handlePressEnd}
+      onTouchMove={handleTouchMove}
       onContextMenu={(e) => e.preventDefault()}
     >
-      {/* Activity Type and Details */}
-      <div className="flex items-center text-sm">
-        <span className="font-medium w-28">{getActivityTypeLabel(activity.activityType)}</span>
-        <span className="text-muted-foreground w-16">
-          {formatDuration(activity.durationMinutes)}
-        </span>
-        <span className={getIntensityColor(activity.intensity)}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-green-500">{getActivityTypeIcon(activity.activityType)}</span>
+          <span className="text-sm">
+            {getActivityTypeLabel(activity.activityType)}:{' '}
+            {formatDuration(activity.durationMinutes)}
+          </span>
+        </div>
+        <span className={`text-xs ${getIntensityColor(activity.intensity)}`}>
           {getIntensityLabel(activity.intensity)}
         </span>
       </div>
 
       {/* Notes */}
       {activity.notes && (
-        <div className="flex items-start gap-1.5 text-sm text-muted-foreground">
+        <div className="flex items-start gap-1.5 text-sm text-muted-foreground mt-1 ml-6">
           <StickyNote className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
           <span className="whitespace-pre-wrap">{activity.notes}</span>
         </div>

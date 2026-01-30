@@ -230,6 +230,21 @@ export function getActivityTypeLabel(type: ActivityType): string {
 }
 
 /**
+ * Get activity type emoji icon
+ * @param type Activity type
+ * @returns Emoji for the activity
+ */
+export function getActivityTypeIcon(type: ActivityType): string {
+  const icons: Record<ActivityType, string> = {
+    walking: '🚶',
+    badminton: '🏸',
+    pickleball: '🏓',
+    other: '🏃',
+  };
+  return icons[type] || '🏃';
+}
+
+/**
  * Get time of day label
  * @param timeOfDay Time of day value
  * @returns Display label
