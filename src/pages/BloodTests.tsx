@@ -172,7 +172,7 @@ export default function BloodTests() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-blood-tests flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="animate-spin text-primary mx-auto mb-4" size={32} />
           <p className="text-muted-foreground">Loading blood test reports...</p>
@@ -183,7 +183,7 @@ export default function BloodTests() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-blood-tests flex items-center justify-center">
         <div className="text-center">
           <AlertTriangle className="text-red-600 dark:text-red-400 mx-auto mb-4" size={32} />
           <p className="text-red-600 dark:text-red-400 font-semibold mb-2">Error loading reports</p>
@@ -254,7 +254,7 @@ export default function BloodTests() {
       className="flex items-center gap-2 hover:opacity-80 transition-opacity"
       title="Go to Home"
     >
-      <FlaskConical className="h-6 w-6 text-foreground" strokeWidth={2.5} />
+      <FlaskConical className="h-6 w-6 text-blood-tests" strokeWidth={2.5} />
       <span className="text-xl font-bold">Soma</span>
     </button>
   );
@@ -283,15 +283,15 @@ export default function BloodTests() {
   );
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-blood-tests">
       <Navbar leftContent={leftContent} rightContent={rightContent} />
 
       <main className="max-w-7xl mx-auto px-5 sm:px-6 pb-3 sm:pb-4">
         <div>
           <div
-            className={`flex gap-2 pb-3 overflow-x-auto scrollbar-hide -mx-5 px-5 sm:-mx-6 sm:px-6 sm:overflow-visible sticky top-[49px] z-10 bg-background py-2 ${isScrolled ? 'border-b' : ''}`}
+            className={`flex gap-2 pb-3 overflow-x-auto scrollbar-hide -mx-5 px-5 sm:-mx-6 sm:px-6 sm:overflow-visible sticky top-[49px] z-10 bg-black/30 backdrop-blur-md py-2 ${isScrolled ? 'border-b border-white/10' : ''}`}
           >
-            <div className="flex rounded-lg border bg-card overflow-hidden text-xs font-medium h-8 flex-shrink-0">
+            <div className="flex rounded-lg border border-white/10 bg-black/20 backdrop-blur-sm overflow-hidden text-xs font-medium h-8 flex-shrink-0">
               <button
                 onClick={() => setFilter('all')}
                 className={`px-2.5 sm:px-4 ${filter === 'all' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-accent'}`}
@@ -326,7 +326,7 @@ export default function BloodTests() {
                 });
                 setCollapsedCategories(newState);
               }}
-              className="flex items-center justify-center h-8 w-8 rounded-lg border bg-card text-muted-foreground hover:bg-accent hover:text-foreground transition-colors flex-shrink-0"
+              className="flex items-center justify-center h-8 w-8 rounded-lg border border-white/10 bg-black/20 backdrop-blur-sm text-muted-foreground hover:bg-white/10 hover:text-foreground transition-colors flex-shrink-0"
               title={
                 Object.keys(CATEGORY_INFO).every((key) => collapsedCategories[key] === false)
                   ? 'Collapse all categories'

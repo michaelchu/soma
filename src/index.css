@@ -7,40 +7,20 @@
 @layer base {
   :root {
     --font-sans: 'LINE Seed JP';
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 5.9% 10%;
     --radius: 0.5rem;
-  }
 
-  .dark {
+    /* Dark mode only - base colors */
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
+    --card: 240 10% 6%;
     --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
+    --popover: 240 10% 6%;
     --popover-foreground: 0 0% 98%;
     --primary: 0 0% 98%;
     --primary-foreground: 240 5.9% 10%;
     --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
+    --muted: 240 3.7% 12%;
     --muted-foreground: 240 5% 64.9%;
     --accent: 240 3.7% 15.9%;
     --accent-foreground: 0 0% 98%;
@@ -49,6 +29,12 @@
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
     --ring: 240 4.9% 83.9%;
+
+    /* Page accent colors */
+    --color-bp: 347 77% 50%; /* Rose - Blood Pressure */
+    --color-sleep: 263 70% 58%; /* Violet - Sleep */
+    --color-activity: 25 95% 53%; /* Orange - Activity */
+    --color-blood-tests: 189 94% 43%; /* Cyan - Blood Tests */
   }
 }
 
@@ -102,4 +88,39 @@ body {
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+}
+
+/* Page gradient backgrounds - fixed position to cover entire viewport */
+.bg-gradient-bp,
+.bg-gradient-sleep,
+.bg-gradient-activity,
+.bg-gradient-blood-tests {
+  position: relative;
+}
+
+.bg-gradient-bp::before,
+.bg-gradient-sleep::before,
+.bg-gradient-activity::before,
+.bg-gradient-blood-tests::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.bg-gradient-bp::before {
+  background: linear-gradient(to bottom, hsl(var(--color-bp) / 0.2) 0%, hsl(0 0% 0%) 100%);
+}
+
+.bg-gradient-sleep::before {
+  background: linear-gradient(to bottom, hsl(var(--color-sleep) / 0.2) 0%, hsl(0 0% 0%) 100%);
+}
+
+.bg-gradient-activity::before {
+  background: linear-gradient(to bottom, hsl(var(--color-activity) / 0.2) 0%, hsl(0 0% 0%) 100%);
+}
+
+.bg-gradient-blood-tests::before {
+  background: linear-gradient(to bottom, hsl(var(--color-blood-tests) / 0.2) 0%, hsl(0 0% 0%) 100%);
 }

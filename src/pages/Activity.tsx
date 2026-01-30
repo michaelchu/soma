@@ -28,7 +28,7 @@ function ActivityContent() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-gradient-activity">
       <Navbar
         leftContent={
           <button
@@ -36,7 +36,7 @@ function ActivityContent() {
             className="flex items-center gap-2 hover:opacity-80 transition-opacity"
             title="Go to Home"
           >
-            <Flame className="h-6 w-6 text-foreground" strokeWidth={2.5} />
+            <Flame className="h-6 w-6 text-activity" strokeWidth={2.5} />
             <span className="text-xl font-bold">Soma</span>
           </button>
         }

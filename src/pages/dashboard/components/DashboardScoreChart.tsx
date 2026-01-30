@@ -15,10 +15,11 @@ interface MetricCardProps {
   value: string | number | null;
   unit?: string;
   icon?: ReactNode;
+  iconColorClass?: string;
   onClick?: () => void;
 }
 
-function MetricCard({ label, value, unit, icon, onClick }: MetricCardProps) {
+function MetricCard({ label, value, unit, icon, iconColorClass, onClick }: MetricCardProps) {
   return (
     <button
       onClick={onClick}
@@ -29,7 +30,7 @@ function MetricCard({ label, value, unit, icon, onClick }: MetricCardProps) {
           <span className="text-xl font-bold text-foreground">{value ?? '—'}</span>
           {unit && value !== null && <span className="text-sm text-muted-foreground">{unit}</span>}
         </div>
-        {icon && <div className="text-muted-foreground">{icon}</div>}
+        {icon && <div className={iconColorClass || 'text-muted-foreground'}>{icon}</div>}
       </div>
       <span className="text-xs text-muted-foreground uppercase tracking-wide">{label}</span>
     </button>
@@ -233,18 +234,21 @@ export function DashboardScoreChart({ children }: DashboardScoreChartProps) {
                 : null
             }
             icon={<Activity size={18} />}
+            iconColorClass="text-bp"
             onClick={() => navigate('/blood-pressure')}
           />
           <MetricCard
             label="Sleep Score"
             value={selectedDayData.sleepScore}
             icon={<Moon size={18} />}
+            iconColorClass="text-sleep"
             onClick={() => navigate('/sleep')}
           />
           <MetricCard
             label="Activity Score"
             value={selectedDayData.activityScore}
             icon={<Flame size={18} />}
+            iconColorClass="text-activity"
             onClick={() => navigate('/activity')}
           />
           {bloodTestCounts ? (
@@ -254,18 +258,18 @@ export function DashboardScoreChart({ children }: DashboardScoreChartProps) {
             >
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
-                  <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                  <span className="flex items-center gap-1 text-green-400">
                     <CheckCircle2 size={14} />
                     <span className="text-sm font-semibold">{bloodTestCounts.normalCount}</span>
                   </span>
                   {bloodTestCounts.abnormalCount > 0 && (
-                    <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                    <span className="flex items-center gap-1 text-amber-400">
                       <AlertTriangle size={14} />
                       <span className="text-sm font-semibold">{bloodTestCounts.abnormalCount}</span>
                     </span>
                   )}
                 </div>
-                <div className="text-muted-foreground">
+                <div className="text-blood-tests">
                   <FlaskConical size={18} />
                 </div>
               </div>
@@ -278,6 +282,7 @@ export function DashboardScoreChart({ children }: DashboardScoreChartProps) {
               label="Blood Tests"
               value={null}
               icon={<FlaskConical size={18} />}
+              iconColorClass="text-blood-tests"
               onClick={() => navigate('/blood-tests')}
             />
           )}

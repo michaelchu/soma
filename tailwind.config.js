@@ -56,6 +56,11 @@ export default {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        /* Page accent colors */
+        bp: 'hsl(var(--color-bp))',
+        sleep: 'hsl(var(--color-sleep))',
+        activity: 'hsl(var(--color-activity))',
+        'blood-tests': 'hsl(var(--color-blood-tests))',
       },
       borderRadius: {
         lg: 'var(--radius)',

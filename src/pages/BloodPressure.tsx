@@ -84,7 +84,7 @@ function BloodPressureContent() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background pb-14 md:pb-0">
+    <div className="min-h-screen flex flex-col bg-gradient-bp pb-14 md:pb-0">
       <Navbar
         leftContent={
           <button
@@ -92,7 +92,7 @@ function BloodPressureContent() {
             className="flex items-center gap-2 hover:opacity-80 transition-opacity"
             title="Go to Home"
           >
-            <Activity className="h-6 w-6 text-foreground" strokeWidth={2.5} />
+            <Activity className="h-6 w-6 text-bp" strokeWidth={2.5} />
             <span className="text-xl font-bold">Soma</span>
           </button>
         }
@@ -144,7 +144,7 @@ function BloodPressureContent() {
         ) : (
           <>
             {/* Filter Bar */}
-            <div className="sticky top-[49px] z-10 bg-background pb-2 mb-0 md:mb-4 -mx-5 sm:-mx-6 md:mx-0 px-5 sm:px-6 md:px-0 border-b -mt-4 pt-2">
+            <div className="sticky top-[49px] z-10 bg-black/30 backdrop-blur-md pb-2 mb-0 md:mb-4 -mx-5 sm:-mx-6 md:mx-0 px-5 sm:px-6 md:px-0 border-b border-white/10 -mt-4 pt-2">
               <FilterBar
                 dateRange={dateRange}
                 timeOfDay={timeOfDay}
