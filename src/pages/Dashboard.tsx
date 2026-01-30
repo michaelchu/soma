@@ -54,14 +54,13 @@ function DashboardContent() {
       />
 
       <main className="flex-1 max-w-2xl mx-auto w-full px-5 sm:px-6 py-6 space-y-8">
-        {/* Health Score Chart */}
+        {/* Health Score Chart with Insights above metrics */}
         <section>
-          <DashboardScoreChart />
-        </section>
-
-        {/* Insights */}
-        <section className="border-t pt-6">
-          <Insights />
+          <DashboardScoreChart>
+            <div className="pt-4 pb-2">
+              <Insights />
+            </div>
+          </DashboardScoreChart>
         </section>
 
         {/* Timeline */}

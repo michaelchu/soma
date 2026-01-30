@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, type ReactNode } from 'react';
 import { formatDate } from '@/lib/dateUtils';
 import { ScoreBarChart, type ScoreBarChartItem } from '@/components/shared/ScoreBarChart';
 import { useDashboard } from '../context/DashboardContext';
@@ -26,7 +26,11 @@ function MetricCard({
   );
 }
 
-export function DashboardScoreChart() {
+interface DashboardScoreChartProps {
+  children?: ReactNode;
+}
+
+export function DashboardScoreChart({ children }: DashboardScoreChartProps) {
   const { bpReadings, sleepEntries } = useDashboard();
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -173,6 +177,9 @@ export function DashboardScoreChart() {
           />
         </div>
       </div>
+
+      {/* Children (e.g., Insights) rendered between chart and metrics */}
+      {children}
 
       {/* Selected Day Metrics */}
       {selectedDayData && (
