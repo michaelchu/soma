@@ -93,7 +93,7 @@ function ActivityContent() {
       />
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden max-w-7xl mx-auto w-full px-5 sm:px-6">
+      <main className="flex-1 flex flex-col max-w-7xl mx-auto w-full px-5 sm:px-6">
         {activities.length === 0 ? (
           <Card className="mt-4">
             <CardContent className="py-12 text-center">
