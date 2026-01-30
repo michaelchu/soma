@@ -7,11 +7,22 @@ import {
 } from '@/pages/activity/utils/activityHelpers';
 import type { Activity as ActivityType } from '@/types/activity';
 
+const TIMELINE_DAYS = 30;
+
 export function Timeline() {
   const { timeline } = useDashboard();
   const navigate = useNavigate();
 
-  if (timeline.length === 0) {
+  // Filter timeline to only show entries from the last 30 days
+  const filteredTimeline = timeline.filter((entry) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const cutoffDate = new Date(today);
+    cutoffDate.setDate(cutoffDate.getDate() - TIMELINE_DAYS + 1);
+    return entry.date >= cutoffDate;
+  });
+
+  if (filteredTimeline.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
         <p>No recent activity</p>
@@ -21,7 +32,7 @@ export function Timeline() {
 
   // Group by date
   const grouped: { [date: string]: typeof timeline } = {};
-  timeline.forEach((entry) => {
+  filteredTimeline.forEach((entry) => {
     const dateKey = entry.date.toDateString();
     if (!grouped[dateKey]) {
       grouped[dateKey] = [];

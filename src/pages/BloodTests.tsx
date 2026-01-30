@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Activity,
+  FlaskConical,
   AlertTriangle,
   Calendar,
   Download,
@@ -12,6 +12,7 @@ import {
   Beaker,
   Plus,
   SearchX,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FabButton } from '@/components/ui/fab-button';
@@ -173,7 +174,7 @@ export default function BloodTests() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <Activity className="animate-spin text-primary mx-auto mb-4" size={32} />
+          <Loader2 className="animate-spin text-primary mx-auto mb-4" size={32} />
           <p className="text-muted-foreground">Loading blood test reports...</p>
         </div>
       </div>
@@ -253,7 +254,7 @@ export default function BloodTests() {
       className="flex items-center gap-2 hover:opacity-80 transition-opacity"
       title="Go to Home"
     >
-      <Activity className="h-6 w-6 text-foreground" strokeWidth={2.5} />
+      <FlaskConical className="h-6 w-6 text-foreground" strokeWidth={2.5} />
       <span className="text-xl font-bold">Soma</span>
     </button>
   );
