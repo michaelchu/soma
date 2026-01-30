@@ -23,12 +23,18 @@ export function ChartsTab({ readings, dateRange = 'all' }) {
   return (
     <Tabs defaultValue="timeline" className="w-full pt-4">
       <div className="flex justify-center">
-        <TabsList className="mb-4">
-          <TabsTrigger value="timeline" className="gap-1.5">
+        <TabsList className="mb-4 bg-transparent border border-white/10">
+          <TabsTrigger
+            value="timeline"
+            className="gap-1.5 data-[state=active]:bg-white/20 data-[state=active]:shadow-none"
+          >
             <LineChart className="h-4 w-4" />
             Timeline
           </TabsTrigger>
-          <TabsTrigger value="scatter" className="gap-1.5">
+          <TabsTrigger
+            value="scatter"
+            className="gap-1.5 data-[state=active]:bg-white/20 data-[state=active]:shadow-none"
+          >
             <ScatterChart className="h-4 w-4" />
             Distribution
           </TabsTrigger>
