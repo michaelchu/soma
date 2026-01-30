@@ -1,12 +1,6 @@
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
+import { DateRangeTabs } from '@/components/shared/DateRangeTabs';
 import { isInTimeOfDay, getDateRange } from '@/lib/dateUtils';
-
-const DATE_RANGES = [
-  { value: '7', label: '7d' },
-  { value: '30', label: '30d' },
-  { value: '90', label: '90d' },
-  { value: 'all', label: 'All' },
-];
 
 const TIME_OF_DAY = [
   { value: 'all', label: 'Any Time', shortLabel: 'Any Time' },
@@ -21,21 +15,7 @@ export function FilterBar({ dateRange, timeOfDay, onDateRangeChange, onTimeOfDay
 
   return (
     <div className="flex gap-2 md:justify-start">
-      <div className="flex gap-1 rounded-md p-0.5 h-8 items-center border border-white/10">
-        {DATE_RANGES.map((range) => (
-          <button
-            key={range.value}
-            onClick={() => onDateRangeChange(range.value)}
-            className={`px-2 py-1 text-sm font-medium rounded transition-colors ${
-              dateRange === range.value
-                ? 'bg-white/20 text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {range.label}
-          </button>
-        ))}
-      </div>
+      <DateRangeTabs value={dateRange} onChange={onDateRangeChange} />
 
       <Select value={timeOfDay} onValueChange={onTimeOfDayChange}>
         <SelectTrigger className="min-w-0 flex-1 h-8">
