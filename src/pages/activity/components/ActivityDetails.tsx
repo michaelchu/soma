@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Clock, Flame, StickyNote } from 'lucide-react';
+import { StickyNote } from 'lucide-react';
 import { formatDate } from '@/lib/dateUtils';
 import {
   calculateDailyActivityScore,
@@ -68,16 +68,12 @@ function ActivityItem({ activity, onLongPress }: { activity: Activity; onLongPre
       onContextMenu={(e) => e.preventDefault()}
     >
       {/* Activity Type and Details */}
-      <div className="flex items-center gap-2 text-sm">
-        <span className="font-medium">{getActivityTypeLabel(activity.activityType)}</span>
-        <span className="text-muted-foreground">·</span>
-        <span className="text-muted-foreground flex items-center gap-1">
-          <Clock className="h-3 w-3" />
+      <div className="flex items-center text-sm">
+        <span className="font-medium w-28">{getActivityTypeLabel(activity.activityType)}</span>
+        <span className="text-muted-foreground w-16">
           {formatDuration(activity.durationMinutes)}
         </span>
-        <span className="text-muted-foreground">·</span>
-        <span className={`flex items-center gap-1 ${getIntensityColor(activity.intensity)}`}>
-          <Flame className="h-3 w-3" />
+        <span className={getIntensityColor(activity.intensity)}>
           {getIntensityLabel(activity.intensity)}
         </span>
       </div>
@@ -128,13 +124,15 @@ export function ActivityDetails({
   const dates = Array.from(groupedActivities.keys());
 
   return (
-    <div ref={scrollContainerRef} className="mt-6 max-h-[50vh] overflow-y-auto scrollbar-hide">
+    <div
+      ref={scrollContainerRef}
+      className="mt-6 max-h-[calc(100vh-350px)] overflow-y-auto scrollbar-hide"
+    >
       {/* Timeline */}
       <div className="relative">
         {dates.map((date, dateIndex) => {
           const dayActivities = groupedActivities.get(date) || [];
           const dayScore = calculateDailyActivityScore(dayActivities, allActivities);
-          const totalDuration = dayActivities.reduce((sum, a) => sum + a.durationMinutes, 0);
           const isSelected = date === selectedDate;
 
           return (
@@ -156,9 +154,7 @@ export function ActivityDetails({
                   <span className={`font-semibold ${isSelected ? '' : 'text-muted-foreground'}`}>
                     {formatDate(date, { includeWeekday: true })}
                   </span>
-                  <span className="text-sm text-muted-foreground ml-3">
-                    {dayScore} pts · {formatDuration(totalDuration)}
-                  </span>
+                  <span className="text-sm text-muted-foreground ml-3">{dayScore} pts</span>
                 </div>
               </div>
 
