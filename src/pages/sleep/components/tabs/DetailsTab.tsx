@@ -214,6 +214,16 @@ export function DetailsTab({ entries, allEntries, dateRange }: DetailsTabProps) 
       {/* Selected Day Stats */}
       {selectedEntry && (
         <div className="space-y-4 px-5 sm:px-6 pb-8">
+          {/* Sleep Window */}
+          {sleepWindow && (
+            <div className="rounded-xl p-4 border border-border text-center">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                Sleep Window
+              </p>
+              <p className="text-lg font-semibold text-foreground">{sleepWindow}</p>
+            </div>
+          )}
+
           {/* Primary Stats Grid */}
           <div className="grid grid-cols-2 gap-3">
             <MetricCard
@@ -272,16 +282,6 @@ export function DetailsTab({ entries, allEntries, dateRange }: DetailsTabProps) 
               <MetricCard icon={Move} label="Movements" value={selectedEntry.movementCount} />
             )}
           </div>
-
-          {/* Sleep Window */}
-          {sleepWindow && (
-            <div className="rounded-xl p-4 border border-border text-center">
-              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-                Sleep Window
-              </p>
-              <p className="text-lg font-semibold text-foreground">{sleepWindow}</p>
-            </div>
-          )}
 
           {/* Notes */}
           {selectedEntry.notes && (
