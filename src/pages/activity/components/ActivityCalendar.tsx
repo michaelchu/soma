@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { Activity, ActivityType } from '@/types/activity';
 import { ActivityIcon } from './ActivityIcons';
 import {
@@ -202,6 +203,7 @@ export function ActivityCalendar({ activities, onEditActivity }: ActivityCalenda
   const today = useMemo(() => new Date(), []);
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
+  const [selectActivities, setSelectActivities] = useState<Activity[] | null>(null);
 
   // Calculate streak data
   const streakData = useMemo(() => calculateStreak(activities, today), [activities, today]);
@@ -261,11 +263,21 @@ export function ActivityCalendar({ activities, onEditActivity }: ActivityCalenda
     }
   };
 
-  // Handle day click - open edit modal for first activity
+  // Handle day click - show selection dialog if multiple activities, else edit directly
   const handleDayClick = (dayActivities: Activity[]) => {
-    if (dayActivities.length > 0) {
+    if (dayActivities.length === 0) return;
+
+    if (dayActivities.length === 1) {
       onEditActivity(dayActivities[0]);
+    } else {
+      setSelectActivities(dayActivities);
     }
+  };
+
+  // Handle activity selection from dialog
+  const handleActivitySelect = (activity: Activity) => {
+    setSelectActivities(null);
+    onEditActivity(activity);
   };
 
   // Format month name
@@ -390,6 +402,41 @@ export function ActivityCalendar({ activities, onEditActivity }: ActivityCalenda
           isViewingCurrentMonth={isViewingCurrentMonth}
         />
       </div>
+
+      {/* Activity selection dialog for days with multiple activities */}
+      <Dialog open={!!selectActivities} onOpenChange={() => setSelectActivities(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Select Activity</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 py-2">
+            {selectActivities?.map((activity) => (
+              <Button
+                key={activity.id}
+                variant="outline"
+                className="w-full justify-start gap-3 h-auto py-3"
+                onClick={() => handleActivitySelect(activity)}
+              >
+                <div className="h-8 w-8 rounded-full bg-foreground flex items-center justify-center flex-shrink-0">
+                  <ActivityIcon
+                    type={activity.activityType}
+                    size={18}
+                    className="text-background"
+                  />
+                </div>
+                <div className="text-left">
+                  <div className="font-medium capitalize">{activity.activityType}</div>
+                  {activity.durationMinutes && (
+                    <div className="text-sm text-muted-foreground">
+                      {activity.durationMinutes} min
+                    </div>
+                  )}
+                </div>
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
