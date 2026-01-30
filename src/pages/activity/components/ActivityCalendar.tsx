@@ -212,6 +212,13 @@ export function ActivityCalendar({ activities, onEditActivity }: ActivityCalenda
     [activities, currentYear, currentMonth]
   );
 
+  // Calculate month-specific stats
+  const monthStats = useMemo(() => {
+    const activeWeeks = weekData.filter((w) => w.hasActivity).length;
+    const totalActivities = weekData.reduce((sum, w) => sum + w.activities.length, 0);
+    return { activeWeeks, totalActivities };
+  }, [weekData]);
+
   // Get all calendar days for the grid
   const calendarDays = useMemo(
     () => getCalendarDays(currentYear, currentMonth),
@@ -289,21 +296,27 @@ export function ActivityCalendar({ activities, onEditActivity }: ActivityCalenda
         </div>
       </div>
 
-      {/* Stats row - only show streak info when viewing current month */}
-      {isViewingCurrentMonth && (
-        <div className="flex gap-8">
-          <div>
-            <p className="text-sm text-muted-foreground">Your Streak</p>
-            <p className="text-2xl font-bold">
-              {streakData.currentStreak} {streakData.currentStreak === 1 ? 'Week' : 'Weeks'}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Streak Activities</p>
-            <p className="text-2xl font-bold">{streakData.streakActivities}</p>
-          </div>
+      {/* Stats row - shows streak for current month, active weeks for other months */}
+      <div className="flex gap-8">
+        <div>
+          <p className="text-sm text-muted-foreground">
+            {isViewingCurrentMonth ? 'Your Streak' : 'Active Weeks'}
+          </p>
+          <p className="text-2xl font-bold">
+            {isViewingCurrentMonth
+              ? `${streakData.currentStreak} ${streakData.currentStreak === 1 ? 'Week' : 'Weeks'}`
+              : `${monthStats.activeWeeks} ${monthStats.activeWeeks === 1 ? 'Week' : 'Weeks'}`}
+          </p>
         </div>
-      )}
+        <div>
+          <p className="text-sm text-muted-foreground">
+            {isViewingCurrentMonth ? 'Streak Activities' : 'Total Activities'}
+          </p>
+          <p className="text-2xl font-bold">
+            {isViewingCurrentMonth ? streakData.streakActivities : monthStats.totalActivities}
+          </p>
+        </div>
+      </div>
 
       {/* Calendar grid with streak bar */}
       <div className="flex gap-2">
