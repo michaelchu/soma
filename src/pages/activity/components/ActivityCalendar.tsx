@@ -247,6 +247,9 @@ export function ActivityCalendar({ activities, onEditActivity }: ActivityCalenda
   };
 
   const goToNextMonth = () => {
+    // Don't allow navigating past current month
+    if (isViewingCurrentMonth) return;
+
     if (currentMonth === 11) {
       setCurrentMonth(0);
       setCurrentYear(currentYear + 1);
@@ -290,7 +293,13 @@ export function ActivityCalendar({ activities, onEditActivity }: ActivityCalenda
           <Button variant="ghost" size="icon" onClick={goToPreviousMonth} className="h-8 w-8">
             <ChevronLeft className="h-5 w-5" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={goToNextMonth} className="h-8 w-8">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={goToNextMonth}
+            disabled={isViewingCurrentMonth}
+            className="h-8 w-8"
+          >
             <ChevronRight className="h-5 w-5" />
           </Button>
         </div>
