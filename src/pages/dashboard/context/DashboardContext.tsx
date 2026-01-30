@@ -1,24 +1,17 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
-import { getReadings as getBPReadings } from '@/lib/db/bloodPressure';
+import { getReadings as getBPReadingSummarys } from '@/lib/db/bloodPressure';
 import { getSleepEntries, type SleepEntry } from '@/lib/db/sleep';
 import { getReports as getBloodTestReports } from '@/lib/db/bloodTests';
 import { getActivities } from '@/lib/db/activity';
 import { calculateHealthScore, type HealthScoreResult } from '../utils/healthScore';
 import type { Activity } from '@/types/activity';
-
-interface BPReading {
-  datetime: string;
-  systolic: number;
-  diastolic: number;
-  pulse: number | null;
-  sessionId: string;
-}
+import type { BPReadingSummary } from '@/types/bloodPressure';
 
 interface TimelineEntry {
   id: string;
   type: 'bp' | 'sleep' | 'activity';
   date: Date;
-  data: BPReading | SleepEntry | Activity;
+  data: BPReadingSummary | SleepEntry | Activity;
 }
 
 interface MetricData {
@@ -43,7 +36,7 @@ interface DashboardContextType {
   loading: boolean;
   error: string | null;
   healthScore: HealthScoreResult | null;
-  bpReadings: BPReading[];
+  bpReadings: BPReadingSummary[];
   sleepEntries: SleepEntry[];
   activities: Activity[];
   bloodTestReports: BloodTestReport[];
@@ -58,7 +51,7 @@ const DashboardContext = createContext<DashboardContextType | undefined>(undefin
 export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [allBpReadings, setAllBpReadings] = useState<BPReading[]>([]);
+  const [allBpReadings, setAllBpReadings] = useState<BPReadingSummary[]>([]);
   const [allSleepEntries, setAllSleepEntries] = useState<SleepEntry[]>([]);
   const [allActivities, setAllActivities] = useState<Activity[]>([]);
   const [bloodTestReports, setBloodTestReports] = useState<BloodTestReport[]>([]);
@@ -70,7 +63,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const [bpResult, sleepResult, bloodTestResult, activityResult] = await Promise.all([
-        getBPReadings(),
+        getBPReadingSummarys(),
         getSleepEntries(),
         getBloodTestReports(),
         getActivities(),
@@ -90,7 +83,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Flatten BP sessions to individual readings
-      const bpReadings: BPReading[] = [];
+      const bpReadings: BPReadingSummary[] = [];
       if (bpResult.data) {
         for (const session of bpResult.data) {
           // Use session average as single reading for dashboard

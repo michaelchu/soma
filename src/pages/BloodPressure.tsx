@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Activity, AlertTriangle, Download, Plus, Settings } from 'lucide-react';
+import { Activity, Download, Plus, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FabButton } from '@/components/ui/fab-button';
 import { Card, CardContent } from '@/components/ui/card';
 import Navbar from '@/components/Navbar';
+import { PageLoading, PageError } from '@/components/shared/PageStates';
 import { BPProvider, useBP } from './blood-pressure/context/BPContext';
 import { BottomNav } from './blood-pressure/components/ui/BottomNav';
 import { FilterBar, filterReadings } from './blood-pressure/components/ui/FilterBar';
@@ -50,27 +51,16 @@ function BloodPressureContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Activity className="animate-spin text-primary mx-auto mb-4" size={32} />
-          <p className="text-muted-foreground">Loading blood pressure readings...</p>
-        </div>
-      </div>
+      <PageLoading
+        icon={Activity}
+        message="Loading blood pressure readings..."
+        iconAnimation="spin"
+      />
     );
   }
 
   if (error) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <AlertTriangle className="text-red-600 dark:text-red-400 mx-auto mb-4" size={32} />
-          <p className="text-red-600 dark:text-red-400 font-semibold mb-2">
-            Error loading readings
-          </p>
-          <p className="text-muted-foreground">{error}</p>
-        </div>
-      </div>
-    );
+    return <PageError title="Error loading readings" message={error} />;
   }
 
   const renderMobileTabContent = () => {

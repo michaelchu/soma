@@ -24,14 +24,7 @@ import {
   getSleepQuality,
 } from '@/pages/sleep/utils/sleepHelpers';
 import type { SleepEntry } from '@/lib/db/sleep';
-
-interface BPReading {
-  datetime: string;
-  systolic: number;
-  diastolic: number;
-  pulse: number | null;
-  sessionId: string;
-}
+import type { BPReadingSummary } from '@/types/bloodPressure';
 
 interface MetricData {
   value: number;
@@ -51,13 +44,13 @@ interface BloodTestReport {
 
 interface ExportModalProps {
   onClose: () => void;
-  bpReadings: BPReading[];
+  bpReadings: BPReadingSummary[];
   sleepEntries: SleepEntry[];
   bloodTestReports: BloodTestReport[];
   periodDays: number;
 }
 
-function generateBPMarkdown(readings: BPReading[]): string {
+function generateBPMarkdown(readings: BPReadingSummary[]): string {
   if (!readings || readings.length === 0) {
     return '## Blood Pressure Summary\n\nNo readings available for this period.\n\n';
   }
@@ -286,7 +279,7 @@ function generateBloodTestMarkdown(reports: BloodTestReport[]): string {
 }
 
 function generateCombinedMarkdown(
-  bpReadings: BPReading[],
+  bpReadings: BPReadingSummary[],
   sleepEntries: SleepEntry[],
   bloodTestReports: BloodTestReport[],
   periodDays: number

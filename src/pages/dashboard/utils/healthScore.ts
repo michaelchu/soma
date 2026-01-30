@@ -6,14 +6,7 @@
  */
 
 import type { SleepEntry } from '@/lib/db/sleep';
-
-// BP Session type (simplified for dashboard use)
-interface BPReading {
-  datetime: string;
-  systolic: number;
-  diastolic: number;
-  pulse: number | null;
-}
+import type { BPReadingSummary } from '@/types/bloodPressure';
 
 // ============================================================================
 // BLOOD PRESSURE SCORE (50% of total)
@@ -33,7 +26,7 @@ interface BPScoreResult {
  * Calculate BP score from readings
  * Base score from BP category, penalties for variability, bonuses for trends
  */
-export function calculateBPScore(readings: BPReading[]): BPScoreResult | null {
+export function calculateBPScore(readings: BPReadingSummary[]): BPScoreResult | null {
   if (!readings || readings.length === 0) return null;
 
   const systolics = readings.map((r) => r.systolic);
@@ -138,7 +131,7 @@ function calculateVariabilityPenalty(systolics: number[], diastolics: number[]):
 /**
  * Calculate trend modifier by comparing recent readings to older ones
  */
-function calculateBPTrendModifier(readings: BPReading[]): number {
+function calculateBPTrendModifier(readings: BPReadingSummary[]): number {
   if (readings.length < 4) return 0; // Need enough data for trend
 
   // Sort by date
@@ -360,7 +353,7 @@ export interface HealthScoreResult {
  * Calculate composite health score from BP and Sleep data
  */
 export function calculateHealthScore(
-  bpReadings: BPReading[],
+  bpReadings: BPReadingSummary[],
   sleepEntries: SleepEntry[]
 ): HealthScoreResult {
   const bpScore = calculateBPScore(bpReadings);

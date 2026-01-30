@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Activity, AlertTriangle, TrendingUp, TrendingDown, Minus, Download } from 'lucide-react';
+import { Activity, TrendingUp, TrendingDown, Minus, Download } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
+import { PageLoading, PageError } from '@/components/shared/PageStates';
 import { DashboardProvider, useDashboard } from './dashboard/context/DashboardContext';
 import { getHealthScoreColor, getHealthScoreLabel } from './dashboard/utils/healthScore';
 import { formatDate, formatTimeString } from '@/lib/dateUtils';
@@ -481,28 +482,11 @@ function DashboardContent() {
   const hasData = bpReadings.length > 0 || sleepEntries.length > 0 || bloodTestReports.length > 0;
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Activity className="animate-pulse text-primary mx-auto mb-4" size={32} />
-          <p className="text-muted-foreground">Loading dashboard...</p>
-        </div>
-      </div>
-    );
+    return <PageLoading icon={Activity} message="Loading dashboard..." />;
   }
 
   if (error) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <AlertTriangle className="text-red-600 dark:text-red-400 mx-auto mb-4" size={32} />
-          <p className="text-red-600 dark:text-red-400 font-semibold mb-2">
-            Error loading dashboard
-          </p>
-          <p className="text-muted-foreground">{error}</p>
-        </div>
-      </div>
-    );
+    return <PageError title="Error loading dashboard" message={error} />;
   }
 
   return (

@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Activity as ActivityIcon, AlertTriangle, Plus, Download } from 'lucide-react';
+import { Activity as ActivityIcon, Plus, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FabButton } from '@/components/ui/fab-button';
 import { Card, CardContent } from '@/components/ui/card';
 import Navbar from '@/components/Navbar';
+import { PageLoading, PageError } from '@/components/shared/PageStates';
 import { ActivityProvider, useActivity } from './activity/context/ActivityContext';
 import { ActivityCalendar } from './activity/components/ActivityCalendar';
 import { ActivityForm } from './activity/components/modals/ActivityForm';
@@ -19,28 +20,11 @@ function ActivityContent() {
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <ActivityIcon className="animate-pulse text-primary mx-auto mb-4" size={32} />
-          <p className="text-muted-foreground">Loading activities...</p>
-        </div>
-      </div>
-    );
+    return <PageLoading icon={ActivityIcon} message="Loading activities..." />;
   }
 
   if (error) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <AlertTriangle className="text-red-600 dark:text-red-400 mx-auto mb-4" size={32} />
-          <p className="text-red-600 dark:text-red-400 font-semibold mb-2">
-            Error loading activities
-          </p>
-          <p className="text-muted-foreground">{error}</p>
-        </div>
-      </div>
-    );
+    return <PageError title="Error loading activities" message={error} />;
   }
 
   return (

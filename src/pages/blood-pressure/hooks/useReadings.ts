@@ -6,33 +6,7 @@ import {
   deleteSession as deleteSessionDb,
 } from '../../../lib/db/bloodPressure';
 import { useDataManager } from '../../../hooks/useDataManager';
-
-interface BPSession {
-  sessionId: string;
-  datetime: string;
-  systolic: number;
-  diastolic: number;
-  pulse: number | null;
-  notes: string | null;
-  readings: Array<{
-    id: string;
-    datetime: string;
-    systolic: number;
-    diastolic: number;
-    pulse: number | null;
-    notes: string | null;
-    arm: 'L' | 'R' | null;
-    sessionId: string;
-  }>;
-  readingCount: number;
-}
-
-interface SessionInput {
-  datetime: string;
-  readings: Array<{ systolic: number; diastolic: number; arm?: 'L' | 'R' | null }>;
-  pulse?: number | null;
-  notes?: string | null;
-}
+import type { BPSession, BPSessionInput } from '@/types/bloodPressure';
 
 /**
  * Custom hook to load and manage blood pressure sessions from Supabase
@@ -61,14 +35,14 @@ export function useReadings() {
   );
 
   const addSession = useCallback(
-    async (session: SessionInput) => {
+    async (session: BPSessionInput) => {
       return addItem(() => addSessionDb(session), { sortFn: sortByDateDesc });
     },
     [addItem, sortByDateDesc]
   );
 
   const updateSession = useCallback(
-    async (sessionId: string, session: SessionInput) => {
+    async (sessionId: string, session: BPSessionInput) => {
       return updateItem(sessionId, () => updateSessionDb(sessionId, session));
     },
     [updateItem]

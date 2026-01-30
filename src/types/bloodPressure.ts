@@ -92,3 +92,9 @@ export interface BPContextValue {
   deleteSession: (sessionId: string) => Promise<{ error?: Error }>;
   refetch: () => Promise<void>;
 }
+
+// Simplified BP reading type for dashboard/summary use
+export type BPReadingSummary = Pick<
+  BPReading,
+  'datetime' | 'systolic' | 'diastolic' | 'pulse' | 'sessionId'
+>;

@@ -1,14 +1,15 @@
 import { supabase } from '../supabase';
 import { validateBPSession, sanitizeString } from '../validation';
+import type { Arm, BPReading, BPSession, BPSessionInput } from '@/types/bloodPressure';
 
 /**
  * Blood Pressure data service
  * CRUD operations for blood pressure readings
  */
 
-type Arm = 'L' | 'R' | null;
 type CuffLocation = 'left_arm' | 'left_wrist' | 'right_arm' | 'right_wrist' | null;
 
+// Database row type (matches Supabase schema)
 interface BPReadingRow {
   id: string;
   user_id: string;
@@ -23,33 +24,8 @@ interface BPReadingRow {
   updated_at?: string;
 }
 
-interface BPReading {
-  id: string;
-  datetime: string;
-  systolic: number;
-  diastolic: number;
-  pulse: number | null;
-  notes: string | null;
-  arm: Arm;
-  sessionId: string;
-}
-
-interface BPSession {
-  sessionId: string;
-  datetime: string;
-  systolic: number;
-  diastolic: number;
-  pulse: number | null;
-  notes: string | null;
-  readings: BPReading[];
-  readingCount: number;
-}
-
-interface SessionInput {
-  datetime: string;
-  readings: Array<{ systolic: number; diastolic: number; arm?: Arm; pulse?: number | null }>;
-  notes?: string | null;
-}
+// Re-export types for consumers
+export type { BPReading, BPSession, BPSessionInput };
 
 // Map simple arm value to cuff_location for database
 const armToCuff = (arm: Arm): CuffLocation => {
@@ -162,7 +138,7 @@ export async function getReadings(): Promise<{ data: BPSession[] | null; error: 
  * Add a session of blood pressure readings
  */
 export async function addSession(
-  session: SessionInput
+  session: BPSessionInput
 ): Promise<{ data: BPSession | null; error: Error | null }> {
   // Validate input
   const validation = validateBPSession(session);
@@ -253,7 +229,7 @@ export async function addSession(
  */
 export async function updateSession(
   sessionId: string,
-  session: SessionInput
+  session: BPSessionInput
 ): Promise<{ data: BPSession | null; error: Error | null }> {
   // Validate input
   const validation = validateBPSession(session);
