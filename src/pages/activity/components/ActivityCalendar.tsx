@@ -238,6 +238,9 @@ export function ActivityCalendar({ activities, onEditActivity }: ActivityCalenda
 
   // Navigation handlers
   const goToPreviousMonth = () => {
+    // Don't allow navigating more than 1 year back
+    if (isViewingOldestMonth) return;
+
     if (currentMonth === 0) {
       setCurrentMonth(11);
       setCurrentYear(currentYear - 1);
@@ -275,6 +278,11 @@ export function ActivityCalendar({ activities, onEditActivity }: ActivityCalenda
   const isViewingCurrentMonth =
     currentYear === today.getFullYear() && currentMonth === today.getMonth();
 
+  // Check if viewing the oldest allowed month (1 year ago)
+  const oneYearAgo = new Date(today.getFullYear() - 1, today.getMonth(), 1);
+  const isViewingOldestMonth =
+    currentYear === oneYearAgo.getFullYear() && currentMonth === oneYearAgo.getMonth();
+
   // Day headers
   const dayHeaders = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
@@ -290,7 +298,13 @@ export function ActivityCalendar({ activities, onEditActivity }: ActivityCalenda
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">{monthName}</h2>
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" onClick={goToPreviousMonth} className="h-8 w-8">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={goToPreviousMonth}
+            disabled={isViewingOldestMonth}
+            className="h-8 w-8"
+          >
             <ChevronLeft className="h-5 w-5" />
           </Button>
           <Button
