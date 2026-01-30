@@ -200,7 +200,7 @@ export function SwipeableRow({
       {/* Swipeable content */}
       <div
         ref={contentRef}
-        className="relative bg-background"
+        className={`relative ${offsetX < 0 ? 'bg-background' : ''}`}
         style={{
           transform: `translateX(${offsetX}px)`,
           transition: isDragging ? 'none' : 'transform 0.2s ease-out',
