@@ -1,9 +1,9 @@
-import { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { Activity, ActivityType } from '@/types/activity';
 import { ActivityIcon } from './ActivityIcons';
+import { ActivityList } from './ActivityList';
 import {
   calculateStreak,
   buildMonthWeekData,
@@ -32,13 +32,11 @@ function CalendarDay({
   isCurrentMonth,
   isToday,
   dayActivities,
-  onClick,
 }: {
   date: Date;
   isCurrentMonth: boolean;
   isToday: boolean;
   dayActivities: Activity[];
-  onClick?: () => void;
 }) {
   const hasActivity = dayActivities.length > 0;
   const dayNumber = date.getDate();
@@ -51,9 +49,7 @@ function CalendarDay({
       className={`
         relative flex flex-col items-center justify-center h-12
         ${!isCurrentMonth ? 'opacity-30' : ''}
-        ${hasActivity ? 'cursor-pointer' : ''}
       `}
-      onClick={hasActivity ? onClick : undefined}
     >
       {/* Day number */}
       <span
@@ -203,7 +199,6 @@ export function ActivityCalendar({ activities, onEditActivity }: ActivityCalenda
   const today = useMemo(() => new Date(), []);
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
-  const [selectActivities, setSelectActivities] = useState<Activity[] | null>(null);
 
   // Calculate streak data
   const streakData = useMemo(() => calculateStreak(activities, today), [activities, today]);
@@ -263,23 +258,6 @@ export function ActivityCalendar({ activities, onEditActivity }: ActivityCalenda
     }
   };
 
-  // Handle day click - show selection dialog if multiple activities, else edit directly
-  const handleDayClick = (dayActivities: Activity[]) => {
-    if (dayActivities.length === 0) return;
-
-    if (dayActivities.length === 1) {
-      onEditActivity(dayActivities[0]);
-    } else {
-      setSelectActivities(dayActivities);
-    }
-  };
-
-  // Handle activity selection from dialog
-  const handleActivitySelect = (activity: Activity) => {
-    setSelectActivities(null);
-    onEditActivity(activity);
-  };
-
   // Format month name
   const monthName = new Date(currentYear, currentMonth).toLocaleDateString('en-US', {
     month: 'long',
@@ -334,20 +312,20 @@ export function ActivityCalendar({ activities, onEditActivity }: ActivityCalenda
       {/* Stats row - shows streak for current month, active weeks for other months */}
       <div className="flex gap-8">
         <div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             {isViewingCurrentMonth ? 'Your Streak' : 'Active Weeks'}
           </p>
-          <p className="text-2xl font-bold">
+          <p className="text-xl font-bold">
             {isViewingCurrentMonth
               ? `${streakData.currentStreak} ${streakData.currentStreak === 1 ? 'Week' : 'Weeks'}`
               : `${monthStats.activeWeeks} ${monthStats.activeWeeks === 1 ? 'Week' : 'Weeks'}`}
           </p>
         </div>
         <div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             {isViewingCurrentMonth ? 'Streak Activities' : 'Total Activities'}
           </p>
-          <p className="text-2xl font-bold">
+          <p className="text-xl font-bold">
             {isViewingCurrentMonth ? streakData.streakActivities : monthStats.totalActivities}
           </p>
         </div>
@@ -386,7 +364,6 @@ export function ActivityCalendar({ activities, onEditActivity }: ActivityCalenda
                       isCurrentMonth={isCurrentMonth}
                       isToday={isToday}
                       dayActivities={dayActivities}
-                      onClick={() => handleDayClick(dayActivities)}
                     />
                   );
                 })}
@@ -403,40 +380,17 @@ export function ActivityCalendar({ activities, onEditActivity }: ActivityCalenda
         />
       </div>
 
-      {/* Activity selection dialog for days with multiple activities */}
-      <Dialog open={!!selectActivities} onOpenChange={() => setSelectActivities(null)}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Select Activity</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col gap-2 py-2">
-            {selectActivities?.map((activity) => (
-              <Button
-                key={activity.id}
-                variant="outline"
-                className="w-full justify-start gap-3 h-auto py-3"
-                onClick={() => handleActivitySelect(activity)}
-              >
-                <div className="h-8 w-8 rounded-full bg-foreground flex items-center justify-center flex-shrink-0">
-                  <ActivityIcon
-                    type={activity.activityType}
-                    size={18}
-                    className="text-background"
-                  />
-                </div>
-                <div className="text-left">
-                  <div className="font-medium capitalize">{activity.activityType}</div>
-                  {activity.durationMinutes && (
-                    <div className="text-sm text-muted-foreground">
-                      {activity.durationMinutes} min
-                    </div>
-                  )}
-                </div>
-              </Button>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Divider */}
+      <hr className="border-border" />
+
+      {/* Activity list for the month */}
+      <ActivityList
+        activities={activities}
+        allActivities={activities}
+        currentMonth={currentMonth}
+        currentYear={currentYear}
+        onActivityClick={onEditActivity}
+      />
     </div>
   );
 }

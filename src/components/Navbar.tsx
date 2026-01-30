@@ -18,7 +18,7 @@ export default function Navbar({ leftContent, rightContent }: NavbarProps) {
   };
 
   return (
-    <header className="bg-card border-b sticky top-0 z-10">
+    <header className="bg-card border-b sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-5 sm:px-6 py-2">
         <div className="flex justify-between items-center gap-2">
           {/* Left: Page-specific content */}
