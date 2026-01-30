@@ -70,8 +70,12 @@ function ActivityItem({ activity, onLongPress }: { activity: Activity; onLongPre
       {/* Activity Type and Details */}
       <div className="flex items-center text-sm">
         <span className="font-medium w-28">{getActivityTypeLabel(activity.activityType)}</span>
-        <span className="text-muted-foreground w-16">{formatDuration(activity.durationMinutes)}</span>
-        <span className={getIntensityColor(activity.intensity)}>{getIntensityLabel(activity.intensity)}</span>
+        <span className="text-muted-foreground w-16">
+          {formatDuration(activity.durationMinutes)}
+        </span>
+        <span className={getIntensityColor(activity.intensity)}>
+          {getIntensityLabel(activity.intensity)}
+        </span>
       </div>
 
       {/* Notes */}
@@ -120,7 +124,10 @@ export function ActivityDetails({
   const dates = Array.from(groupedActivities.keys());
 
   return (
-    <div ref={scrollContainerRef} className="mt-6 max-h-[calc(100vh-350px)] overflow-y-auto scrollbar-hide">
+    <div
+      ref={scrollContainerRef}
+      className="mt-6 max-h-[calc(100vh-350px)] overflow-y-auto scrollbar-hide"
+    >
       {/* Timeline */}
       <div className="relative">
         {dates.map((date, dateIndex) => {
@@ -147,9 +154,7 @@ export function ActivityDetails({
                   <span className={`font-semibold ${isSelected ? '' : 'text-muted-foreground'}`}>
                     {formatDate(date, { includeWeekday: true })}
                   </span>
-                  <span className="text-sm text-muted-foreground ml-3">
-                    {dayScore} pts
-                  </span>
+                  <span className="text-sm text-muted-foreground ml-3">{dayScore} pts</span>
                 </div>
               </div>
 
