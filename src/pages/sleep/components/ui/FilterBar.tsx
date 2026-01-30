@@ -16,7 +16,7 @@ interface FilterBarProps {
 export function FilterBar({ dateRange, onDateRangeChange }: FilterBarProps) {
   return (
     <div className="flex flex-col xs:flex-row gap-2 xs:justify-center md:justify-start">
-      <div className="flex gap-1 bg-black/20 backdrop-blur-sm rounded-md p-0.5 h-8 items-center border border-white/10">
+      <div className="flex gap-1 rounded-md p-0.5 h-8 items-center border border-white/10">
         {DATE_RANGES.map((range) => (
           <button
             key={range.value}

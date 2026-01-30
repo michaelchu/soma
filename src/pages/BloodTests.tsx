@@ -277,7 +277,7 @@ export default function BloodTests() {
 
   const bottomContent = (
     <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-5 px-5 sm:-mx-6 sm:px-6 sm:overflow-visible">
-      <div className="flex rounded-lg border border-white/10 bg-black/20 backdrop-blur-sm overflow-hidden text-xs font-medium h-8 flex-shrink-0">
+      <div className="flex rounded-lg border border-white/10 overflow-hidden text-xs font-medium h-8 flex-shrink-0">
         <button
           onClick={() => setFilter('all')}
           className={`px-2.5 sm:px-4 ${filter === 'all' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-accent'}`}
@@ -311,7 +311,7 @@ export default function BloodTests() {
           });
           setCollapsedCategories(newState);
         }}
-        className="flex items-center justify-center h-8 w-8 rounded-lg border border-white/10 bg-black/20 backdrop-blur-sm text-muted-foreground hover:bg-white/10 hover:text-foreground transition-colors flex-shrink-0"
+        className="flex items-center justify-center h-8 w-8 rounded-lg border border-white/10 text-muted-foreground hover:bg-white/10 hover:text-foreground transition-colors flex-shrink-0"
         title={
           Object.keys(CATEGORY_INFO).every((key) => collapsedCategories[key] === false)
             ? 'Collapse all categories'
@@ -327,9 +327,9 @@ export default function BloodTests() {
       <DropdownMenu open={reportsDropdownOpen} onOpenChange={setReportsDropdownOpen}>
         <DropdownMenuTrigger asChild>
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            className="flex items-center gap-1 sm:gap-2 h-8 flex-shrink-0"
+            className="flex items-center gap-1 sm:gap-2 h-8 flex-shrink-0 border border-white/10"
             title="Select Reports"
             onPointerDown={handleDropdownPointerDown}
             onPointerMove={handleDropdownPointerMove}
@@ -386,7 +386,7 @@ export default function BloodTests() {
     <div className="min-h-screen bg-gradient-blood-tests">
       <Navbar leftContent={leftContent} rightContent={rightContent} bottomContent={bottomContent} />
 
-      <main className="max-w-7xl mx-auto px-5 sm:px-6 pb-3 sm:pb-4">
+      <main className="max-w-7xl mx-auto px-5 sm:px-6 pt-3 pb-3 sm:pb-4">
         <div>
           {sortedMetrics.length > 0 ? (
             <div className="space-y-4">
