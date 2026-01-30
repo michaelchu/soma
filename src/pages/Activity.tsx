@@ -54,7 +54,7 @@ function ActivityContent() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background pb-4 md:pb-0">
+    <div className="min-h-screen flex flex-col bg-background">
       <Navbar
         leftContent={
           <button
