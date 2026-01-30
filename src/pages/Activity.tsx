@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Activity as ActivityIcon, AlertTriangle, Plus, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,12 +6,9 @@ import { FabButton } from '@/components/ui/fab-button';
 import { Card, CardContent } from '@/components/ui/card';
 import Navbar from '@/components/Navbar';
 import { ActivityProvider, useActivity } from './activity/context/ActivityContext';
-import { FilterBar } from './activity/components/ui/FilterBar';
-import { ActivityChart } from './activity/components/ActivityChart';
-import { ActivityDetails } from './activity/components/ActivityDetails';
+import { ActivityCalendar } from './activity/components/ActivityCalendar';
 import { ActivityForm } from './activity/components/modals/ActivityForm';
 import { ExportModal } from './activity/components/modals/ExportModal';
-import { filterActivities } from './activity/utils/activityHelpers';
 import type { Activity } from '@/types/activity';
 
 function ActivityContent() {
@@ -19,14 +16,7 @@ function ActivityContent() {
   const { activities, loading, error } = useActivity();
   const [showForm, setShowForm] = useState(false);
   const [showExport, setShowExport] = useState(false);
-  const [dateRange, setDateRange] = useState('30');
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
-
-  const filteredActivities = useMemo(
-    () => filterActivities(activities, dateRange),
-    [activities, dateRange]
-  );
 
   if (loading) {
     return (
@@ -106,31 +96,7 @@ function ActivityContent() {
             </CardContent>
           </Card>
         ) : (
-          <>
-            {/* Filter Bar */}
-            <div className="sticky top-[49px] z-10 bg-background pb-2 mb-4 -mx-5 sm:-mx-6 md:mx-0 px-5 sm:px-6 md:px-0 border-b -mt-4 pt-2">
-              <FilterBar dateRange={dateRange} onDateRangeChange={setDateRange} />
-            </div>
-
-            {/* Activity Chart */}
-            <ActivityChart
-              activities={filteredActivities}
-              allActivities={activities}
-              selectedDate={selectedDate}
-              onSelectDate={setSelectedDate}
-              dateRange={dateRange}
-            />
-
-            {/* Activity Timeline - scrollable */}
-            {filteredActivities.length > 0 && (
-              <ActivityDetails
-                activities={filteredActivities}
-                allActivities={activities}
-                onEditActivity={setEditingActivity}
-                selectedDate={selectedDate}
-              />
-            )}
-          </>
+          <ActivityCalendar activities={activities} onEditActivity={setEditingActivity} />
         )}
       </main>
 
@@ -148,9 +114,7 @@ function ActivityContent() {
       />
 
       {/* Export Modal */}
-      {showExport && (
-        <ExportModal activities={filteredActivities} onClose={() => setShowExport(false)} />
-      )}
+      {showExport && <ExportModal activities={activities} onClose={() => setShowExport(false)} />}
     </div>
   );
 }
