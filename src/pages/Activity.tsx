@@ -93,9 +93,9 @@ function ActivityContent() {
       />
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col max-w-7xl mx-auto w-full px-5 sm:px-6">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-5 sm:px-6 pt-4 pb-0 md:pb-4">
         {activities.length === 0 ? (
-          <Card className="mt-4">
+          <Card>
             <CardContent className="py-12 text-center">
               <ActivityIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground mb-4">No activities yet</p>
@@ -108,20 +108,18 @@ function ActivityContent() {
         ) : (
           <>
             {/* Filter Bar */}
-            <div className="flex-shrink-0 sticky top-[49px] z-10 bg-background py-2 -mx-5 sm:-mx-6 md:mx-0 px-5 sm:px-6 md:px-0 border-b">
+            <div className="sticky top-[49px] z-10 bg-background pb-2 mb-4 -mx-5 sm:-mx-6 md:mx-0 px-5 sm:px-6 md:px-0 border-b -mt-4 pt-2">
               <FilterBar dateRange={dateRange} onDateRangeChange={setDateRange} />
             </div>
 
             {/* Activity Chart */}
-            <div className="flex-shrink-0 pt-4">
-              <ActivityChart
-                activities={filteredActivities}
-                allActivities={activities}
-                selectedDate={selectedDate}
-                onSelectDate={setSelectedDate}
-                dateRange={dateRange}
-              />
-            </div>
+            <ActivityChart
+              activities={filteredActivities}
+              allActivities={activities}
+              selectedDate={selectedDate}
+              onSelectDate={setSelectedDate}
+              dateRange={dateRange}
+            />
 
             {/* Activity Timeline - scrollable */}
             {filteredActivities.length > 0 && (
