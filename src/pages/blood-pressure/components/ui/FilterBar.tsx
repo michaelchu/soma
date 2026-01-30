@@ -1,10 +1,4 @@
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { isInTimeOfDay, getDateRange } from '@/lib/dateUtils';
 
 const DATE_RANGES = [
@@ -15,15 +9,16 @@ const DATE_RANGES = [
 ];
 
 const TIME_OF_DAY = [
-  { value: 'all', label: 'Any Time' },
-  { value: 'am', label: 'AM (12am-12pm)' },
-  { value: 'pm', label: 'PM (12pm-12am)' },
-  { value: 'morning', label: 'Morning (6am-12pm)' },
-  { value: 'afternoon', label: 'Afternoon (12pm-6pm)' },
-  { value: 'evening', label: 'Evening (6pm-12am)' },
+  { value: 'all', label: 'Any Time', shortLabel: 'Any Time' },
+  { value: 'morning', label: 'Morning (6am-12pm)', shortLabel: 'Morning' },
+  { value: 'afternoon', label: 'Afternoon (12pm-6pm)', shortLabel: 'Afternoon' },
+  { value: 'evening', label: 'Evening (6pm-12am)', shortLabel: 'Evening' },
 ];
 
 export function FilterBar({ dateRange, timeOfDay, onDateRangeChange, onTimeOfDayChange }) {
+  const selectedTimeLabel =
+    TIME_OF_DAY.find((t) => t.value === timeOfDay)?.shortLabel || 'Time of day';
+
   return (
     <div className="flex gap-2 md:justify-start">
       <div className="flex gap-1 bg-muted rounded-md p-0.5 h-8 items-center">
@@ -44,7 +39,7 @@ export function FilterBar({ dateRange, timeOfDay, onDateRangeChange, onTimeOfDay
 
       <Select value={timeOfDay} onValueChange={onTimeOfDayChange}>
         <SelectTrigger className="min-w-0 flex-1 h-8">
-          <SelectValue placeholder="Time of day" />
+          <span>{selectedTimeLabel}</span>
         </SelectTrigger>
         <SelectContent>
           {TIME_OF_DAY.map((time) => (
