@@ -135,8 +135,11 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     cutoff.setHours(0, 0, 0, 0);
 
     const filteredBp = allBpReadings.filter((r) => new Date(r.datetime) >= cutoff);
-    const filteredSleep = allSleepEntries.filter((e) => new Date(e.date) >= cutoff);
-    const filteredActivities = allActivities.filter((a) => new Date(a.date) >= cutoff);
+    // Parse date-only strings with time component to ensure local timezone interpretation
+    const filteredSleep = allSleepEntries.filter((e) => new Date(e.date + 'T00:00:00') >= cutoff);
+    const filteredActivities = allActivities.filter(
+      (a) => new Date(a.date + 'T00:00:00') >= cutoff
+    );
 
     return { bpReadings: filteredBp, sleepEntries: filteredSleep, activities: filteredActivities };
   }, [allBpReadings, allSleepEntries, allActivities, periodDays]);
@@ -161,22 +164,22 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       });
     });
 
-    // Add sleep entries
+    // Add sleep entries (parse date-only strings with time component for local timezone)
     sleepEntries.forEach((e) => {
       entries.push({
         id: `sleep-${e.id}`,
         type: 'sleep',
-        date: new Date(e.date),
+        date: new Date(e.date + 'T00:00:00'),
         data: e,
       });
     });
 
-    // Add activity entries
+    // Add activity entries (parse date-only strings with time component for local timezone)
     activities.forEach((a) => {
       entries.push({
         id: `activity-${a.id}`,
         type: 'activity',
-        date: new Date(a.date),
+        date: new Date(a.date + 'T00:00:00'),
         data: a,
       });
     });
