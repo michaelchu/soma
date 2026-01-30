@@ -6,9 +6,10 @@ import { useAuth } from '@/lib/AuthContext';
 interface NavbarProps {
   leftContent: React.ReactNode;
   rightContent?: React.ReactNode;
+  bottomContent?: React.ReactNode;
 }
 
-export default function Navbar({ leftContent, rightContent }: NavbarProps) {
+export default function Navbar({ leftContent, rightContent, bottomContent }: NavbarProps) {
   const { signOut } = useAuth();
 
   const handleLogout = async () => {
@@ -37,6 +38,11 @@ export default function Navbar({ leftContent, rightContent }: NavbarProps) {
           </div>
         </div>
       </div>
+      {bottomContent && (
+        <div className="border-t border-white/10">
+          <div className="max-w-7xl mx-auto px-5 sm:px-6 py-2">{bottomContent}</div>
+        </div>
+      )}
     </header>
   );
 }

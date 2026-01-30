@@ -102,10 +102,15 @@ function SleepContent() {
             </Button>
           </>
         }
+        bottomContent={
+          entries.length > 0 ? (
+            <FilterBar dateRange={dateRange} onDateRangeChange={setDateRange} />
+          ) : undefined
+        }
       />
 
       {/* Main Content */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-5 sm:px-6 pt-4 pb-0 md:pb-4">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-5 sm:px-6 pb-0 md:pb-4">
         {entries.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
@@ -119,11 +124,6 @@ function SleepContent() {
           </Card>
         ) : (
           <>
-            {/* Filter Bar */}
-            <div className="sticky top-[49px] z-10 bg-black/30 backdrop-blur-md pb-2 mb-0 md:mb-4 -mx-5 sm:-mx-6 md:mx-0 px-5 sm:px-6 md:px-0 border-b border-white/10 -mt-4 pt-2">
-              <FilterBar dateRange={dateRange} onDateRangeChange={setDateRange} />
-            </div>
-
             {/* Mobile: Tab-based view with scrollable content */}
             <div className={`md:hidden ${activeTab !== 'readings' ? 'pt-4' : ''}`}>
               {renderMobileTabContent()}

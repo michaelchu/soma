@@ -127,10 +127,20 @@ function BloodPressureContent() {
             </Button>
           </>
         }
+        bottomContent={
+          readings.length > 0 ? (
+            <FilterBar
+              dateRange={dateRange}
+              timeOfDay={timeOfDay}
+              onDateRangeChange={setDateRange}
+              onTimeOfDayChange={setTimeOfDay}
+            />
+          ) : undefined
+        }
       />
 
       {/* Main Content */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-5 sm:px-6 pt-4 pb-0 md:pb-4">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-5 sm:px-6 pb-0 md:pb-4">
         {readings.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
@@ -143,16 +153,6 @@ function BloodPressureContent() {
           </Card>
         ) : (
           <>
-            {/* Filter Bar */}
-            <div className="sticky top-[49px] z-10 bg-black/30 backdrop-blur-md pb-2 mb-0 md:mb-4 -mx-5 sm:-mx-6 md:mx-0 px-5 sm:px-6 md:px-0 border-b border-white/10 -mt-4 pt-2">
-              <FilterBar
-                dateRange={dateRange}
-                timeOfDay={timeOfDay}
-                onDateRangeChange={setDateRange}
-                onTimeOfDayChange={setTimeOfDay}
-              />
-            </div>
-
             {/* Mobile: Tab-based view with scrollable content */}
             <div className="md:hidden">{renderMobileTabContent()}</div>
 
