@@ -54,7 +54,7 @@ function ActivityContent() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background pb-4 md:pb-0">
+    <div className="min-h-screen flex flex-col bg-background">
       <Navbar
         leftContent={
           <button
@@ -93,9 +93,9 @@ function ActivityContent() {
       />
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden max-w-7xl mx-auto w-full px-5 sm:px-6 pb-0 md:pb-4">
+      <main className="flex-1 flex flex-col overflow-hidden max-w-7xl mx-auto w-full px-5 sm:px-6">
         {activities.length === 0 ? (
-          <Card>
+          <Card className="mt-4">
             <CardContent className="py-12 text-center">
               <ActivityIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground mb-4">No activities yet</p>
@@ -108,20 +108,22 @@ function ActivityContent() {
         ) : (
           <>
             {/* Filter Bar */}
-            <div className="sticky top-[49px] z-10 bg-background py-2 mb-4 -mx-5 sm:-mx-6 md:mx-0 px-5 sm:px-6 md:px-0 border-b">
+            <div className="flex-shrink-0 sticky top-[49px] z-10 bg-background py-2 -mx-5 sm:-mx-6 md:mx-0 px-5 sm:px-6 md:px-0 border-b">
               <FilterBar dateRange={dateRange} onDateRangeChange={setDateRange} />
             </div>
 
             {/* Activity Chart */}
-            <ActivityChart
-              activities={filteredActivities}
-              allActivities={activities}
-              selectedDate={selectedDate}
-              onSelectDate={setSelectedDate}
-              dateRange={dateRange}
-            />
+            <div className="flex-shrink-0 pt-4">
+              <ActivityChart
+                activities={filteredActivities}
+                allActivities={activities}
+                selectedDate={selectedDate}
+                onSelectDate={setSelectedDate}
+                dateRange={dateRange}
+              />
+            </div>
 
-            {/* Activity Timeline */}
+            {/* Activity Timeline - scrollable */}
             {filteredActivities.length > 0 && (
               <ActivityDetails
                 activities={filteredActivities}
