@@ -56,7 +56,7 @@ type FontId = (typeof FONT_OPTIONS)[number]['id'];
 const FONT_STORAGE_KEY = 'soma-font';
 const FONT_SIZE_STORAGE_KEY = 'soma-font-size';
 
-const DEFAULT_FONT_SIZE = 16;
+const DEFAULT_FONT_SIZE = 18;
 const MIN_FONT_SIZE = 12;
 const MAX_FONT_SIZE = 20;
 
@@ -65,7 +65,7 @@ export function getStoredFont(): FontId {
   if (stored && FONT_OPTIONS.some((f) => f.id === stored)) {
     return stored as FontId;
   }
-  return 'line-seed';
+  return 'exo';
 }
 
 export function getStoredFontSize(): number {
