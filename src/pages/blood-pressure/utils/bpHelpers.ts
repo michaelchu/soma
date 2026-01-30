@@ -1,11 +1,23 @@
 import { BP_GUIDELINES, BP_CATEGORY_INFO, DEFAULT_GUIDELINE } from '../constants/bpGuidelines';
 import { isInTimeOfDay } from '@/lib/dateUtils';
+import type { BPCategoryKey, TimeOfDay } from '@/types/bloodPressure';
+
+interface BPReading {
+  datetime?: string;
+  systolic: number;
+  diastolic: number;
+  pulse?: number | null;
+}
 
 /**
  * Determine BP category based on systolic and diastolic values
  * Uses the specified guideline for classification
  */
-export function getBPCategory(systolic, diastolic, guidelineKey = DEFAULT_GUIDELINE) {
+export function getBPCategory(
+  systolic: number | null | undefined,
+  diastolic: number | null | undefined,
+  guidelineKey: string = DEFAULT_GUIDELINE
+): BPCategoryKey | null {
   if (!systolic || !diastolic) return null;
 
   const guideline = BP_GUIDELINES[guidelineKey];
@@ -53,14 +65,14 @@ export function getBPCategory(systolic, diastolic, guidelineKey = DEFAULT_GUIDEL
 /**
  * Get category info object for display
  */
-export function getCategoryInfo(category) {
-  return BP_CATEGORY_INFO[category] || BP_CATEGORY_INFO.normal;
+export function getCategoryInfo(category: string | null) {
+  return BP_CATEGORY_INFO[category || 'normal'] || BP_CATEGORY_INFO.normal;
 }
 
 /**
  * Get reference lines for charts based on guideline
  */
-export function getReferenceLines(guidelineKey = DEFAULT_GUIDELINE) {
+export function getReferenceLines(guidelineKey: string = DEFAULT_GUIDELINE) {
   const guideline = BP_GUIDELINES[guidelineKey];
   return guideline?.referenceLines || BP_GUIDELINES[DEFAULT_GUIDELINE].referenceLines;
 }
@@ -68,7 +80,7 @@ export function getReferenceLines(guidelineKey = DEFAULT_GUIDELINE) {
 /**
  * Get combined CSS classes for a category badge
  */
-export function getCategoryClasses(category) {
+export function getCategoryClasses(category: BPCategoryKey | null): string {
   const info = getCategoryInfo(category);
   return `${info.bgClass} ${info.textClass} ${info.borderClass}`;
 }
@@ -76,19 +88,19 @@ export function getCategoryClasses(category) {
 /**
  * Calculate statistics from readings array
  */
-export function calculateStats(readings) {
+export function calculateStats(readings: BPReading[] | null | undefined) {
   if (!readings || readings.length === 0) return null;
 
   const systolics = readings.map((r) => r.systolic);
   const diastolics = readings.map((r) => r.diastolic);
-  const pulses = readings.filter((r) => r.pulse).map((r) => r.pulse);
+  const pulses = readings.filter((r) => r.pulse).map((r) => r.pulse as number);
 
   // Get latest reading (arrays are guaranteed non-empty at this point due to early return)
   const latestSystolic = systolics[systolics.length - 1];
   const latestDiastolic = diastolics[diastolics.length - 1];
 
   // Keep full precision - round with Math.floor(x + 0.5) for standard rounding at display time
-  const avg = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length;
+  const avg = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length;
 
   return {
     avgSystolic: Math.floor(avg(systolics) + 0.5),
@@ -106,12 +118,12 @@ export function calculateStats(readings) {
 /**
  * Calculate full statistics including PP and MAP
  */
-export function calculateFullStats(readings) {
+export function calculateFullStats(readings: BPReading[] | null | undefined) {
   if (!readings || readings.length === 0) return null;
 
   const systolics = readings.map((r) => r.systolic);
   const diastolics = readings.map((r) => r.diastolic);
-  const pulses = readings.filter((r) => r.pulse).map((r) => r.pulse);
+  const pulses = readings.filter((r) => r.pulse).map((r) => r.pulse as number);
 
   // Calculate PP (Pulse Pressure) = Systolic - Diastolic
   const pps = readings.map((r) => r.systolic - r.diastolic);
@@ -124,7 +136,8 @@ export function calculateFullStats(readings) {
   });
 
   // Keep full precision for averages - round only at display time
-  const avg = (arr) => (arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : null);
+  const avg = (arr: number[]) =>
+    arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
 
   return {
     systolic: {
@@ -160,7 +173,11 @@ export function calculateFullStats(readings) {
  * Get readings for the previous equivalent period
  * e.g., if current is "last 7 days", previous is "7-14 days ago"
  */
-export function getPreviousPeriodReadings(allReadings, dateRange, timeOfDay) {
+export function getPreviousPeriodReadings(
+  allReadings: BPReading[] | null | undefined,
+  dateRange: string,
+  timeOfDay: TimeOfDay | 'all'
+): BPReading[] {
   if (!allReadings || dateRange === 'all') return [];
 
   const days = parseInt(dateRange, 10);

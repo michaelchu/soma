@@ -22,7 +22,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { REFERENCE_RANGES } from '../../constants/referenceRanges';
 import { useReports } from '../../hooks/useReports';
 
-function parseReference(refString) {
+interface ParsedReference {
+  min?: number;
+  max?: number;
+  raw?: string;
+}
+
+function parseReference(refString: string | null | undefined): ParsedReference {
   if (!refString) return {};
   const rangeMatch = refString.match(/^([\d.]+)-([\d.]+)$/);
   if (rangeMatch) {
@@ -39,12 +45,23 @@ function parseReference(refString) {
   return { raw: refString };
 }
 
-export function ReportImporter({ onClose }) {
+interface ReportImporterProps {
+  onClose: () => void;
+}
+
+interface MetricRow {
+  key: string;
+  value: string;
+  reference: string;
+  unit: string;
+}
+
+export function ReportImporter({ onClose }: ReportImporterProps) {
   const { addReport } = useReports();
   const [reportDate, setReportDate] = useState('');
   const [orderNumber, setOrderNumber] = useState('');
   const [orderedBy, setOrderedBy] = useState('');
-  const [metrics, setMetrics] = useState([]);
+  const [metrics, setMetrics] = useState<MetricRow[]>([]);
   const [saving, setSaving] = useState(false);
 
   const addMetric = () => {
@@ -59,11 +76,11 @@ export function ReportImporter({ onClose }) {
     ]);
   };
 
-  const removeMetric = (index) => {
+  const removeMetric = (index: number) => {
     setMetrics(metrics.filter((_, i) => i !== index));
   };
 
-  const updateMetric = (index, field, value) => {
+  const updateMetric = (index: number, field: keyof MetricRow, value: string) => {
     const updated = [...metrics];
     updated[index] = { ...updated[index], [field]: value };
 

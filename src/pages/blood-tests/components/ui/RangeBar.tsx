@@ -9,13 +9,21 @@ const GRADIENT_CLASSES = {
   both: 'bg-gradient-to-r from-amber-200 via-green-200 to-amber-200 dark:from-amber-900/50 dark:via-green-900/50 dark:to-amber-900/50',
 };
 
-function getGradientClass(min, max) {
+function getGradientClass(min: number | null, max: number | null): string {
   if (min === null && max !== null) return GRADIENT_CLASSES.upperOnly;
   if (max === null && min !== null) return GRADIENT_CLASSES.lowerOnly;
   return GRADIENT_CLASSES.both;
 }
 
-export function RangeBar({ value, min, max, optimalMin, optimalMax }) {
+interface RangeBarProps {
+  value: number;
+  min: number | null;
+  max: number | null;
+  optimalMin?: number | null;
+  optimalMax?: number | null;
+}
+
+export function RangeBar({ value, min, max, optimalMin, optimalMax }: RangeBarProps) {
   const position = getPositionInRange(value, min, max);
   const status = getStatus(value, min, max);
   const optimalStyle = getOptimalZoneStyle(optimalMin, optimalMax, min, max);

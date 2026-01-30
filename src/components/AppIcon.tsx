@@ -1,6 +1,21 @@
+import React from 'react';
 import { cn } from '@/lib/utils';
 
-export default function AppIcon({ app, onClick }) {
+interface App {
+  id: string;
+  name: string;
+  icon: React.ReactNode;
+  route?: string;
+  url?: string;
+  [key: string]: unknown;
+}
+
+interface AppIconProps {
+  app: App;
+  onClick: (app: App) => void;
+}
+
+export default function AppIcon({ app, onClick }: AppIconProps) {
   return (
     <button
       onClick={() => onClick(app)}

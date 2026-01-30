@@ -11,18 +11,24 @@ import {
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
+interface ExportModalProps {
+  onClose: () => void;
+  title: string;
+  generateMarkdown: () => string;
+  generateCSV: () => string;
+  downloadFilename: string;
+}
+
 /**
  * Shared export modal component for exporting data in markdown or CSV format
- *
- * @param {Object} props
- * @param {Function} props.onClose - Callback when modal is closed
- * @param {string} props.title - Modal title (e.g., "Export Blood Pressure Data")
- * @param {Function} props.generateMarkdown - Function that returns markdown content
- * @param {Function} props.generateCSV - Function that returns CSV content
- * @param {string} props.downloadFilename - Base filename without extension (e.g., "blood-pressure-export")
- * @param {string} props.itemCount - Display count (e.g., "5 readings" or "3 reports")
  */
-export function ExportModal({ onClose, title, generateMarkdown, generateCSV, downloadFilename }) {
+export function ExportModal({
+  onClose,
+  title,
+  generateMarkdown,
+  generateCSV,
+  downloadFilename,
+}: ExportModalProps) {
   const [copied, setCopied] = useState(false);
   const [format, setFormat] = useState('markdown');
 

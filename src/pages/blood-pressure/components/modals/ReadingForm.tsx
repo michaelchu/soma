@@ -26,7 +26,7 @@ interface ReadingFormContentProps {
       systolic: number;
       diastolic: number;
       arm: Arm;
-      pulse: number | null;
+      pulse?: number | null;
     }>;
   } | null;
   onOpenChange: (open: boolean) => void;

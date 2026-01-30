@@ -1,8 +1,37 @@
 import { ExportModal as SharedExportModal } from '@/components/shared/ExportModal';
 import { calculateStats } from '../../utils/bpHelpers';
 import { useBloodPressureSettings } from '../../hooks/useBloodPressureSettings';
+import type { BPCategoryKey, BPCategory } from '@/types/bloodPressure';
 
-function generateMarkdown(readings, stats, getCategory, getCategoryInfo) {
+interface BPReading {
+  datetime: string;
+  systolic: number;
+  diastolic: number;
+  pulse: number | null;
+  notes?: string | null;
+}
+
+interface BPStats {
+  avgSystolic: number;
+  avgDiastolic: number;
+  avgPulse: number | null;
+  minSystolic: number;
+  maxSystolic: number;
+  minDiastolic: number;
+  maxDiastolic: number;
+  count: number;
+  latestCategory: BPCategoryKey | null;
+}
+
+type GetCategoryFn = (systolic: number, diastolic: number) => BPCategoryKey | null;
+type GetCategoryInfoFn = (category: BPCategoryKey | null) => BPCategory;
+
+function generateMarkdown(
+  readings: BPReading[],
+  stats: BPStats | null,
+  getCategory: GetCategoryFn,
+  getCategoryInfo: GetCategoryInfoFn
+): string {
   if (!readings || readings.length === 0) {
     return '# Blood Pressure Summary\n\nNo readings available.';
   }
@@ -23,21 +52,22 @@ function generateMarkdown(readings, stats, getCategory, getCategoryInfo) {
   md += `**Total Readings:** ${readings.length}\n\n`;
 
   // Category distribution
-  const categoryCount = {};
+  const categoryCount: Record<string, number> = {};
   readings.forEach((r) => {
     const cat = getCategory(r.systolic, r.diastolic);
-    categoryCount[cat] = (categoryCount[cat] || 0) + 1;
+    if (cat) {
+      categoryCount[cat] = (categoryCount[cat] || 0) + 1;
+    }
   });
 
   md += '## Reading Distribution\n\n';
   md += '| Category | Count | Percentage |\n';
   md += '|----------|-------|------------|\n';
   Object.entries(categoryCount).forEach(([cat, count]) => {
-    const countNum = count as number;
-    if (countNum > 0) {
-      const info = getCategoryInfo(cat);
-      const pct = ((countNum / readings.length) * 100).toFixed(1);
-      md += `| ${info.label} | ${countNum} | ${pct}% |\n`;
+    if (count > 0) {
+      const info = getCategoryInfo(cat as BPCategoryKey);
+      const pct = ((count / readings.length) * 100).toFixed(1);
+      md += `| ${info.label} | ${count} | ${pct}% |\n`;
     }
   });
   md += '\n';
@@ -89,8 +119,14 @@ function generateMarkdown(readings, stats, getCategory, getCategoryInfo) {
   return md;
 }
 
-function generateCSV(readings, getCategory, getCategoryInfo) {
-  const rows = [['Date', 'Time', 'Systolic', 'Diastolic', 'Pulse', 'Category', 'Notes']];
+function generateCSV(
+  readings: BPReading[],
+  getCategory: GetCategoryFn,
+  getCategoryInfo: GetCategoryInfoFn
+): string {
+  const rows: (string | number)[][] = [
+    ['Date', 'Time', 'Systolic', 'Diastolic', 'Pulse', 'Category', 'Notes'],
+  ];
 
   for (const reading of readings) {
     const date = new Date(reading.datetime);
@@ -110,7 +146,12 @@ function generateCSV(readings, getCategory, getCategoryInfo) {
   return rows.map((row) => row.map((cell) => `"${cell}"`).join(',')).join('\n');
 }
 
-export function ExportModal({ readings, onClose }) {
+interface ExportModalProps {
+  readings: BPReading[];
+  onClose: () => void;
+}
+
+export function ExportModal({ readings, onClose }: ExportModalProps) {
   const { getCategory, getCategoryInfo } = useBloodPressureSettings();
   const stats = calculateStats(readings);
 

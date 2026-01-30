@@ -231,10 +231,10 @@ describe('bpHelpers', () => {
     };
 
     const mockReadings = [
-      { datetime: daysAgo(5) }, // Current period (last 7 days)
-      { datetime: daysAgo(10) }, // Previous period (7-14 days ago)
-      { datetime: daysAgo(12) }, // Previous period
-      { datetime: daysAgo(20) }, // Outside both periods
+      { datetime: daysAgo(5), systolic: 120, diastolic: 80 }, // Current period (last 7 days)
+      { datetime: daysAgo(10), systolic: 120, diastolic: 80 }, // Previous period (7-14 days ago)
+      { datetime: daysAgo(12), systolic: 120, diastolic: 80 }, // Previous period
+      { datetime: daysAgo(20), systolic: 120, diastolic: 80 }, // Outside both periods
     ];
 
     it('returns empty array for "all" date range', () => {
