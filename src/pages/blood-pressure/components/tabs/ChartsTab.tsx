@@ -1,15 +1,13 @@
 import { useState } from 'react';
 import { LineChart, ScatterChart } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { BPTimeChart } from '../charts/BPTimeChart';
 import { BPScatterChart } from '../charts/BPScatterChart';
+import { cn } from '@/lib/utils';
 
 export function ChartsTab({ readings, dateRange = 'all' }) {
   const [showTrendline, setShowTrendline] = useState(true);
   const [showMarkers, setShowMarkers] = useState(false);
-  const [showPP, setShowPP] = useState(true);
   const [showMAP, setShowMAP] = useState(true);
 
   if (!readings || readings.length === 0) {
@@ -39,35 +37,28 @@ export function ChartsTab({ readings, dateRange = 'all' }) {
           readings={readings}
           showTrendline={showTrendline}
           showMarkers={showMarkers}
-          showPP={showPP}
           showMAP={showMAP}
           dateRange={dateRange}
         />
-        <div className="grid grid-cols-2 gap-x-6 gap-y-2 mt-4 w-fit mx-auto">
-          <div className="flex items-center gap-2">
-            <Switch id="pp" checked={showPP} onCheckedChange={setShowPP} />
-            <Label htmlFor="pp" className="text-sm cursor-pointer">
-              PP Area
-            </Label>
-          </div>
-          <div className="flex items-center gap-2">
-            <Switch id="map" checked={showMAP} onCheckedChange={setShowMAP} />
-            <Label htmlFor="map" className="text-sm cursor-pointer">
-              MAP
-            </Label>
-          </div>
-          <div className="flex items-center gap-2">
-            <Switch id="trendline" checked={showTrendline} onCheckedChange={setShowTrendline} />
-            <Label htmlFor="trendline" className="text-sm cursor-pointer">
-              Trendline
-            </Label>
-          </div>
-          <div className="flex items-center gap-2">
-            <Switch id="markers" checked={showMarkers} onCheckedChange={setShowMarkers} />
-            <Label htmlFor="markers" className="text-sm cursor-pointer">
-              Markers
-            </Label>
-          </div>
+        <div className="flex flex-wrap justify-center gap-2 mt-4">
+          {[
+            { key: 'map', label: 'MAP', active: showMAP, toggle: setShowMAP },
+            { key: 'trendline', label: 'Trend', active: showTrendline, toggle: setShowTrendline },
+            { key: 'markers', label: 'Markers', active: showMarkers, toggle: setShowMarkers },
+          ].map(({ key, label, active, toggle }) => (
+            <button
+              key={key}
+              onClick={() => toggle(!active)}
+              className={cn(
+                'px-3 py-1 text-xs rounded-full transition-colors',
+                active
+                  ? 'bg-primary/20 text-primary'
+                  : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+              )}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </TabsContent>
       <TabsContent value="scatter" className="w-full">

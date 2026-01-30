@@ -2,15 +2,12 @@ import { useMemo } from 'react';
 import {
   ComposedChart,
   Line,
-  Area,
   XAxis,
   YAxis,
   Tooltip as RechartsTooltip,
   ResponsiveContainer,
-  Legend,
   CartesianGrid,
 } from 'recharts';
-import { formatDateTime } from '../../utils/bpHelpers';
 import { useBloodPressureSettings } from '../../hooks/useBloodPressureSettings';
 import { getDateRange } from '@/lib/dateUtils';
 
@@ -146,7 +143,6 @@ interface BPTimeChartProps {
   height?: number;
   showTrendline?: boolean;
   showMarkers?: boolean;
-  showPP?: boolean;
   showMAP?: boolean;
   dateRange?: string;
 }
@@ -156,7 +152,6 @@ export function BPTimeChart({
   height = 280,
   showTrendline = true,
   showMarkers = true,
-  showPP = true,
   showMAP = false,
   dateRange = 'all',
 }: BPTimeChartProps) {
@@ -190,7 +185,8 @@ export function BPTimeChart({
 
   // Transform data for chart
   const chartData: ChartDataPoint[] = sortedReadings.map((r) => {
-    const { date } = formatDateTime(r.datetime, { hideWeekday: true });
+    const d = new Date(r.datetime);
+    const date = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const category = getCategory(r.systolic, r.diastolic);
     const pp = r.systolic - r.diastolic;
     const map = r.diastolic + pp / 3;
@@ -245,16 +241,21 @@ export function BPTimeChart({
   return (
     <div className="w-full">
       <ResponsiveContainer width="100%" height={height}>
-        <ComposedChart
-          data={chartDataWithTrend}
-          margin={{ top: 10, right: 30, bottom: 5, left: 10 }}
-        >
-          <CartesianGrid horizontal={true} vertical={false} stroke="hsl(var(--border))" />
+        <ComposedChart data={chartDataWithTrend} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
+          <CartesianGrid
+            horizontal={true}
+            vertical={false}
+            stroke="hsl(var(--muted-foreground))"
+            strokeOpacity={0.2}
+            strokeDasharray="3 3"
+          />
           <XAxis
             dataKey="date"
             tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
             stroke="hsl(var(--muted-foreground))"
             axisLine={false}
+            tickLine={false}
+            dy={5}
           />
 
           <YAxis
@@ -263,54 +264,12 @@ export function BPTimeChart({
             ticks={Array.from({ length: (yMax - yMin) / 20 + 1 }, (_, i) => yMin + i * 20)}
             tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
             stroke="hsl(var(--muted-foreground))"
-            width={55}
+            width={35}
             axisLine={false}
-            label={{
-              value: 'mmHg',
-              angle: -90,
-              position: 'insideLeft',
-              fontSize: 12,
-              fill: 'hsl(var(--muted-foreground))',
-            }}
+            tickLine={false}
           />
 
           <RechartsTooltip content={renderTooltip} />
-
-          <Legend
-            verticalAlign="top"
-            height={36}
-            formatter={(value) => <span className="text-sm text-foreground">{value}</span>}
-          />
-
-          {/* PP shaded area between systolic and diastolic */}
-          {showPP && (
-            <>
-              {/* Systolic area fills down with PP color */}
-              <Area
-                type="monotone"
-                dataKey="systolic"
-                yAxisId="bp"
-                stroke="none"
-                fill="#f43f5e"
-                fillOpacity={0.15}
-                baseValue={yMin}
-                legendType="none"
-                isAnimationActive={false}
-              />
-              {/* Diastolic area masks below with background color */}
-              <Area
-                type="monotone"
-                dataKey="diastolic"
-                yAxisId="bp"
-                stroke="none"
-                fill="hsl(var(--background))"
-                fillOpacity={1}
-                baseValue={yMin}
-                legendType="none"
-                isAnimationActive={false}
-              />
-            </>
-          )}
 
           {/* Systolic line */}
           <Line
@@ -388,8 +347,8 @@ export function BPTimeChart({
         </ComposedChart>
       </ResponsiveContainer>
 
-      <div className="mt-2 text-xs text-muted-foreground text-center">
-        {chartData.length} reading{chartData.length !== 1 ? 's' : ''} ({dateRangeLabel})
+      <div className="mt-4 text-xs text-muted-foreground/70 text-center">
+        {chartData.length} reading{chartData.length !== 1 ? 's' : ''} · {dateRangeLabel}
       </div>
     </div>
   );
