@@ -204,12 +204,15 @@ export function DetailsTab({ entries, allEntries, dateRange }: DetailsTabProps) 
 
       {/* Scrollable Bar Chart */}
       <div className="px-5 sm:px-6 pt-2 pb-4">
-        <div className="-mx-5 sm:-mx-6 px-5 sm:px-6">
+        <div className="-mx-5 sm:-mx-6 px-5 sm:px-6 relative">
           <ScoreBarChart
             items={chartItems}
             selectedIndex={selectedIndex}
             onSelectIndex={setSelectedIndex}
           />
+          {/* Fade overlays - works because page gradient fades to black */}
+          <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-black to-transparent pointer-events-none" />
+          <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-black to-transparent pointer-events-none" />
         </div>
       </div>
 
