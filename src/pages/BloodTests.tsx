@@ -400,7 +400,7 @@ export default function BloodTests() {
           </div>
 
           {sortedMetrics.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-4 mt-3">
               {Object.entries(
                 sortedMetrics.reduce<Record<string, string[]>>((acc, key) => {
                   const category = REFERENCE_RANGES[key]?.category || 'other';
@@ -428,9 +428,9 @@ export default function BloodTests() {
                           size={18}
                           className={`text-muted-foreground transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`}
                         />
-                        <h3 className="font-semibold text-foreground flex items-center gap-2">
+                        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                           {categoryInfo.label}
-                          <span className="text-sm font-normal text-muted-foreground">
+                          <span className="text-xs font-normal text-muted-foreground">
                             ({metrics.length})
                           </span>
                         </h3>
@@ -483,7 +483,7 @@ export default function BloodTests() {
               })}
             </div>
           ) : (
-            <div className="bg-card rounded-xl border p-12 text-center">
+            <div className="bg-card rounded-xl border p-12 text-center mt-3">
               {filter === 'ignored' ? (
                 <>
                   <EyeOff className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
