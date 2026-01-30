@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { Minus } from 'lucide-react';
 import { calculateFullStats, getPreviousPeriodReadings } from '../../utils/bpHelpers';
 import { useSettings } from '@/lib/SettingsContext';
 import { BP_GUIDELINES, DEFAULT_GUIDELINE } from '../../constants/bpGuidelines';
@@ -42,7 +41,7 @@ function getChangeColor(current, previous, config) {
 
 function ChangeIndicator({ current, previous, config, disabled = false }) {
   if (disabled || current === null || previous === null) {
-    return <span className="text-muted-foreground flex justify-center">—</span>;
+    return <span className="text-muted-foreground">—</span>;
   }
 
   const diff = current - previous;
@@ -56,14 +55,9 @@ function ChangeIndicator({ current, previous, config, disabled = false }) {
   const truncatedDiff = truncateToOneDecimal(diff);
   const pctChange = previous !== 0 ? truncateToOneDecimal((diff / previous) * 100) : 0;
 
-  // Check if diff truncates to 0.0 for display purposes
+  // Check if diff truncates to 0.0 for display purposes - show dash like no data
   if (truncatedDiff === 0) {
-    return (
-      <span className="flex items-center justify-center gap-1 text-muted-foreground">
-        <Minus className="h-3 w-3" />
-        <span>0</span>
-      </span>
-    );
+    return <span className="text-muted-foreground">—</span>;
   }
 
   const changeType = getChangeColor(current, previous, config);
