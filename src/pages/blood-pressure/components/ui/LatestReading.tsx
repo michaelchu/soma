@@ -1,10 +1,10 @@
 import { Activity, Clock } from 'lucide-react';
 import { BPStatusBadge } from './BPStatusBadge';
 import { formatDateTime, getTrend } from '../../utils/bpHelpers';
-import { useBPSettings } from '../../hooks/useBPSettings';
+import { useBloodPressureSettings } from '../../hooks/useBloodPressureSettings';
 
 export function LatestReading({ readings }) {
-  const { getCategory } = useBPSettings();
+  const { getCategory } = useBloodPressureSettings();
 
   if (!readings || readings.length === 0) {
     return <p className="text-muted-foreground text-center">No readings yet</p>;

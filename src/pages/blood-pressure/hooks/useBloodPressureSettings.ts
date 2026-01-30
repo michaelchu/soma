@@ -3,7 +3,7 @@ import { useSettings } from '@/lib/SettingsContext';
 import { getBPCategory, getCategoryInfo, getReferenceLines } from '../utils/bpHelpers';
 import { BP_GUIDELINES, BP_CATEGORY_INFO, DEFAULT_GUIDELINE } from '../constants/bpGuidelines';
 
-export function useBPSettings() {
+export function useBloodPressureSettings() {
   const { settings } = useSettings();
   const guidelineKey = settings.bpGuideline || DEFAULT_GUIDELINE;
   const guideline = BP_GUIDELINES[guidelineKey];

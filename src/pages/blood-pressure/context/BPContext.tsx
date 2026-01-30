@@ -9,10 +9,13 @@ export function BPProvider({ children }) {
   return <BPContext.Provider value={readingsState}>{children}</BPContext.Provider>;
 }
 
-export function useBP() {
+export function useBloodPressure() {
   const context = useContext(BPContext);
   if (!context) {
-    throw new Error('useBP must be used within a BPProvider');
+    throw new Error('useBloodPressure must be used within a BPProvider');
   }
   return context;
 }
+
+// Backwards compatibility alias
+export const useBP = useBloodPressure;

@@ -9,7 +9,7 @@ import {
   Cell,
 } from 'recharts';
 import { formatDateTime } from '../../utils/bpHelpers';
-import { useBPSettings } from '../../hooks/useBPSettings';
+import { useBloodPressureSettings } from '../../hooks/useBloodPressureSettings';
 
 // Custom tooltip component
 function CustomTooltip({ active, payload, getCategoryInfo }) {
@@ -100,7 +100,8 @@ function getReferenceAreas(guidelineKey, categories, xMin, xMax, yMin, yMax) {
 }
 
 export function BPScatterChart({ readings, height = 280 }) {
-  const { getCategory, getCategoryInfo, guidelineKey, guideline, categories } = useBPSettings();
+  const { getCategory, getCategoryInfo, guidelineKey, guideline, categories } =
+    useBloodPressureSettings();
 
   if (!readings || readings.length === 0) {
     return (

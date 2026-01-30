@@ -1,28 +1,46 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Save, Loader2, Plus, X, Trash2 } from 'lucide-react';
-import { useBP } from '../../context/BPContext';
+import { Plus } from 'lucide-react';
+import { useBloodPressure } from '../../context/BPContext';
 import { showError, showSuccess, showWithUndo } from '@/lib/toast';
 import { getLocalDatetimeNow, toDatetimeLocalFormat } from '@/lib/dateUtils';
 import { BP_VALIDATION } from '@/lib/validation';
+import { BPRowInput, type BPRowData, type BPRowInputRef } from './BPRowInput';
+import { FormActions } from './FormActions';
+import type { Arm } from '@/types/bloodPressure';
 
-function createEmptyBpRow() {
+function createEmptyBpRow(): BPRowData {
   return { systolic: '', diastolic: '', arm: null, pulse: '' };
 }
 
+interface ReadingFormContentProps {
+  session: {
+    sessionId: string;
+    datetime: string;
+    notes: string | null;
+    readings: Array<{
+      systolic: number;
+      diastolic: number;
+      arm: Arm;
+      pulse: number | null;
+    }>;
+  } | null;
+  onOpenChange: (open: boolean) => void;
+}
+
 // Inner form component that resets when key changes
-function ReadingFormContent({ session, onOpenChange }) {
-  const { addSession, updateSession, deleteSession } = useBP();
+function ReadingFormContent({ session, onOpenChange }: ReadingFormContentProps) {
+  const { addSession, updateSession, deleteSession } = useBloodPressure();
   const isEditing = !!session;
 
   const [datetime, setDatetime] = useState(() =>
     session ? toDatetimeLocalFormat(session.datetime) : getLocalDatetimeNow()
   );
-  const [bpRows, setBpRows] = useState(() =>
+  const [bpRows, setBpRows] = useState<BPRowData[]>(() =>
     session?.readings
       ? session.readings.map((r) => ({
           systolic: String(r.systolic),
@@ -33,68 +51,13 @@ function ReadingFormContent({ session, onOpenChange }) {
       : [createEmptyBpRow()]
   );
   const [notes, setNotes] = useState(() => session?.notes || '');
-  const scrollContainerRef = useRef(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  // Refs for auto-focus: inputRefs[rowIndex][field] where field is 'systolic', 'diastolic', or 'pulse'
-  const inputRefs = useRef({});
-
-  const setInputRef = useCallback((rowIndex, field, el) => {
-    if (!inputRefs.current[rowIndex]) {
-      inputRefs.current[rowIndex] = {};
-    }
-    inputRefs.current[rowIndex][field] = el;
-  }, []);
-
-  // Check if a value is likely complete based on field type and value
-  const isValueComplete = (field, value) => {
-    if (!value) return false;
-    const num = parseInt(value);
-
-    if (field === 'systolic') {
-      // Systolic is typically 90-200, so 3 digits means complete
-      return value.length === 3;
-    } else if (field === 'diastolic') {
-      // Diastolic is typically 60-120
-      // If 3 digits, definitely complete
-      // If 2 digits and >= 60, likely complete (values like 60-99)
-      if (value.length === 3) return true;
-      if (value.length === 2 && num >= 60) return true;
-      return false;
-    } else if (field === 'pulse') {
-      // Pulse is typically 50-120
-      // If 3 digits, definitely complete
-      // If 2 digits and >= 50, likely complete
-      if (value.length === 3) return true;
-      if (value.length === 2 && num >= 50) return true;
-      return false;
-    }
-    return false;
-  };
-
-  const updateBpRow = (index, field, value) => {
-    setBpRows((rows) => rows.map((row, i) => (i === index ? { ...row, [field]: value } : row)));
-
-    // Auto-focus to next field when value appears complete
-    if (isValueComplete(field, value)) {
-      if (field === 'systolic') {
-        // Move to diastolic in same row
-        inputRefs.current[index]?.diastolic?.focus();
-      } else if (field === 'diastolic') {
-        // Move to pulse in same row
-        inputRefs.current[index]?.pulse?.focus();
-      } else if (field === 'pulse') {
-        // Move to systolic in next row if available
-        inputRefs.current[index + 1]?.systolic?.focus();
-      }
-    }
-  };
-
-  const addBpRow = () => {
-    setBpRows((rows) => [...rows, createEmptyBpRow()]);
-  };
+  // Refs for auto-focus
+  const rowRefs = useRef<Map<number, BPRowInputRef>>(new Map());
 
   // Auto-scroll to bottom when new row is added
   useEffect(() => {
@@ -103,8 +66,23 @@ function ReadingFormContent({ session, onOpenChange }) {
     }
   }, [bpRows.length]);
 
-  const removeBpRow = (index) => {
+  const updateBpRow = (index: number, field: keyof BPRowData, value: string | Arm) => {
+    setBpRows((rows) => rows.map((row, i) => (i === index ? { ...row, [field]: value } : row)));
+  };
+
+  const addBpRow = () => {
+    setBpRows((rows) => [...rows, createEmptyBpRow()]);
+  };
+
+  const removeBpRow = (index: number) => {
     setBpRows((rows) => rows.filter((_, i) => i !== index));
+  };
+
+  const handleAutoAdvance = (index: number, nextField: 'diastolic' | 'pulse' | 'nextRow') => {
+    if (nextField === 'nextRow') {
+      // Focus systolic of next row if available
+      rowRefs.current.get(index + 1)?.focusSystolic();
+    }
   };
 
   // Calculate averages from valid rows
@@ -166,7 +144,7 @@ function ReadingFormContent({ session, onOpenChange }) {
     };
 
     let saveError;
-    if (isEditing) {
+    if (isEditing && session) {
       const result = await updateSession(session.sessionId, sessionData);
       saveError = result.error;
     } else {
@@ -200,6 +178,8 @@ function ReadingFormContent({ session, onOpenChange }) {
       setConfirmDelete(true);
       return;
     }
+
+    if (!session) return;
 
     setDeleting(true);
 
@@ -258,83 +238,22 @@ function ReadingFormContent({ session, onOpenChange }) {
           <Label className="flex-shrink-0">Blood Pressure (mmHg)</Label>
           <div ref={scrollContainerRef} className="flex-1 overflow-y-auto -mx-1">
             {bpRows.map((row, index) => (
-              <div key={index} className="flex items-center gap-2 px-1 py-1">
-                <Input
-                  ref={(el) => setInputRef(index, 'systolic', el)}
-                  type="number"
-                  placeholder="Sys"
-                  value={row.systolic}
-                  onChange={(e) => updateBpRow(index, 'systolic', e.target.value)}
-                  min={BP_VALIDATION.SYSTOLIC_MIN}
-                  max={BP_VALIDATION.SYSTOLIC_MAX}
-                  className="flex-1 min-w-0 text-center"
-                />
-                <span className="text-xl text-muted-foreground">/</span>
-                <Input
-                  ref={(el) => setInputRef(index, 'diastolic', el)}
-                  type="number"
-                  placeholder="Dia"
-                  value={row.diastolic}
-                  onChange={(e) => updateBpRow(index, 'diastolic', e.target.value)}
-                  min={BP_VALIDATION.DIASTOLIC_MIN}
-                  max={BP_VALIDATION.DIASTOLIC_MAX}
-                  className="flex-1 min-w-0 text-center"
-                />
-                <Input
-                  ref={(el) => setInputRef(index, 'pulse', el)}
-                  type="number"
-                  placeholder="Pulse"
-                  value={row.pulse}
-                  onChange={(e) => updateBpRow(index, 'pulse', e.target.value)}
-                  min={BP_VALIDATION.PULSE_MIN}
-                  max={BP_VALIDATION.PULSE_MAX}
-                  className="flex-1 min-w-0 text-center"
-                />
-                {/* Arm selector */}
-                <div
-                  className="flex h-9 rounded-md border border-input overflow-hidden flex-shrink-0"
-                  role="group"
-                  aria-label="Arm selection"
-                >
-                  <button
-                    type="button"
-                    onClick={() => updateBpRow(index, 'arm', row.arm === 'L' ? null : 'L')}
-                    aria-label="Left arm"
-                    aria-pressed={row.arm === 'L'}
-                    className={`px-2.5 text-sm font-medium transition-colors ${
-                      row.arm === 'L'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-background text-muted-foreground hover:bg-muted'
-                    }`}
-                  >
-                    L
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => updateBpRow(index, 'arm', row.arm === 'R' ? null : 'R')}
-                    aria-label="Right arm"
-                    aria-pressed={row.arm === 'R'}
-                    className={`px-2.5 text-sm font-medium border-l border-input transition-colors ${
-                      row.arm === 'R'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-background text-muted-foreground hover:bg-muted'
-                    }`}
-                  >
-                    R
-                  </button>
-                </div>
-                {bpRows.length > 1 && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 flex-shrink-0"
-                    onClick={() => removeBpRow(index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
+              <BPRowInput
+                key={index}
+                ref={(el) => {
+                  if (el) {
+                    rowRefs.current.set(index, el);
+                  } else {
+                    rowRefs.current.delete(index);
+                  }
+                }}
+                row={row}
+                index={index}
+                canRemove={bpRows.length > 1}
+                onUpdate={updateBpRow}
+                onRemove={removeBpRow}
+                onAutoAdvance={handleAutoAdvance}
+              />
             ))}
           </div>
           <Button
@@ -368,51 +287,27 @@ function ReadingFormContent({ session, onOpenChange }) {
       </div>
 
       {/* Actions */}
-      <div className="flex gap-2 px-5 py-4 flex-shrink-0 border-t">
-        {isEditing && (
-          <Button
-            variant={confirmDelete ? 'destructive' : 'outline'}
-            onClick={handleDelete}
-            disabled={saving || deleting}
-            className="flex-shrink-0"
-          >
-            {deleting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <>
-                <Trash2 className="h-4 w-4" />
-                {confirmDelete && <span className="ml-2">Confirm</span>}
-              </>
-            )}
-          </Button>
-        )}
-        <Button
-          variant="outline"
-          onClick={handleReset}
-          className="flex-1"
-          disabled={saving || deleting}
-        >
-          Reset
-        </Button>
-        <Button onClick={handleSave} disabled={!isValid || saving || deleting} className="flex-1">
-          {saving ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            <>
-              <Save className="h-4 w-4 mr-2" />
-              Save
-            </>
-          )}
-        </Button>
-      </div>
+      <FormActions
+        isEditing={isEditing}
+        isValid={isValid}
+        saving={saving}
+        deleting={deleting}
+        confirmDelete={confirmDelete}
+        onSave={handleSave}
+        onReset={handleReset}
+        onDelete={handleDelete}
+      />
     </>
   );
 }
 
-export function ReadingForm({ open, onOpenChange, session = null }) {
+interface ReadingFormProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  session?: ReadingFormContentProps['session'];
+}
+
+export function ReadingForm({ open, onOpenChange, session = null }: ReadingFormProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full h-full max-w-none sm:max-w-md sm:h-auto flex flex-col rounded-none sm:rounded-lg p-0 gap-0">

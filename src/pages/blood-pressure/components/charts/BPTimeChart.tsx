@@ -11,7 +11,7 @@ import {
   CartesianGrid,
 } from 'recharts';
 import { formatDateTime } from '../../utils/bpHelpers';
-import { useBPSettings } from '../../hooks/useBPSettings';
+import { useBloodPressureSettings } from '../../hooks/useBloodPressureSettings';
 import { getDateRange } from '@/lib/dateUtils';
 
 interface Reading {
@@ -160,7 +160,7 @@ export function BPTimeChart({
   showMAP = false,
   dateRange = 'all',
 }: BPTimeChartProps) {
-  const { getCategory, getCategoryInfo } = useBPSettings();
+  const { getCategory, getCategoryInfo } = useBloodPressureSettings();
 
   // Format date range label using theoretical filter range
   const dateRangeLabel = useMemo(() => {

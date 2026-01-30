@@ -12,8 +12,8 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { BPStatusBadge } from '../ui/BPStatusBadge';
 import { formatDateTime } from '../../utils/bpHelpers';
-import { useBPSettings } from '../../hooks/useBPSettings';
-import { useBP } from '../../context/BPContext';
+import { useBloodPressureSettings } from '../../hooks/useBloodPressureSettings';
+import { useBloodPressure } from '../../context/BPContext';
 import { ReadingForm } from '../modals/ReadingForm';
 import { TOUCH_CONSTANTS } from '@/lib/constants';
 
@@ -253,11 +253,11 @@ function NotesModal({ open, onOpenChange, session }) {
 }
 
 export function ReadingsTab({ readings }) {
-  const { addSession, deleteSession } = useBP();
+  const { addSession, deleteSession } = useBloodPressure();
   const [editingSession, setEditingSession] = useState(null);
   const [expandedSessionId, setExpandedSessionId] = useState(null);
   const [notesSession, setNotesSession] = useState(null);
-  const { getCategory, getCategoryInfo } = useBPSettings();
+  const { getCategory, getCategoryInfo } = useBloodPressureSettings();
 
   const handleDelete = async (sessionId: string) => {
     const { error, deletedItem } = await deleteSession(sessionId);

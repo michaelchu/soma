@@ -1,6 +1,6 @@
 import { ExportModal as SharedExportModal } from '@/components/shared/ExportModal';
 import { calculateStats } from '../../utils/bpHelpers';
-import { useBPSettings } from '../../hooks/useBPSettings';
+import { useBloodPressureSettings } from '../../hooks/useBloodPressureSettings';
 
 function generateMarkdown(readings, stats, getCategory, getCategoryInfo) {
   if (!readings || readings.length === 0) {
@@ -111,7 +111,7 @@ function generateCSV(readings, getCategory, getCategoryInfo) {
 }
 
 export function ExportModal({ readings, onClose }) {
-  const { getCategory, getCategoryInfo } = useBPSettings();
+  const { getCategory, getCategoryInfo } = useBloodPressureSettings();
   const stats = calculateStats(readings);
 
   return (

@@ -6,7 +6,7 @@ import { FabButton } from '@/components/ui/fab-button';
 import { Card, CardContent } from '@/components/ui/card';
 import Navbar from '@/components/Navbar';
 import { PageLoading, PageError } from '@/components/shared/PageStates';
-import { BPProvider, useBP } from './blood-pressure/context/BPContext';
+import { BPProvider, useBloodPressure } from './blood-pressure/context/BPContext';
 import { BottomNav } from './blood-pressure/components/ui/BottomNav';
 import { FilterBar, filterReadings } from './blood-pressure/components/ui/FilterBar';
 import { ReadingsTab } from './blood-pressure/components/tabs/ReadingsTab';
@@ -23,7 +23,7 @@ const VALID_TABS = ['readings', 'statistics', 'charts'];
 function BloodPressureContent() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { readings, loading, error } = useBP();
+  const { readings, loading, error } = useBloodPressure();
   const [showForm, setShowForm] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
