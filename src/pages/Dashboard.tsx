@@ -1,6 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Activity, Download } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Activity, Download, Settings } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { PageLoading, PageError } from '@/components/shared/PageStates';
@@ -9,11 +8,26 @@ import { DashboardScoreChart } from './dashboard/components/DashboardScoreChart'
 import { Insights } from './dashboard/components/Insights';
 import { Timeline } from './dashboard/components/Timeline';
 import { ExportModal } from './dashboard/components/ExportModal';
+import {
+  LauncherSettingsModal,
+  getStoredFont,
+  getStoredFontSize,
+  applyFont,
+  applyFontSize,
+} from '@/views/LauncherSettingsModal';
 
 function DashboardContent() {
-  const navigate = useNavigate();
   const { loading, error, bpReadings, sleepEntries, bloodTestReports } = useDashboard();
   const [showExport, setShowExport] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [currentFont, setCurrentFont] = useState(getStoredFont);
+  const [currentFontSize, setCurrentFontSize] = useState(getStoredFontSize);
+
+  // Apply font and font size on mount
+  useEffect(() => {
+    applyFont(currentFont);
+    applyFontSize(currentFontSize);
+  }, [currentFont, currentFontSize]);
 
   const hasData = bpReadings.length > 0 || sleepEntries.length > 0 || bloodTestReports.length > 0;
 
@@ -29,28 +43,44 @@ function DashboardContent() {
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar
         leftContent={
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-            title="Go to Home"
-          >
+          <div className="flex items-center gap-2">
             <Activity className="h-6 w-6 text-foreground" strokeWidth={2.5} />
             <span className="text-xl font-bold">Soma</span>
-          </button>
+          </div>
         }
         rightContent={
-          hasData && (
+          <div className="flex items-center gap-1">
+            {hasData && (
+              <Button
+                onClick={() => setShowExport(true)}
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8"
+                title="Export Data"
+              >
+                <Download className="h-5 w-5" />
+              </Button>
+            )}
             <Button
-              onClick={() => setShowExport(true)}
-              size="icon"
               variant="ghost"
+              size="icon"
               className="h-8 w-8"
-              title="Export Data"
+              onClick={() => setSettingsOpen(true)}
+              title="Settings"
             >
-              <Download className="h-5 w-5" />
+              <Settings className="h-5 w-5" />
             </Button>
-          )
+          </div>
         }
+      />
+
+      <LauncherSettingsModal
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        currentFont={currentFont}
+        onFontChange={setCurrentFont}
+        currentFontSize={currentFontSize}
+        onFontSizeChange={setCurrentFontSize}
       />
 
       <main className="flex-1 max-w-2xl mx-auto w-full px-5 sm:px-6 py-6 space-y-8">
