@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Activity as ActivityIcon, Plus, Download } from 'lucide-react';
+import { Flame, Plus, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FabButton } from '@/components/ui/fab-button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -20,7 +20,7 @@ function ActivityContent() {
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
 
   if (loading) {
-    return <PageLoading icon={ActivityIcon} message="Loading activities..." />;
+    return <PageLoading icon={Flame} message="Loading activities..." />;
   }
 
   if (error) {
@@ -36,7 +36,7 @@ function ActivityContent() {
             className="flex items-center gap-2 hover:opacity-80 transition-opacity"
             title="Go to Home"
           >
-            <ActivityIcon className="h-6 w-6 text-foreground" strokeWidth={2.5} />
+            <Flame className="h-6 w-6 text-foreground" strokeWidth={2.5} />
             <span className="text-xl font-bold">Soma</span>
           </button>
         }
@@ -71,7 +71,7 @@ function ActivityContent() {
         {activities.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
-              <ActivityIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <Flame className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground mb-4">No activities yet</p>
               <Button onClick={() => setShowForm(true)}>
                 <Plus className="h-4 w-4 mr-2" />
