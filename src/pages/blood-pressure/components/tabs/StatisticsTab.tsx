@@ -174,13 +174,13 @@ function StatsTable({ currentStats, previousStats, dateRange, normalThresholds }
                   </span>
                 </td>
                 <td className="py-3 px-1 text-center font-mono">
-                  {current?.min != null ? Math.floor(current.min) : '—'}
+                  {current?.min != null ? Math.round(current.min) : '—'}
                 </td>
                 <td className="py-3 px-1 text-center font-mono">
-                  {current?.max != null ? Math.floor(current.max) : '—'}
+                  {current?.max != null ? Math.round(current.max) : '—'}
                 </td>
                 <td className="py-3 px-1 text-center font-mono font-semibold">
-                  {current?.avg != null ? Math.floor(current.avg) : '—'}
+                  {current?.avg != null ? Math.round(current.avg) : '—'}
                 </td>
                 <td className="py-3 pl-1 text-right">
                   <ChangeIndicator
@@ -257,8 +257,8 @@ export function StatisticsTab({ readings, allReadings, dateRange, timeOfDay }) {
         <div>
           <p className="text-sm text-muted-foreground mb-1">Average Blood Pressure</p>
           <p className="text-3xl font-bold">
-            {currentStats?.systolic.avg != null ? Math.floor(currentStats.systolic.avg) : '—'}/
-            {currentStats?.diastolic.avg != null ? Math.floor(currentStats.diastolic.avg) : '—'}
+            {currentStats?.systolic.avg != null ? Math.round(currentStats.systolic.avg) : '—'}/
+            {currentStats?.diastolic.avg != null ? Math.round(currentStats.diastolic.avg) : '—'}
             <span className="text-lg font-normal text-muted-foreground ml-1">mmHg</span>
           </p>
         </div>
@@ -267,7 +267,7 @@ export function StatisticsTab({ readings, allReadings, dateRange, timeOfDay }) {
           <div className="sm:text-right">
             <p className="text-sm text-muted-foreground mb-1">Previous Period</p>
             <p className="text-xl font-semibold text-muted-foreground">
-              {Math.floor(previousStats.systolic.avg)}/{Math.floor(previousStats.diastolic.avg)}
+              {Math.round(previousStats.systolic.avg)}/{Math.round(previousStats.diastolic.avg)}
               <span className="text-sm font-normal ml-1">mmHg</span>
             </p>
           </div>

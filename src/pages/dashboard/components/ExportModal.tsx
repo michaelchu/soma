@@ -47,7 +47,7 @@ interface ExportModalProps {
   bpReadings: BPReadingSummary[];
   sleepEntries: SleepEntry[];
   bloodTestReports: BloodTestReport[];
-  periodDays: number;
+  periodDays?: number;
 }
 
 function generateBPMarkdown(readings: BPReadingSummary[]): string {
@@ -321,7 +321,7 @@ export function ExportModal({
   bpReadings,
   sleepEntries,
   bloodTestReports,
-  periodDays,
+  periodDays = 30,
 }: ExportModalProps) {
   const [copied, setCopied] = useState(false);
 

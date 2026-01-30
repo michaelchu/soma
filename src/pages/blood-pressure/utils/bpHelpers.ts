@@ -1,5 +1,6 @@
 import { BP_GUIDELINES, BP_CATEGORY_INFO, DEFAULT_GUIDELINE } from '../constants/bpGuidelines';
 import { isInTimeOfDay } from '@/lib/dateUtils';
+import { avgRounded, calcStats } from '@/lib/statsUtils';
 import type { BPCategoryKey, TimeOfDay } from '@/types/bloodPressure';
 
 interface BPReading {
@@ -99,13 +100,10 @@ export function calculateStats(readings: BPReading[] | null | undefined) {
   const latestSystolic = systolics[systolics.length - 1];
   const latestDiastolic = diastolics[diastolics.length - 1];
 
-  // Keep full precision - round with Math.floor(x + 0.5) for standard rounding at display time
-  const avg = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length;
-
   return {
-    avgSystolic: Math.floor(avg(systolics) + 0.5),
-    avgDiastolic: Math.floor(avg(diastolics) + 0.5),
-    avgPulse: pulses.length > 0 ? Math.floor(avg(pulses) + 0.5) : null,
+    avgSystolic: avgRounded(systolics)!,
+    avgDiastolic: avgRounded(diastolics)!,
+    avgPulse: avgRounded(pulses),
     minSystolic: Math.min(...systolics),
     maxSystolic: Math.max(...systolics),
     minDiastolic: Math.min(...diastolics),
@@ -135,36 +133,12 @@ export function calculateFullStats(readings: BPReading[] | null | undefined) {
     return r.diastolic + pp / 3;
   });
 
-  // Keep full precision for averages - round only at display time
-  const avg = (arr: number[]) =>
-    arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
-
   return {
-    systolic: {
-      min: Math.min(...systolics),
-      max: Math.max(...systolics),
-      avg: avg(systolics),
-    },
-    diastolic: {
-      min: Math.min(...diastolics),
-      max: Math.max(...diastolics),
-      avg: avg(diastolics),
-    },
-    pulse: {
-      min: pulses.length > 0 ? Math.min(...pulses) : null,
-      max: pulses.length > 0 ? Math.max(...pulses) : null,
-      avg: avg(pulses),
-    },
-    pp: {
-      min: Math.min(...pps),
-      max: Math.max(...pps),
-      avg: avg(pps),
-    },
-    map: {
-      min: Math.min(...maps),
-      max: Math.max(...maps),
-      avg: avg(maps),
-    },
+    systolic: calcStats(systolics),
+    diastolic: calcStats(diastolics),
+    pulse: calcStats(pulses),
+    pp: calcStats(pps),
+    map: calcStats(maps),
     count: readings.length,
   };
 }

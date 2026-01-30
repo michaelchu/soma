@@ -1,4 +1,5 @@
 import type { SleepEntry } from '../../../lib/db/sleep';
+import { avgRounded, calcStatsRounded } from '@/lib/statsUtils';
 
 /**
  * Sleep stage colors for consistent styling across components
@@ -95,10 +96,7 @@ export function getSleepQuality(entry: SleepEntry): 'poor' | 'fair' | 'good' | '
 export function calculateSleepStats(entries: SleepEntry[]) {
   if (entries.length === 0) return null;
 
-  const avgDuration = Math.round(
-    entries.reduce((sum, e) => sum + e.durationMinutes, 0) / entries.length
-  );
-
+  const durations = entries.map((e) => e.durationMinutes);
   const hrvLows = entries.filter((e) => e.hrvLow !== null).map((e) => e.hrvLow!);
   const hrvHighs = entries.filter((e) => e.hrvHigh !== null).map((e) => e.hrvHigh!);
   const restingHrs = entries.filter((e) => e.restingHr !== null).map((e) => e.restingHr!);
@@ -106,22 +104,20 @@ export function calculateSleepStats(entries: SleepEntry[]) {
   const remPcts = entries.filter((e) => e.remSleepPct !== null).map((e) => e.remSleepPct!);
   const hrDrops = entries.filter((e) => e.hrDropMinutes !== null).map((e) => e.hrDropMinutes!);
 
-  const avg = (arr: number[]) =>
-    arr.length > 0 ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
   const min = (arr: number[]) => (arr.length > 0 ? Math.min(...arr) : null);
   const max = (arr: number[]) => (arr.length > 0 ? Math.max(...arr) : null);
 
   return {
     count: entries.length,
-    avgDuration,
-    avgHrvLow: avg(hrvLows),
-    avgHrvHigh: avg(hrvHighs),
-    avgRestingHr: avg(restingHrs),
+    avgDuration: avgRounded(durations)!,
+    avgHrvLow: avgRounded(hrvLows),
+    avgHrvHigh: avgRounded(hrvHighs),
+    avgRestingHr: avgRounded(restingHrs),
     minRestingHr: min(restingHrs),
     maxRestingHr: max(restingHrs),
-    avgDeepPct: avg(deepPcts),
-    avgRemPct: avg(remPcts),
-    avgHrDrop: avg(hrDrops),
+    avgDeepPct: avgRounded(deepPcts),
+    avgRemPct: avgRounded(remPcts),
+    avgHrDrop: avgRounded(hrDrops),
   };
 }
 
@@ -191,16 +187,6 @@ export interface DetailedSleepStats {
 export function calculateDetailedStats(entries: SleepEntry[]): DetailedSleepStats | null {
   if (entries.length === 0) return null;
 
-  const calcStats = (values: number[]) => {
-    if (values.length === 0) return { min: null, max: null, avg: null };
-    const avg = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
-    return {
-      min: Math.min(...values),
-      max: Math.max(...values),
-      avg,
-    };
-  };
-
   const durations = entries.map((e) => e.durationMinutes);
   const hrvLows = entries.filter((e) => e.hrvLow !== null).map((e) => e.hrvLow!);
   const hrvHighs = entries.filter((e) => e.hrvHigh !== null).map((e) => e.hrvHigh!);
@@ -212,7 +198,7 @@ export function calculateDetailedStats(entries: SleepEntry[]): DetailedSleepStat
     .map((e) => (e.deepSleepPct || 0) + (e.remSleepPct || 0));
   const hrDrops = entries.filter((e) => e.hrDropMinutes !== null).map((e) => e.hrDropMinutes!);
 
-  const durationStats = calcStats(durations);
+  const durationStats = calcStatsRounded(durations);
 
   return {
     count: entries.length,
@@ -221,13 +207,13 @@ export function calculateDetailedStats(entries: SleepEntry[]): DetailedSleepStat
       max: durationStats.max!,
       avg: durationStats.avg!,
     },
-    hrvLow: calcStats(hrvLows),
-    hrvHigh: calcStats(hrvHighs),
-    restingHr: calcStats(restingHrs),
-    deepSleepPct: calcStats(deepPcts),
-    remSleepPct: calcStats(remPcts),
-    restorative: calcStats(restoratives),
-    hrDrop: calcStats(hrDrops),
+    hrvLow: calcStatsRounded(hrvLows),
+    hrvHigh: calcStatsRounded(hrvHighs),
+    restingHr: calcStatsRounded(restingHrs),
+    deepSleepPct: calcStatsRounded(deepPcts),
+    remSleepPct: calcStatsRounded(remPcts),
+    restorative: calcStatsRounded(restoratives),
+    hrDrop: calcStatsRounded(hrDrops),
   };
 }
 

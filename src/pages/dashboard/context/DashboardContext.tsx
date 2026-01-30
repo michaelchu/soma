@@ -41,8 +41,6 @@ interface DashboardContextType {
   activities: Activity[];
   bloodTestReports: BloodTestReport[];
   timeline: TimelineEntry[];
-  periodDays: number;
-  setPeriodDays: (days: number) => void;
   refresh: () => Promise<void>;
 }
 
@@ -55,7 +53,6 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const [allSleepEntries, setAllSleepEntries] = useState<SleepEntry[]>([]);
   const [allActivities, setAllActivities] = useState<Activity[]>([]);
   const [bloodTestReports, setBloodTestReports] = useState<BloodTestReport[]>([]);
-  const [periodDays, setPeriodDays] = useState(7);
 
   const fetchData = async () => {
     setLoading(true);
@@ -113,29 +110,10 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     fetchData();
   }, []);
 
-  // Filter data by period (0 = all time)
-  const { bpReadings, sleepEntries, activities } = useMemo(() => {
-    if (periodDays === 0) {
-      return {
-        bpReadings: allBpReadings,
-        sleepEntries: allSleepEntries,
-        activities: allActivities,
-      };
-    }
-
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - periodDays);
-    cutoff.setHours(0, 0, 0, 0);
-
-    const filteredBp = allBpReadings.filter((r) => new Date(r.datetime) >= cutoff);
-    // Parse date-only strings with time component to ensure local timezone interpretation
-    const filteredSleep = allSleepEntries.filter((e) => new Date(e.date + 'T00:00:00') >= cutoff);
-    const filteredActivities = allActivities.filter(
-      (a) => new Date(a.date + 'T00:00:00') >= cutoff
-    );
-
-    return { bpReadings: filteredBp, sleepEntries: filteredSleep, activities: filteredActivities };
-  }, [allBpReadings, allSleepEntries, allActivities, periodDays]);
+  // Use all data - no filtering needed since chart handles its own date range
+  const bpReadings = allBpReadings;
+  const sleepEntries = allSleepEntries;
+  const activities = allActivities;
 
   // Calculate health score
   const healthScore = useMemo(() => {
@@ -194,8 +172,6 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         activities,
         bloodTestReports,
         timeline,
-        periodDays,
-        setPeriodDays,
         refresh: fetchData,
       }}
     >

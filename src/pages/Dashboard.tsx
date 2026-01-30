@@ -5,16 +5,14 @@ import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { PageLoading, PageError } from '@/components/shared/PageStates';
 import { DashboardProvider, useDashboard } from './dashboard/context/DashboardContext';
-import { PeriodSelector } from './dashboard/components/PeriodSelector';
-import { HealthScoreGauge } from './dashboard/components/HealthScoreGauge';
-import { KeyMetrics } from './dashboard/components/KeyMetrics';
+import { DashboardScoreChart } from './dashboard/components/DashboardScoreChart';
 import { Insights } from './dashboard/components/Insights';
 import { Timeline } from './dashboard/components/Timeline';
 import { ExportModal } from './dashboard/components/ExportModal';
 
 function DashboardContent() {
   const navigate = useNavigate();
-  const { loading, error, bpReadings, sleepEntries, bloodTestReports, periodDays } = useDashboard();
+  const { loading, error, bpReadings, sleepEntries, bloodTestReports } = useDashboard();
   const [showExport, setShowExport] = useState(false);
 
   const hasData = bpReadings.length > 0 || sleepEntries.length > 0 || bloodTestReports.length > 0;
@@ -55,26 +53,14 @@ function DashboardContent() {
         }
       />
 
-      {/* Sticky toolbar with period selector */}
-      <div className="sticky top-[49px] z-10 bg-background border-b -mt-4 pt-2 pb-2">
-        <div className="max-w-2xl mx-auto w-full px-5 sm:px-6 flex justify-center">
-          <PeriodSelector />
-        </div>
-      </div>
-
       <main className="flex-1 max-w-2xl mx-auto w-full px-5 sm:px-6 py-6 space-y-8">
-        {/* Health Score */}
+        {/* Health Score Chart */}
         <section>
-          <HealthScoreGauge />
-        </section>
-
-        {/* Key Metrics */}
-        <section className="border-t border-b py-4">
-          <KeyMetrics />
+          <DashboardScoreChart />
         </section>
 
         {/* Insights */}
-        <section>
+        <section className="border-t pt-6">
           <Insights />
         </section>
 
@@ -91,7 +77,6 @@ function DashboardContent() {
           bpReadings={bpReadings}
           sleepEntries={sleepEntries}
           bloodTestReports={bloodTestReports}
-          periodDays={periodDays}
         />
       )}
     </div>

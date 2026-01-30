@@ -1,5 +1,5 @@
 import type { ElementType } from 'react';
-import { useRef, useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Moon, Heart, Activity, Brain, Thermometer, Move, Clock, BedDouble } from 'lucide-react';
 import { formatDate, formatTimeString } from '@/lib/dateUtils';
 import {
@@ -9,92 +9,13 @@ import {
   calculatePersonalBaseline,
   STAGE_COLORS,
 } from '../../utils/sleepHelpers';
+import { ScoreBarChart, type ScoreBarChartItem } from '@/components/shared/ScoreBarChart';
 import type { SleepEntry } from '@/lib/db/sleep';
 
 interface DetailsTabProps {
   entries: SleepEntry[];
   allEntries: SleepEntry[];
   dateRange: string;
-}
-
-const BAR_WIDTH = 36;
-const BAR_GAP = 4;
-const BAR_TOTAL_WIDTH = BAR_WIDTH + BAR_GAP;
-const MAX_BAR_HEIGHT = 120;
-const MIN_BAR_HEIGHT = 40;
-
-function SleepScoreBar({
-  entry,
-  score,
-  isSelected,
-  maxScore,
-  minScore,
-}: {
-  entry: SleepEntry;
-  score: number | null;
-  isSelected: boolean;
-  maxScore: number;
-  minScore: number;
-}) {
-  // Calculate bar height relative to score range
-  const scoreValue = score ?? 50;
-  const range = maxScore - minScore || 1;
-  const normalizedHeight =
-    ((scoreValue - minScore) / range) * (MAX_BAR_HEIGHT - MIN_BAR_HEIGHT) + MIN_BAR_HEIGHT;
-
-  // Get day of week abbreviation
-  const date = new Date(entry.date);
-  const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
-
-  return (
-    <div
-      className="flex flex-col items-center justify-end"
-      style={{ width: BAR_WIDTH, minWidth: BAR_WIDTH }}
-    >
-      {/* Bar with score inside */}
-      <div
-        className={`w-full rounded-t-lg transition-all duration-200 flex items-start justify-center pt-2 ${
-          isSelected ? 'bg-foreground' : 'bg-muted-foreground/40'
-        }`}
-        style={{ height: normalizedHeight }}
-      >
-        <span
-          className={`text-xs font-bold transition-colors ${
-            isSelected ? 'text-background' : 'text-foreground/90'
-          }`}
-        >
-          {score ?? '-'}
-        </span>
-      </div>
-
-      {/* Day label */}
-      <span
-        className={`text-xs mt-2 transition-colors ${
-          isSelected ? 'text-foreground font-semibold' : 'text-muted-foreground'
-        }`}
-      >
-        {dayName}
-      </span>
-    </div>
-  );
-}
-
-function PlaceholderBar({ date }: { date: string }) {
-  const dateObj = new Date(date);
-  const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
-
-  return (
-    <div
-      className="flex flex-col items-center justify-end"
-      style={{ width: BAR_WIDTH, minWidth: BAR_WIDTH }}
-    >
-      {/* Thin baseline where bar would start */}
-      <div className="w-full h-[2px] rounded-full bg-muted-foreground/20" />
-
-      {/* Day label */}
-      <span className="text-xs mt-2 text-muted-foreground/50">{dayName}</span>
-    </div>
-  );
 }
 
 function MetricCard({
@@ -112,10 +33,10 @@ function MetricCard({
   if (value === null || value === undefined || value === '') return null;
 
   return (
-    <div className="bg-muted/50 rounded-xl p-4 border border-border">
-      <div className="flex items-baseline gap-1">
-        <span className="text-3xl font-bold text-foreground">{value}</span>
-        {unit && <span className="text-lg text-muted-foreground">{unit}</span>}
+    <div className="bg-muted/50 rounded-xl p-3 border border-border">
+      <div className="flex items-baseline gap-0.5">
+        <span className="text-xl font-bold text-foreground">{value}</span>
+        {unit && <span className="text-sm text-muted-foreground">{unit}</span>}
       </div>
       <span className="text-xs text-muted-foreground uppercase tracking-wide">{label}</span>
       {subValue && <p className="text-xs text-muted-foreground mt-1">{subValue}</p>}
@@ -164,17 +85,7 @@ function SleepStagesDisplay({ entry }: { entry: SleepEntry }) {
   );
 }
 
-type ChartItem =
-  | {
-      type: 'entry';
-      date: string;
-      entry: SleepEntry;
-      score: ReturnType<typeof calculateSleepScore>;
-    }
-  | { type: 'placeholder'; date: string };
-
 export function DetailsTab({ entries, allEntries, dateRange }: DetailsTabProps) {
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   // Sort entries by date ascending (oldest first) for the chart
@@ -221,124 +132,41 @@ export function DetailsTab({ entries, allEntries, dateRange }: DetailsTabProps) 
     return dates;
   }, [sortedEntries, dateRange]);
 
-  // Build chart items combining entries and placeholders
-  const chartItems = useMemo((): ChartItem[] => {
+  // Build chart items for the ScoreBarChart
+  const chartItems = useMemo((): ScoreBarChartItem[] => {
     return allDatesInRange.map((date) => {
       const entry = entriesByDate.get(date);
       if (entry) {
-        return {
-          type: 'entry' as const,
-          date,
-          entry,
-          score: calculateSleepScore(entry, baseline),
-        };
+        const score = calculateSleepScore(entry, baseline);
+        return { date, score: score.overall };
       }
-      return { type: 'placeholder' as const, date };
+      return { date, score: null };
     });
   }, [allDatesInRange, entriesByDate, baseline]);
 
-  // Get only entries with scores for min/max calculation
-  const entriesWithScores = useMemo(() => {
-    return chartItems.filter(
-      (item): item is ChartItem & { type: 'entry' } => item.type === 'entry'
-    );
-  }, [chartItems]);
+  // Get the selected entry based on selectedIndex
+  const selectedEntry = (() => {
+    const selectedDate = chartItems[selectedIndex]?.date;
+    if (!selectedDate) return sortedEntries[sortedEntries.length - 1];
 
-  // Get min/max scores for bar height scaling
-  const { minScore, maxScore } = useMemo(() => {
-    const scores = entriesWithScores
-      .map((e) => e.score.overall)
-      .filter((s): s is number => s !== null);
-    if (scores.length === 0) return { minScore: 0, maxScore: 100 };
-    return {
-      minScore: Math.max(0, Math.min(...scores) - 10),
-      maxScore: Math.min(100, Math.max(...scores) + 10),
-    };
-  }, [entriesWithScores]);
+    const entry = entriesByDate.get(selectedDate);
+    if (entry) return entry;
 
-  // Selected entry data - find the closest entry when a placeholder is selected
-  const selectedItem = chartItems[selectedIndex];
-  const selectedEntry = useMemo(() => {
-    if (!selectedItem) return entriesWithScores[0]?.entry;
-    if (selectedItem.type === 'entry') return selectedItem.entry;
     // For placeholder, find nearest entry (prefer earlier date)
     for (let i = selectedIndex; i >= 0; i--) {
-      if (chartItems[i].type === 'entry') {
-        return (chartItems[i] as ChartItem & { type: 'entry' }).entry;
+      const date = chartItems[i]?.date;
+      if (date && entriesByDate.has(date)) {
+        return entriesByDate.get(date);
       }
     }
     for (let i = selectedIndex; i < chartItems.length; i++) {
-      if (chartItems[i].type === 'entry') {
-        return (chartItems[i] as ChartItem & { type: 'entry' }).entry;
+      const date = chartItems[i]?.date;
+      if (date && entriesByDate.has(date)) {
+        return entriesByDate.get(date);
       }
     }
     return undefined;
-  }, [selectedItem, selectedIndex, chartItems, entriesWithScores]);
-
-  // Handle scroll to auto-select centered bar
-  const handleScroll = useCallback(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    const scrollLeft = container.scrollLeft;
-    const containerWidth = container.clientWidth;
-    const centerOffset = scrollLeft + containerWidth / 2;
-
-    // Account for left padding
-    const paddingLeft = containerWidth / 2 - BAR_WIDTH / 2;
-    const adjustedOffset = centerOffset - paddingLeft;
-
-    // Calculate which bar is centered
-    const centeredIndex = Math.round(adjustedOffset / BAR_TOTAL_WIDTH);
-    const clampedIndex = Math.max(0, Math.min(centeredIndex, chartItems.length - 1));
-
-    if (clampedIndex !== selectedIndex) {
-      setSelectedIndex(clampedIndex);
-    }
-  }, [chartItems.length, selectedIndex]);
-
-  // Scroll to a specific bar index
-  const scrollToIndex = useCallback((index: number) => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    const containerWidth = container.clientWidth;
-    const paddingLeft = containerWidth / 2 - BAR_WIDTH / 2;
-    const targetScroll = index * BAR_TOTAL_WIDTH - containerWidth / 2 + paddingLeft + BAR_WIDTH / 2;
-
-    container.scrollTo({
-      left: Math.max(0, targetScroll),
-      behavior: 'smooth',
-    });
-  }, []);
-
-  // Initial scroll to the latest entry (rightmost)
-  // Using useLayoutEffect to run synchronously before paint, avoiding visual flash
-  useLayoutEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container || chartItems.length === 0) return;
-
-    // Scroll to the latest item (last in sorted array)
-    const lastIndex = chartItems.length - 1;
-    const containerWidth = container.clientWidth;
-    const paddingLeft = containerWidth / 2 - BAR_WIDTH / 2;
-    const targetScroll =
-      lastIndex * BAR_TOTAL_WIDTH - containerWidth / 2 + paddingLeft + BAR_WIDTH / 2;
-
-    container.scrollLeft = Math.max(0, targetScroll);
-    // Set initial index - this is intentional initialization, not a cascading update
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSelectedIndex(lastIndex);
-  }, [chartItems.length]);
-
-  // Add scroll listener
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    container.addEventListener('scroll', handleScroll, { passive: true });
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, [handleScroll]);
+  })();
 
   if (entries.length === 0) {
     return (
@@ -375,60 +203,13 @@ export function DetailsTab({ entries, allEntries, dateRange }: DetailsTabProps) 
       )}
 
       {/* Scrollable Bar Chart */}
-      <div className="px-5 sm:px-6 pt-2 pb-4 relative z-0">
-        <div className="relative -mx-5 sm:-mx-6 px-5 sm:px-6">
-          <div
-            ref={scrollContainerRef}
-            className="flex items-end overflow-x-auto scrollbar-hide py-4"
-            style={{
-              scrollSnapType: 'x mandatory',
-              WebkitOverflowScrolling: 'touch',
-            }}
-          >
-            {/* Left padding to allow first item to center */}
-            <div
-              style={{
-                minWidth: `calc(50% - ${BAR_WIDTH / 2}px)`,
-                flexShrink: 0,
-              }}
-            />
-
-            {chartItems.map((item, index) => (
-              <div
-                key={item.date}
-                className={`flex-shrink-0 ${item.type === 'entry' ? 'cursor-pointer' : ''}`}
-                style={{
-                  scrollSnapAlign: 'center',
-                  marginRight: index < chartItems.length - 1 ? BAR_GAP : 0,
-                }}
-                onClick={() => item.type === 'entry' && scrollToIndex(index)}
-              >
-                {item.type === 'entry' ? (
-                  <SleepScoreBar
-                    entry={item.entry}
-                    score={item.score.overall}
-                    isSelected={index === selectedIndex}
-                    maxScore={maxScore}
-                    minScore={minScore}
-                  />
-                ) : (
-                  <PlaceholderBar date={item.date} />
-                )}
-              </div>
-            ))}
-
-            {/* Right padding to allow last item to center */}
-            <div
-              style={{
-                minWidth: `calc(50% - ${BAR_WIDTH / 2}px)`,
-                flexShrink: 0,
-              }}
-            />
-          </div>
-
-          {/* Fade overlays for edge blending */}
-          <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-background to-transparent pointer-events-none" />
-          <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-background to-transparent pointer-events-none" />
+      <div className="px-5 sm:px-6 pt-2 pb-4">
+        <div className="-mx-5 sm:-mx-6 px-5 sm:px-6">
+          <ScoreBarChart
+            items={chartItems}
+            selectedIndex={selectedIndex}
+            onSelectIndex={setSelectedIndex}
+          />
         </div>
       </div>
 

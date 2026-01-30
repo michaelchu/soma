@@ -7,6 +7,7 @@
 
 import type { SleepEntry } from '@/lib/db/sleep';
 import type { BPReadingSummary } from '@/types/bloodPressure';
+import { avg, avgRounded, standardDeviation } from '@/lib/statsUtils';
 
 // ============================================================================
 // BLOOD PRESSURE SCORE (50% of total)
@@ -32,8 +33,8 @@ export function calculateBPScore(readings: BPReadingSummary[]): BPScoreResult | 
   const systolics = readings.map((r) => r.systolic);
   const diastolics = readings.map((r) => r.diastolic);
 
-  const avgSystolic = systolics.reduce((a, b) => a + b, 0) / systolics.length;
-  const avgDiastolic = diastolics.reduce((a, b) => a + b, 0) / diastolics.length;
+  const avgSystolic = avg(systolics)!;
+  const avgDiastolic = avg(diastolics)!;
 
   // Base score from BP category (interpolated for precision)
   const baseScore = getBPBaseScore(avgSystolic, avgDiastolic);
@@ -53,8 +54,8 @@ export function calculateBPScore(readings: BPReadingSummary[]): BPScoreResult | 
     baseScore: Math.round(baseScore),
     variabilityPenalty: Math.round(variabilityPenalty),
     trendModifier: Math.round(trendModifier),
-    avgSystolic: Math.round(avgSystolic),
-    avgDiastolic: Math.round(avgDiastolic),
+    avgSystolic: avgRounded(systolics)!,
+    avgDiastolic: avgRounded(diastolics)!,
     category,
   };
 }
@@ -113,8 +114,8 @@ function calculateVariabilityPenalty(systolics: number[], diastolics: number[]):
   const sysStdDev = standardDeviation(systolics);
   const diaStdDev = standardDeviation(diastolics);
 
-  const sysMean = systolics.reduce((a, b) => a + b, 0) / systolics.length;
-  const diaMean = diastolics.reduce((a, b) => a + b, 0) / diastolics.length;
+  const sysMean = avg(systolics)!;
+  const diaMean = avg(diastolics)!;
 
   // Coefficient of variation (CV) = stdDev / mean
   const sysCV = (sysStdDev / sysMean) * 100;
@@ -197,22 +198,16 @@ export function calculateSleepHealthScore(entries: SleepEntry[]): SleepScoreResu
   const consistencyBonus = calculateConsistencyBonus(entries);
 
   // Calculate averages for display
-  const avgDurationMinutes = Math.round(
-    entries.reduce((sum, e) => sum + e.durationMinutes, 0) / entries.length
-  );
+  const durations = entries.map((e) => e.durationMinutes);
+  const avgDurationMinutes = avgRounded(durations)!;
 
   const entriesWithRestorative = entries.filter(
     (e) => e.deepSleepPct !== null || e.remSleepPct !== null
   );
-  const avgRestorative =
-    entriesWithRestorative.length > 0
-      ? Math.round(
-          entriesWithRestorative.reduce(
-            (sum, e) => sum + ((e.deepSleepPct || 0) + (e.remSleepPct || 0)),
-            0
-          ) / entriesWithRestorative.length
-        )
-      : null;
+  const restorativeValues = entriesWithRestorative.map(
+    (e) => (e.deepSleepPct || 0) + (e.remSleepPct || 0)
+  );
+  const avgRestorative = avgRounded(restorativeValues);
 
   // Weighted combination
   const weightedScore =
@@ -237,7 +232,7 @@ export function calculateSleepHealthScore(entries: SleepEntry[]): SleepScoreResu
  */
 function calculateDurationScore(entries: SleepEntry[]): number {
   const durations = entries.map((e) => e.durationMinutes);
-  const avgMinutes = durations.reduce((a, b) => a + b, 0) / durations.length;
+  const avgMinutes = avg(durations)!;
   const avgHours = avgMinutes / 60;
 
   // Scoring curve
@@ -261,9 +256,10 @@ function calculateRestorativeScore(entries: SleepEntry[]): number {
 
   if (entriesWithData.length === 0) return 70; // Neutral score if no data
 
-  const avgRestorative =
-    entriesWithData.reduce((sum, e) => sum + ((e.deepSleepPct || 0) + (e.remSleepPct || 0)), 0) /
-    entriesWithData.length;
+  const restorativeValues = entriesWithData.map(
+    (e) => (e.deepSleepPct || 0) + (e.remSleepPct || 0)
+  );
+  const avgRestorative = avg(restorativeValues)!;
 
   if (avgRestorative >= 45) return 100;
   if (avgRestorative >= 40) return 90;
@@ -283,8 +279,8 @@ function calculateHeartScore(entries: SleepEntry[]): number {
   // RHR score (lower is better for resting HR)
   const entriesWithRhr = entries.filter((e) => e.restingHr !== null);
   if (entriesWithRhr.length > 0) {
-    const avgRhr =
-      entriesWithRhr.reduce((sum, e) => sum + (e.restingHr || 0), 0) / entriesWithRhr.length;
+    const rhrValues = entriesWithRhr.map((e) => e.restingHr!);
+    const avgRhr = avg(rhrValues)!;
 
     // RHR scoring: < 50 = excellent, 50-60 = good, 60-70 = average, > 70 = needs attention
     let rhrScore: number;
@@ -301,8 +297,8 @@ function calculateHeartScore(entries: SleepEntry[]): number {
   // HRV score (higher is better)
   const entriesWithHrv = entries.filter((e) => e.hrvHigh !== null);
   if (entriesWithHrv.length > 0) {
-    const avgHrvHigh =
-      entriesWithHrv.reduce((sum, e) => sum + (e.hrvHigh || 0), 0) / entriesWithHrv.length;
+    const hrvHighValues = entriesWithHrv.map((e) => e.hrvHigh!);
+    const avgHrvHigh = avg(hrvHighValues)!;
 
     // HRV scoring (hrvHigh): > 80 = excellent, 60-80 = good, 40-60 = average, < 40 = needs attention
     let hrvScore: number;
@@ -470,14 +466,6 @@ function generateInsights(
 // ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
-
-function standardDeviation(values: number[]): number {
-  if (values.length < 2) return 0;
-  const mean = values.reduce((a, b) => a + b, 0) / values.length;
-  const squaredDiffs = values.map((v) => Math.pow(v - mean, 2));
-  const variance = squaredDiffs.reduce((a, b) => a + b, 0) / values.length;
-  return Math.sqrt(variance);
-}
 
 /**
  * Get score color class based on value
