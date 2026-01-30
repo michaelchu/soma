@@ -60,7 +60,7 @@ export function ActivityList({
           return (
             <div
               key={activity.id}
-              className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 cursor-pointer hover:bg-muted transition-colors"
+              className="flex items-center gap-3 p-3 rounded-lg border border-border cursor-pointer hover:bg-muted/30 transition-colors"
               onClick={() => onActivityClick(activity)}
             >
               {/* Activity icon */}
