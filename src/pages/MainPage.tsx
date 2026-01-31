@@ -3,21 +3,21 @@ import { Activity, Brain, Download, Settings } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { PageLoading, PageError } from '@/components/shared/PageStates';
-import { DashboardProvider, useDashboard } from './dashboard/context/DashboardContext';
-import { DashboardScoreChart } from './dashboard/components/DashboardScoreChart';
-import { Insights } from './dashboard/components/Insights';
-import { Timeline } from './dashboard/components/Timeline';
-import { ExportModal } from './dashboard/components/ExportModal';
+import { MainPageProvider, useMainPage } from './main/context/MainPageContext';
+import { MainPageScoreChart } from './main/components/MainPageScoreChart';
+import { Insights } from './main/components/Insights';
+import { Timeline } from './main/components/Timeline';
+import { ExportModal } from './main/components/ExportModal';
 import {
-  LauncherSettingsModal,
+  SettingsModal,
   getStoredFont,
   getStoredFontSize,
   applyFont,
   applyFontSize,
-} from '@/views/LauncherSettingsModal';
+} from '@/views/SettingsModal';
 
-function DashboardContent() {
-  const { loading, error, bpReadings, sleepEntries, bloodTestReports } = useDashboard();
+function MainPageContent() {
+  const { loading, error, bpReadings, sleepEntries, bloodTestReports } = useMainPage();
   const [showExport, setShowExport] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [currentFont, setCurrentFont] = useState(getStoredFont);
@@ -32,11 +32,11 @@ function DashboardContent() {
   const hasData = bpReadings.length > 0 || sleepEntries.length > 0 || bloodTestReports.length > 0;
 
   if (loading) {
-    return <PageLoading icon={Activity} message="Loading dashboard..." />;
+    return <PageLoading icon={Activity} message="Loading..." />;
   }
 
   if (error) {
-    return <PageError title="Error loading dashboard" message={error} />;
+    return <PageError title="Error loading page" message={error} />;
   }
 
   return (
@@ -74,7 +74,7 @@ function DashboardContent() {
         }
       />
 
-      <LauncherSettingsModal
+      <SettingsModal
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
         currentFont={currentFont}
@@ -86,11 +86,11 @@ function DashboardContent() {
       <main className="flex-1 max-w-2xl mx-auto w-full px-5 sm:px-6 py-6 space-y-8">
         {/* Health Score Chart with Insights above metrics */}
         <section>
-          <DashboardScoreChart>
+          <MainPageScoreChart>
             <div className="pt-4 pb-2">
               <Insights />
             </div>
-          </DashboardScoreChart>
+          </MainPageScoreChart>
         </section>
 
         {/* Timeline */}
@@ -112,10 +112,10 @@ function DashboardContent() {
   );
 }
 
-export default function Dashboard() {
+export default function MainPage() {
   return (
-    <DashboardProvider>
-      <DashboardContent />
-    </DashboardProvider>
+    <MainPageProvider>
+      <MainPageContent />
+    </MainPageProvider>
   );
 }

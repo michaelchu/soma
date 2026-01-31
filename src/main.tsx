@@ -11,7 +11,7 @@ import {
   getStoredFontSize,
   applyFont,
   applyFontSize,
-} from './views/LauncherSettingsModal';
+} from './views/SettingsModal';
 import './index.css';
 
 // Apply stored font preferences on app load
