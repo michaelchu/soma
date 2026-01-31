@@ -42,6 +42,33 @@ const cuffToArm = (cuff: CuffLocation): Arm => {
 };
 
 /**
+ * Calculate average systolic, diastolic, and pulse from an array of readings
+ */
+function calculateSessionAverages(readings: BPReading[]): {
+  avgSystolic: number;
+  avgDiastolic: number;
+  avgPulse: number | null;
+} {
+  const avgSystolic = Math.round(
+    readings.reduce((sum, r) => sum + r.systolic, 0) / readings.length
+  );
+  const avgDiastolic = Math.round(
+    readings.reduce((sum, r) => sum + r.diastolic, 0) / readings.length
+  );
+
+  // Average pulse from readings that have it
+  const readingsWithPulse = readings.filter((r) => r.pulse);
+  const avgPulse =
+    readingsWithPulse.length > 0
+      ? Math.round(
+          readingsWithPulse.reduce((sum, r) => sum + (r.pulse || 0), 0) / readingsWithPulse.length
+        )
+      : null;
+
+  return { avgSystolic, avgDiastolic, avgPulse };
+}
+
+/**
  * Get all blood pressure readings for the current user, grouped by session
  */
 export async function getReadings(): Promise<{ data: BPSession[] | null; error: Error | null }> {
@@ -91,21 +118,7 @@ export async function getReadings(): Promise<{ data: BPSession[] | null; error: 
     readings.sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime());
 
     // Calculate averages
-    const avgSystolic = Math.round(
-      readings.reduce((sum, r) => sum + r.systolic, 0) / readings.length
-    );
-    const avgDiastolic = Math.round(
-      readings.reduce((sum, r) => sum + r.diastolic, 0) / readings.length
-    );
-
-    // Average pulse from readings that have it
-    const readingsWithPulse = readings.filter((r) => r.pulse);
-    const avgPulse =
-      readingsWithPulse.length > 0
-        ? Math.round(
-            readingsWithPulse.reduce((sum, r) => sum + (r.pulse || 0), 0) / readingsWithPulse.length
-          )
-        : null;
+    const { avgSystolic, avgDiastolic, avgPulse } = calculateSessionAverages(readings);
 
     // Use the first reading's datetime as the session datetime
     const sessionDatetime = readings[0].datetime;
@@ -191,21 +204,7 @@ export async function addSession(
     sessionId: row.session_id,
   }));
 
-  const avgSystolic = Math.round(
-    readings.reduce((sum, r) => sum + r.systolic, 0) / readings.length
-  );
-  const avgDiastolic = Math.round(
-    readings.reduce((sum, r) => sum + r.diastolic, 0) / readings.length
-  );
-
-  // Calculate average pulse from readings that have it
-  const readingsWithPulse = readings.filter((r) => r.pulse);
-  const avgPulse =
-    readingsWithPulse.length > 0
-      ? Math.round(
-          readingsWithPulse.reduce((sum, r) => sum + (r.pulse || 0), 0) / readingsWithPulse.length
-        )
-      : null;
+  const { avgSystolic, avgDiastolic, avgPulse } = calculateSessionAverages(readings);
 
   return {
     data: {
@@ -325,21 +324,7 @@ export async function updateSession(
     sessionId: row.session_id,
   }));
 
-  const avgSystolic = Math.round(
-    readings.reduce((sum, r) => sum + r.systolic, 0) / readings.length
-  );
-  const avgDiastolic = Math.round(
-    readings.reduce((sum, r) => sum + r.diastolic, 0) / readings.length
-  );
-
-  // Calculate average pulse from readings that have it
-  const readingsWithPulse = readings.filter((r) => r.pulse);
-  const avgPulse =
-    readingsWithPulse.length > 0
-      ? Math.round(
-          readingsWithPulse.reduce((sum, r) => sum + (r.pulse || 0), 0) / readingsWithPulse.length
-        )
-      : null;
+  const { avgSystolic, avgDiastolic, avgPulse } = calculateSessionAverages(readings);
 
   return {
     data: {

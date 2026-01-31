@@ -1,5 +1,5 @@
 import { supabase } from '../supabase';
-import { sanitizeString } from '../validation';
+import { validateActivity, sanitizeString } from '../validation';
 import type {
   Activity,
   ActivityInput,
@@ -64,6 +64,12 @@ export async function getActivities(): Promise<{
 export async function addActivity(
   input: ActivityInput
 ): Promise<{ data: Activity | null; error: Error | null }> {
+  // Validate input
+  const validation = validateActivity(input);
+  if (!validation.valid) {
+    return { data: null, error: new Error(validation.errors.join('; ')) };
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -101,6 +107,12 @@ export async function updateActivity(
   id: string,
   input: ActivityInput
 ): Promise<{ data: Activity | null; error: Error | null }> {
+  // Validate input
+  const validation = validateActivity(input);
+  if (!validation.valid) {
+    return { data: null, error: new Error(validation.errors.join('; ')) };
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
