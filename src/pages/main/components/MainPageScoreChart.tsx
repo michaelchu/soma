@@ -146,10 +146,11 @@ export function MainPageScoreChart({ children }: MainPageScoreChartProps) {
         return { date, score: null };
       }
 
-      const healthScore = calculateHealthScore(dayBpReadings, daySleepEntries);
+      // Pass all sleep entries for personalized scoring baseline
+      const healthScore = calculateHealthScore(dayBpReadings, daySleepEntries, sleepEntries);
       return { date, score: healthScore.overall };
     });
-  }, [allDatesInRange, bpByDate, sleepByDate]);
+  }, [allDatesInRange, bpByDate, sleepByDate, sleepEntries]);
 
   // Get selected date's data
   const selectedDate = chartItems[selectedIndex]?.date;
