@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
 import { validateBPSession, sanitizeString } from '../validation';
+import { logError } from '../logger';
 import type { Arm, BPReading, BPSession, BPSessionInput } from '@/types/bloodPressure';
 
 /**
@@ -88,7 +89,7 @@ export async function getReadings(): Promise<{ data: BPSession[] | null; error: 
     .order('recorded_at', { ascending: false });
 
   if (error) {
-    console.error('Error fetching blood pressure readings:', error);
+    logError('bloodPressure.getReadings', error);
     return { data: null, error };
   }
 
@@ -188,7 +189,7 @@ export async function addSession(
   const { data, error } = await supabase.from('blood_pressure_readings').insert(rows).select();
 
   if (error) {
-    console.error('Error adding blood pressure session:', error);
+    logError('bloodPressure.addSession', error);
     return { data: null, error };
   }
 
@@ -255,7 +256,7 @@ export async function updateSession(
     .eq('user_id', user.id);
 
   if (fetchError) {
-    console.error('Error fetching existing readings for backup:', fetchError);
+    logError('bloodPressure.updateSession.fetchBackup', fetchError);
     return { data: null, error: fetchError };
   }
 
@@ -267,7 +268,7 @@ export async function updateSession(
     .eq('user_id', user.id);
 
   if (deleteError) {
-    console.error('Error deleting old session readings:', deleteError);
+    logError('bloodPressure.updateSession.delete', deleteError);
     return { data: null, error: deleteError };
   }
 
@@ -286,7 +287,7 @@ export async function updateSession(
   const { data, error } = await supabase.from('blood_pressure_readings').insert(rows).select();
 
   if (error) {
-    console.error('Error updating blood pressure session:', error);
+    logError('bloodPressure.updateSession', error);
 
     // Attempt rollback: re-insert the old readings
     if (existingReadings && existingReadings.length > 0) {
@@ -298,7 +299,7 @@ export async function updateSession(
         .insert(rollbackRows);
 
       if (rollbackError) {
-        console.error('Rollback failed - data may be lost:', rollbackError);
+        logError('bloodPressure.updateSession.rollback', rollbackError);
         // Return a more descriptive error that includes rollback failure
         return {
           data: null,
@@ -361,7 +362,7 @@ export async function deleteSession(sessionId: string): Promise<{ error: Error |
     .eq('user_id', user.id);
 
   if (error) {
-    console.error('Error deleting blood pressure session:', error);
+    logError('bloodPressure.deleteSession', error);
   }
 
   return { error };

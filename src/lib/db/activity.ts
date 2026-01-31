@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
 import { validateActivity, sanitizeString } from '../validation';
+import { logError } from '../logger';
 import type {
   Activity,
   ActivityInput,
@@ -50,7 +51,7 @@ export async function getActivities(): Promise<{
     .order('date', { ascending: false });
 
   if (error) {
-    console.error('Error fetching activities:', error);
+    logError('activity.getActivities', error);
     return { data: null, error };
   }
 
@@ -93,7 +94,7 @@ export async function addActivity(
   const { data, error } = await supabase.from('activities').insert(row).select().single();
 
   if (error) {
-    console.error('Error adding activity:', error);
+    logError('activity.addActivity', error);
     return { data: null, error };
   }
 
@@ -141,7 +142,7 @@ export async function updateActivity(
     .single();
 
   if (error) {
-    console.error('Error updating activity:', error);
+    logError('activity.updateActivity', error);
     return { data: null, error };
   }
 
@@ -163,7 +164,7 @@ export async function deleteActivity(id: string): Promise<{ error: Error | null 
   const { error } = await supabase.from('activities').delete().eq('id', id).eq('user_id', user.id);
 
   if (error) {
-    console.error('Error deleting activity:', error);
+    logError('activity.deleteActivity', error);
   }
 
   return { error };
