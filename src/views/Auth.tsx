@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MIN_PASSWORD_LENGTH = 6;
 
 export default function Auth() {
   const { signIn } = useAuth();
@@ -12,15 +15,39 @@ export default function Auth() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Client-side validation
+    if (!email.trim()) {
+      setError('Please enter your email address');
+      return;
+    }
+
+    if (!EMAIL_REGEX.test(email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    if (!password) {
+      setError('Please enter your password');
+      return;
+    }
+
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+      return;
+    }
+
     setLoading(true);
 
     try {
       await signIn(email, password);
     } catch (err) {
-      setError(err.message || 'Invalid email or password');
+      // Use generic error message to prevent information disclosure
+      console.error('Auth error:', err);
+      setError('Invalid email or password');
       setPassword(''); // Clear password on failed attempt for security
     }
 

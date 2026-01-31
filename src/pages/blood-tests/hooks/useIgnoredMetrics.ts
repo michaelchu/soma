@@ -3,12 +3,23 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 const STORAGE_KEY = 'soma-ignored-blood-metrics';
 const DEBOUNCE_MS = 500;
 
+/**
+ * Validates that parsed data is a string array
+ */
+function isStringArray(data: unknown): data is string[] {
+  return Array.isArray(data) && data.every((item) => typeof item === 'string');
+}
+
 export function useIgnoredMetrics() {
   const [ignoredMetrics, setIgnoredMetrics] = useState<Set<string>>(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       try {
-        return new Set(JSON.parse(stored) as string[]);
+        const parsed = JSON.parse(stored);
+        if (isStringArray(parsed)) {
+          return new Set(parsed);
+        }
+        return new Set<string>();
       } catch {
         return new Set<string>();
       }

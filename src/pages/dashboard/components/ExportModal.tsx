@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { FileText, Copy, Check, Download } from 'lucide-react';
 import { showError } from '@/lib/toast';
 import {
@@ -324,6 +324,16 @@ export function ExportModal({
   periodDays = 30,
 }: ExportModalProps) {
   const [copied, setCopied] = useState(false);
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const content = generateCombinedMarkdown(bpReadings, sleepEntries, bloodTestReports, periodDays);
 
@@ -331,7 +341,7 @@ export function ExportModal({
     try {
       await navigator.clipboard.writeText(content);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
     } catch {
       showError('Failed to copy to clipboard');
     }

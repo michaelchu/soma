@@ -31,6 +31,7 @@ export function SwipeableRow({
   const currentX = useRef(0);
   const isHorizontalSwipe = useRef<boolean | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const deleteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasMoved = useRef(false);
   const longPressTriggered = useRef(false);
   const touchTarget = useRef<'expand' | 'row'>('row');
@@ -53,6 +54,15 @@ export function SwipeableRow({
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
     }
+  }, []);
+
+  // Cleanup delete timer on unmount
+  useEffect(() => {
+    return () => {
+      if (deleteTimer.current) {
+        clearTimeout(deleteTimer.current);
+      }
+    };
   }, []);
 
   const handleTouchStart = useCallback(
@@ -134,7 +144,7 @@ export function SwipeableRow({
       // Trigger delete
       setIsDeleting(true);
       setOffsetX(-window.innerWidth);
-      setTimeout(() => onDelete(), 200);
+      deleteTimer.current = setTimeout(() => onDelete(), 200);
     } else if (currentOffset < -SWIPE_THRESHOLD) {
       // Snap to show delete button
       setOffsetX(-SWIPE_THRESHOLD);
@@ -174,7 +184,7 @@ export function SwipeableRow({
     e.stopPropagation();
     setIsDeleting(true);
     setOffsetX(-window.innerWidth);
-    setTimeout(() => onDelete(), 200);
+    deleteTimer.current = setTimeout(() => onDelete(), 200);
   };
 
   return (

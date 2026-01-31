@@ -16,6 +16,28 @@ const DEFAULT_SETTINGS: Settings = {
   bpGuideline: 'aha2017', // Default to AHA 2017 guidelines
 };
 
+const VALID_BP_GUIDELINES = ['aha2017', 'esc2018', 'ish2020'];
+
+/**
+ * Validates parsed settings object against expected schema
+ */
+function isValidSettings(parsed: unknown): parsed is Partial<Settings> {
+  if (typeof parsed !== 'object' || parsed === null) {
+    return false;
+  }
+
+  const obj = parsed as Record<string, unknown>;
+
+  // Validate bpGuideline if present
+  if ('bpGuideline' in obj && typeof obj.bpGuideline === 'string') {
+    if (!VALID_BP_GUIDELINES.includes(obj.bpGuideline)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 interface SettingsProviderProps {
   children: ReactNode;
 }
@@ -25,7 +47,11 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
     const stored = localStorage.getItem('soma-settings');
     if (stored) {
       try {
-        return { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
+        const parsed = JSON.parse(stored);
+        if (isValidSettings(parsed)) {
+          return { ...DEFAULT_SETTINGS, ...parsed };
+        }
+        return DEFAULT_SETTINGS;
       } catch {
         return DEFAULT_SETTINGS;
       }
