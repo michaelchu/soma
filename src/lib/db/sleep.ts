@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
 import { sanitizeString } from '../validation';
+import { logError } from '../logger';
 
 /**
  * Sleep data service
@@ -151,7 +152,7 @@ export async function getSleepEntries(): Promise<{
     .order('date', { ascending: false });
 
   if (error) {
-    console.error('Error fetching sleep entries:', error);
+    logError('sleep.getSleepEntries', error);
     return { data: null, error };
   }
 
@@ -201,7 +202,7 @@ export async function addSleepEntry(
   const { data, error } = await supabase.from('sleep_entries').insert(row).select().single();
 
   if (error) {
-    console.error('Error adding sleep entry:', error);
+    logError('sleep.addSleepEntry', error);
     return { data: null, error };
   }
 
@@ -256,7 +257,7 @@ export async function updateSleepEntry(
     .single();
 
   if (error) {
-    console.error('Error updating sleep entry:', error);
+    logError('sleep.updateSleepEntry', error);
     return { data: null, error };
   }
 
@@ -282,7 +283,7 @@ export async function deleteSleepEntry(id: string): Promise<{ error: Error | nul
     .eq('user_id', user.id);
 
   if (error) {
-    console.error('Error deleting sleep entry:', error);
+    logError('sleep.deleteSleepEntry', error);
   }
 
   return { error };
