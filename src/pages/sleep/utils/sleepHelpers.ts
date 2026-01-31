@@ -447,7 +447,7 @@ export function getDailySleepScore(
   const entry = allEntries.find((e) => e.date === date);
   if (!entry) return null;
 
-  const baseline = calculatePersonalBaseline(allEntries, entry.id);
+  const baseline = calculatePersonalBaseline(allEntries);
   return calculateSleepScore(entry, baseline);
 }
 
