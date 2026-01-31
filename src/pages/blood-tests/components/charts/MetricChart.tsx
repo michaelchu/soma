@@ -1,4 +1,5 @@
 import { useRef, useCallback, useMemo } from 'react';
+import type { MouseEvent, TouchEvent } from 'react';
 import {
   Line,
   XAxis,
@@ -21,6 +22,45 @@ import { TrendIndicator } from '../ui/TrendIndicator';
 const LONG_PRESS_DURATION = 600; // ms
 const MOVE_THRESHOLD = 10; // pixels - cancel long press if moved more than this
 
+interface EnrichedMetric {
+  value: number;
+  unit: string;
+  min: number | null;
+  max: number | null;
+  optimalMin: number | null;
+  optimalMax: number | null;
+  name: string;
+}
+
+interface EnrichedReport {
+  id: string;
+  date: string;
+  metrics: Record<string, EnrichedMetric>;
+}
+
+interface MetricChartProps {
+  metricKey: string;
+  reports: EnrichedReport[];
+  collapsed?: boolean;
+  mobileExpanded?: boolean;
+  onTap?: (metricKey: string) => void;
+  onLongPress?: (metricKey: string) => void;
+}
+
+interface ChartDataPoint {
+  date: string;
+  value: number;
+  min: number | null;
+  max: number | null;
+  fullDate: string;
+}
+
+interface DotProps {
+  cx: number;
+  cy: number;
+  payload: ChartDataPoint;
+}
+
 export function MetricChart({
   metricKey,
   reports,
@@ -28,8 +68,8 @@ export function MetricChart({
   mobileExpanded = false,
   onTap,
   onLongPress,
-}) {
-  const longPressTimerRef = useRef(null);
+}: MetricChartProps) {
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isLongPressRef = useRef(false);
   const startPosRef = useRef({ x: 0, y: 0 });
   const didMoveRef = useRef(false);
@@ -42,12 +82,12 @@ export function MetricChart({
   }, []);
 
   const startLongPress = useCallback(
-    (e) => {
+    (e: MouseEvent | TouchEvent) => {
       isLongPressRef.current = false;
       didMoveRef.current = false;
 
       // Store initial position
-      if (e.touches) {
+      if ('touches' in e) {
         startPosRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
       } else {
         startPosRef.current = { x: e.clientX, y: e.clientY };
@@ -68,9 +108,9 @@ export function MetricChart({
   );
 
   const handleMove = useCallback(
-    (e) => {
+    (e: MouseEvent | TouchEvent) => {
       let currentX, currentY;
-      if (e.touches) {
+      if ('touches' in e) {
         currentX = e.touches[0].clientX;
         currentY = e.touches[0].clientY;
       } else {
@@ -105,7 +145,7 @@ export function MetricChart({
   }, [metricKey, onTap]);
 
   const handleContextMenu = useCallback(
-    (e) => {
+    (e: MouseEvent) => {
       // Prevent context menu on long press
       if (onLongPress) {
         e.preventDefault();
@@ -118,7 +158,7 @@ export function MetricChart({
 
   // Memoize chart data transformation to prevent recalculation on every render
   const data = useMemo(
-    () =>
+    (): ChartDataPoint[] =>
       [...reports]
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
         .map((r) => {
@@ -132,7 +172,7 @@ export function MetricChart({
             fullDate: r.date,
           };
         })
-        .filter(Boolean),
+        .filter((d): d is ChartDataPoint => d !== null),
     [reports, metricKey]
   );
 
@@ -169,7 +209,10 @@ export function MetricChart({
   }, [data, metric]);
 
   // Memoize status calculations
-  const { status, hasHistoricalAbnormal } = useMemo(() => {
+  const { status, hasHistoricalAbnormal } = useMemo((): {
+    status: 'low' | 'normal' | 'high';
+    hasHistoricalAbnormal: boolean;
+  } => {
     if (!metric) return { status: 'normal', hasHistoricalAbnormal: false };
     return {
       status: getStatus(metric.value, metric.min, metric.max),
@@ -361,7 +404,7 @@ export function MetricChart({
                     stroke="hsl(var(--muted-foreground))"
                     strokeWidth={2}
                     dot={(props) => {
-                      const { cx, cy, payload } = props;
+                      const { cx, cy, payload } = props as DotProps;
                       const pointStatus = getStatus(payload.value, payload.min, payload.max);
                       const color =
                         pointStatus === 'normal'

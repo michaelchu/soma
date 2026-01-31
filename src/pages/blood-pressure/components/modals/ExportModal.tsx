@@ -9,7 +9,18 @@ import {
   generateExportFooter,
   formatPercentage,
 } from '@/lib/exportUtils';
-import type { BPCategoryKey, BPCategory } from '@/types/bloodPressure';
+import type { BPCategoryKey } from '@/types/bloodPressure';
+
+interface BPCategoryInfo {
+  key: string;
+  label: string;
+  shortLabel?: string;
+  color: string;
+  bgClass: string;
+  textClass: string;
+  borderClass: string;
+  chartColor: string;
+}
 
 interface BPReading {
   datetime: string;
@@ -32,7 +43,7 @@ interface BPStats {
 }
 
 type GetCategoryFn = (systolic: number, diastolic: number) => BPCategoryKey | null;
-type GetCategoryInfoFn = (category: BPCategoryKey | null) => BPCategory;
+type GetCategoryInfoFn = (category: string | null) => BPCategoryInfo;
 
 function generateMarkdown(
   readings: BPReading[],

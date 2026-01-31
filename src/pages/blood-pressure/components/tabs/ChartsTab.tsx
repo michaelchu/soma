@@ -5,7 +5,20 @@ import { BPTimeChart } from '../charts/BPTimeChart';
 import { BPScatterChart } from '../charts/BPScatterChart';
 import { cn } from '@/lib/utils';
 
-export function ChartsTab({ readings, dateRange = 'all' }) {
+interface BPReading {
+  datetime: string;
+  systolic: number;
+  diastolic: number;
+  pulse?: number | null;
+  notes?: string | null;
+}
+
+interface ChartsTabProps {
+  readings: BPReading[];
+  dateRange?: string;
+}
+
+export function ChartsTab({ readings, dateRange = 'all' }: ChartsTabProps) {
   const [showTrendline, setShowTrendline] = useState(true);
   const [showMarkers, setShowMarkers] = useState(false);
   const [showMAP, setShowMAP] = useState(true);

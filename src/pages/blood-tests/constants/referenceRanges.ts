@@ -2,7 +2,19 @@
 // REFERENCE RANGES DOCUMENTATION
 // Source: Dynacare Labs (Ontario, Canada) - Adult Male Reference Ranges
 // ============================================================================
-export const REFERENCE_RANGES = {
+
+export interface ReferenceRange {
+  name: string;
+  min: number | null;
+  max: number | null;
+  unit: string;
+  category: string;
+  description: string;
+  clinicalNotes: string;
+  optimalRange: { min: number; max: number };
+}
+
+export const REFERENCE_RANGES: Record<string, ReferenceRange> = {
   // COMPLETE BLOOD COUNT (CBC)
   hemoglobin: {
     name: 'Hemoglobin',
@@ -368,4 +380,4 @@ export const REFERENCE_RANGES = {
 };
 
 // Helper to get display label
-export const getMetricLabel = (key) => REFERENCE_RANGES[key]?.name || key;
+export const getMetricLabel = (key: string): string => REFERENCE_RANGES[key]?.name || key;

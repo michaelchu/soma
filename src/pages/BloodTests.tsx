@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FlaskConical,
@@ -42,23 +42,30 @@ export default function BloodTests() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [filter, setFilter] = useState('all');
   // Initialize all categories collapsed
-  const [collapsedCategories, setCollapsedCategories] = useState({});
-  const [selectedReportIds, setSelectedReportIds] = useState(null); // null = all selected
+  const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
+  const [selectedReportIds, setSelectedReportIds] = useState<Set<string> | null>(null); // null = all selected
   // Track which categories have their charts expanded (default all collapsed)
-  const [expandedChartCategories, setExpandedChartCategories] = useState({});
+  const [expandedChartCategories, setExpandedChartCategories] = useState<Record<string, boolean>>(
+    {}
+  );
   const { ignoredMetrics, ignoreMetric, unignoreMetric, isIgnored } = useIgnoredMetrics();
-  const [ignoreDialogState, setIgnoreDialogState] = useState({
+  const [ignoreDialogState, setIgnoreDialogState] = useState<{
+    open: boolean;
+    metricKey: string | null;
+    metricName: string;
+    isIgnored: boolean;
+  }>({
     open: false,
     metricKey: null,
     metricName: '',
     isIgnored: false,
   });
   const [reportsDropdownOpen, setReportsDropdownOpen] = useState(false);
-  const [expandedMobileMetric, setExpandedMobileMetric] = useState(null); // Track individually expanded metric on mobile
+  const [expandedMobileMetric, setExpandedMobileMetric] = useState<string | null>(null); // Track individually expanded metric on mobile
   const dropdownTouchStartRef = useRef({ x: 0, y: 0 });
   const dropdownTouchMovedRef = useRef(false);
 
-  const handleDropdownPointerDown = useCallback((e) => {
+  const handleDropdownPointerDown = useCallback((e: React.PointerEvent) => {
     if (e.pointerType === 'touch') {
       // For touch, we'll handle opening manually via pointerUp
       e.preventDefault();
@@ -67,7 +74,7 @@ export default function BloodTests() {
     }
   }, []);
 
-  const handleDropdownPointerMove = useCallback((e) => {
+  const handleDropdownPointerMove = useCallback((e: React.PointerEvent) => {
     if (e.pointerType === 'touch' && !dropdownTouchMovedRef.current) {
       const deltaX = Math.abs(e.clientX - dropdownTouchStartRef.current.x);
       const deltaY = Math.abs(e.clientY - dropdownTouchStartRef.current.y);
@@ -77,7 +84,7 @@ export default function BloodTests() {
     }
   }, []);
 
-  const handleDropdownPointerUp = useCallback((e) => {
+  const handleDropdownPointerUp = useCallback((e: React.PointerEvent) => {
     if (e.pointerType === 'touch') {
       // Only open if user didn't scroll
       if (!dropdownTouchMovedRef.current) {
@@ -186,10 +193,10 @@ export default function BloodTests() {
     );
   }
 
-  const isReportSelected = (reportId) =>
+  const isReportSelected = (reportId: string) =>
     selectedReportIds === null || selectedReportIds.has(reportId);
 
-  const toggleReportSelection = (reportId) => {
+  const toggleReportSelection = (reportId: string) => {
     setSelectedReportIds((prev) => {
       if (prev === null) {
         // First uncheck: create Set with all IDs except this one
@@ -218,7 +225,7 @@ export default function BloodTests() {
   const selectAllReports = () => setSelectedReportIds(null);
   const selectedCount = selectedReportIds === null ? reports.length : selectedReportIds.size;
 
-  const handleMetricLongPress = (metricKey) => {
+  const handleMetricLongPress = (metricKey: string) => {
     const ref = REFERENCE_RANGES[metricKey];
     setIgnoreDialogState({
       open: true,
@@ -228,12 +235,13 @@ export default function BloodTests() {
     });
   };
 
-  const handleMetricTap = (metricKey) => {
+  const handleMetricTap = (metricKey: string) => {
     // Toggle expanded state for this metric on mobile
     setExpandedMobileMetric((prev) => (prev === metricKey ? null : metricKey));
   };
 
   const handleIgnoreConfirm = () => {
+    if (!ignoreDialogState.metricKey) return;
     if (ignoreDialogState.isIgnored) {
       unignoreMetric(ignoreDialogState.metricKey);
     } else {
@@ -305,7 +313,7 @@ export default function BloodTests() {
           const allExpanded = Object.keys(CATEGORY_INFO).every(
             (key) => collapsedCategories[key] === false
           );
-          const newState = {};
+          const newState: Record<string, boolean> = {};
           Object.keys(CATEGORY_INFO).forEach((key) => {
             newState[key] = allExpanded;
           });
@@ -516,7 +524,7 @@ export default function BloodTests() {
       )}
       <IgnoreMetricDialog
         open={ignoreDialogState.open}
-        onOpenChange={(open) => setIgnoreDialogState((prev) => ({ ...prev, open }))}
+        onOpenChange={(open: boolean) => setIgnoreDialogState((prev) => ({ ...prev, open }))}
         metricName={ignoreDialogState.metricName}
         isIgnored={ignoreDialogState.isIgnored}
         onConfirm={handleIgnoreConfirm}

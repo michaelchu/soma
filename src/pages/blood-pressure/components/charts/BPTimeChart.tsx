@@ -27,7 +27,7 @@ interface ChartDataPoint {
   pulse?: number | null;
   pp: number;
   map: number;
-  category: string;
+  category: string | null;
   notes?: string | null;
   sysTrend?: number | null;
   diaTrend?: number | null;
@@ -45,7 +45,7 @@ interface CategoryInfo {
   chartColor: string;
 }
 
-type GetCategoryInfo = (category: string) => CategoryInfo;
+type GetCategoryInfo = (category: string | null) => CategoryInfo;
 
 // Calculate linear regression for a series of values
 function linearRegression(values: number[]): LinearRegressionResult | null {

@@ -7,7 +7,7 @@ import {
 } from '../../../lib/db/bloodTests';
 import { enrichReportMetrics } from '../utils/metricCalculations';
 import { useDataManager } from '../../../hooks/useDataManager';
-import type { BloodTestReport, BloodTestReportInput } from '@/types';
+import type { BloodTestReportInput } from '@/types';
 
 interface EnrichedMetric {
   value: number;
@@ -17,11 +17,21 @@ interface EnrichedMetric {
     max?: number;
     raw?: string;
   };
-  min?: number;
-  max?: number;
+  min: number | null;
+  max: number | null;
+  category: string;
+  name: string;
+  description: string;
+  clinicalNotes: string;
+  optimalMin: number | null;
+  optimalMax: number | null;
 }
 
-interface EnrichedReport extends Omit<BloodTestReport, 'metrics'> {
+interface EnrichedReport {
+  id: string;
+  date: string;
+  orderNumber: string;
+  orderedBy: string;
   metrics: Record<string, EnrichedMetric>;
 }
 
@@ -30,10 +40,21 @@ interface EnrichedReport extends Omit<BloodTestReport, 'metrics'> {
  * Loads reports from Supabase and enriches them with reference range data
  */
 export function useReports() {
-  const fetchFn = useMemo(() => getReports, []);
-  const processData = useCallback((data: BloodTestReport[]) => {
+  // Cast fetchFn to match expected type - getReports returns raw data that gets processed
+  const fetchFn = useMemo(
+    () =>
+      getReports as unknown as () => Promise<{
+        data: EnrichedReport[] | null;
+        error: Error | null;
+      }>,
+    []
+  );
+  const processData = useCallback((data: EnrichedReport[]) => {
     if (!data || data.length === 0) return [];
-    return enrichReportMetrics(data);
+    // Cast is safe because enrichReportMetrics transforms the raw reports to enriched reports
+    return enrichReportMetrics(
+      data as unknown as Parameters<typeof enrichReportMetrics>[0]
+    ) as unknown as EnrichedReport[];
   }, []);
 
   const {
@@ -53,7 +74,11 @@ export function useReports() {
 
   const addReport = useCallback(
     async (report: BloodTestReportInput) => {
-      return addItem(() => addReportDb(report), { refetchAfter: true });
+      // Cast is safe because we're using refetchAfter which will re-fetch and enrich
+      return addItem(
+        () => addReportDb(report) as Promise<{ data: EnrichedReport | null; error: Error | null }>,
+        { refetchAfter: true }
+      );
     },
     [addItem]
   );

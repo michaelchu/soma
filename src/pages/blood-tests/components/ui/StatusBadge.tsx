@@ -1,7 +1,7 @@
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
-export function StatusBadge({ status }) {
+export function StatusBadge({ status }: { status: 'low' | 'normal' | 'high' }) {
   if (status === 'normal') {
     return (
       <Badge

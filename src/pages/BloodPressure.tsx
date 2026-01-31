@@ -17,6 +17,7 @@ import { ExportModal } from './blood-pressure/components/modals/ExportModal';
 import { SettingsModal } from './blood-pressure/components/modals/SettingsModal';
 import { LatestReading } from './blood-pressure/components/ui/LatestReading';
 import { calculateStats } from './blood-pressure/utils/bpHelpers';
+import type { TimeOfDay } from '@/types/bloodPressure';
 
 const VALID_TABS = ['readings', 'statistics', 'charts'];
 
@@ -28,13 +29,13 @@ function BloodPressureContent() {
   const [showExport, setShowExport] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [dateRange, setDateRange] = useState('30');
-  const [timeOfDay, setTimeOfDay] = useState('all');
+  const [timeOfDay, setTimeOfDay] = useState<TimeOfDay | 'all'>('all');
 
   // Get active tab from URL, default to 'readings'
   const tabParam = searchParams.get('tab');
-  const activeTab = VALID_TABS.includes(tabParam) ? tabParam : 'readings';
+  const activeTab = tabParam && VALID_TABS.includes(tabParam) ? tabParam : 'readings';
 
-  const setActiveTab = (tab) => {
+  const setActiveTab = (tab: string) => {
     if (tab === 'readings') {
       // Remove tab param for default tab to keep URL clean
       searchParams.delete('tab');

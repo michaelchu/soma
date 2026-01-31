@@ -1,7 +1,46 @@
 // Blood Pressure Classification Guidelines
 // Different medical organizations use different thresholds
 
-export const BP_GUIDELINES = {
+export type BPGuidelineKey = 'aha2017' | 'esc2018' | 'jnc7' | 'htnCanada2025' | 'simple';
+
+export type BPCategoryKey =
+  | 'normal'
+  | 'elevated'
+  | 'hypertension1'
+  | 'hypertension2'
+  | 'crisis'
+  | 'optimal'
+  | 'highNormal'
+  | 'hypertension3'
+  | 'prehypertension'
+  | 'hypertension'
+  | 'hypertensionCanada'
+  | 'hypertensionTreat';
+
+interface BPThreshold {
+  systolic: { min?: number; max?: number };
+  diastolic: { min?: number; max?: number };
+}
+
+interface BPReferenceLine {
+  value: number;
+  label: string;
+  color: string;
+}
+
+interface BPGuideline {
+  key: string;
+  name: string;
+  description: string;
+  categories: string[];
+  thresholds: Record<string, BPThreshold>;
+  referenceLines: {
+    systolic: BPReferenceLine[];
+    diastolic: BPReferenceLine[];
+  };
+}
+
+export const BP_GUIDELINES: Record<string, BPGuideline> = {
   aha2017: {
     key: 'aha2017',
     name: 'AHA/ACC 2017',
@@ -122,8 +161,19 @@ export const BP_GUIDELINES = {
   },
 };
 
+interface BPCategoryInfo {
+  key: string;
+  label: string;
+  shortLabel?: string;
+  color: string;
+  bgClass: string;
+  textClass: string;
+  borderClass: string;
+  chartColor: string;
+}
+
 // Category display info for all possible categories across guidelines
-export const BP_CATEGORY_INFO = {
+export const BP_CATEGORY_INFO: Record<string, BPCategoryInfo> = {
   // AHA 2017 categories
   normal: {
     key: 'normal',

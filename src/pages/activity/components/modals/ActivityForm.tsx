@@ -84,7 +84,8 @@ function ActivityFormContent({
     setSaving(false);
 
     if (saveError) {
-      showError(saveError.message || 'Failed to save activity');
+      const errorMessage = typeof saveError === 'string' ? saveError : saveError.message;
+      showError(errorMessage || 'Failed to save activity');
       return;
     }
 
