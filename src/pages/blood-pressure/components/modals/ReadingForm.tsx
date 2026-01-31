@@ -124,7 +124,7 @@ function ReadingFormContent({ session, onOpenChange }: ReadingFormContentProps) 
         )
       : null;
 
-  const isValid = datetime && validRows.length > 0;
+  const isValid = Boolean(datetime && validRows.length > 0);
 
   const handleSave = async () => {
     setSaving(true);
@@ -155,7 +155,8 @@ function ReadingFormContent({ session, onOpenChange }: ReadingFormContentProps) 
     setSaving(false);
 
     if (saveError) {
-      showError(saveError.message || 'Failed to save reading');
+      const errorMessage = saveError instanceof Error ? saveError.message : String(saveError);
+      showError(errorMessage || 'Failed to save reading');
       return;
     }
 
@@ -188,7 +189,8 @@ function ReadingFormContent({ session, onOpenChange }: ReadingFormContentProps) 
     setDeleting(false);
 
     if (deleteError) {
-      showError(deleteError.message || 'Failed to delete reading');
+      const errorMessage = deleteError instanceof Error ? deleteError.message : String(deleteError);
+      showError(errorMessage || 'Failed to delete reading');
       setConfirmDelete(false);
       return;
     }

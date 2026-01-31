@@ -1,6 +1,7 @@
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { DateRangeTabs } from '@/components/shared/DateRangeTabs';
 import { isInTimeOfDay, getDateRange } from '@/lib/dateUtils';
+import type { TimeOfDay, BPSession } from '@/types/bloodPressure';
 
 const TIME_OF_DAY = [
   { value: 'all', label: 'Any Time', shortLabel: 'Any Time' },
@@ -9,7 +10,19 @@ const TIME_OF_DAY = [
   { value: 'evening', label: 'Evening (6pm-12am)', shortLabel: 'Evening' },
 ];
 
-export function FilterBar({ dateRange, timeOfDay, onDateRangeChange, onTimeOfDayChange }) {
+interface FilterBarProps {
+  dateRange: string;
+  timeOfDay: TimeOfDay | 'all';
+  onDateRangeChange: (value: string) => void;
+  onTimeOfDayChange: (value: TimeOfDay | 'all') => void;
+}
+
+export function FilterBar({
+  dateRange,
+  timeOfDay,
+  onDateRangeChange,
+  onTimeOfDayChange,
+}: FilterBarProps) {
   const selectedTimeLabel =
     TIME_OF_DAY.find((t) => t.value === timeOfDay)?.shortLabel || 'Time of day';
 
@@ -33,7 +46,11 @@ export function FilterBar({ dateRange, timeOfDay, onDateRangeChange, onTimeOfDay
   );
 }
 
-export function filterReadings(readings, dateRange, timeOfDay) {
+export function filterReadings(
+  readings: BPSession[] | null | undefined,
+  dateRange: string,
+  timeOfDay: TimeOfDay | 'all'
+): BPSession[] {
   if (!readings) return [];
 
   let filtered = [...readings];
@@ -41,7 +58,9 @@ export function filterReadings(readings, dateRange, timeOfDay) {
   // Filter by date range
   if (dateRange !== 'all') {
     const { start } = getDateRange(dateRange);
-    filtered = filtered.filter((r) => new Date(r.datetime) >= start);
+    if (start) {
+      filtered = filtered.filter((r) => new Date(r.datetime) >= start);
+    }
   }
 
   // Filter by time of day

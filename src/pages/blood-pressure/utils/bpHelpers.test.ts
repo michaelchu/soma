@@ -68,22 +68,22 @@ describe('bpHelpers', () => {
     });
 
     it('calculates average systolic correctly', () => {
-      const stats = calculateStats(mockReadings);
+      const stats = calculateStats(mockReadings)!;
       expect(stats.avgSystolic).toBe(125); // (120+130+125)/3
     });
 
     it('calculates average diastolic correctly', () => {
-      const stats = calculateStats(mockReadings);
+      const stats = calculateStats(mockReadings)!;
       expect(stats.avgDiastolic).toBe(82); // (80+85+82)/3 ≈ 82
     });
 
     it('calculates average pulse correctly', () => {
-      const stats = calculateStats(mockReadings);
+      const stats = calculateStats(mockReadings)!;
       expect(stats.avgPulse).toBe(72); // (70+75+72)/3 ≈ 72
     });
 
     it('calculates min and max values correctly', () => {
-      const stats = calculateStats(mockReadings);
+      const stats = calculateStats(mockReadings)!;
       expect(stats.minSystolic).toBe(120);
       expect(stats.maxSystolic).toBe(130);
       expect(stats.minDiastolic).toBe(80);
@@ -91,7 +91,7 @@ describe('bpHelpers', () => {
     });
 
     it('returns correct count', () => {
-      const stats = calculateStats(mockReadings);
+      const stats = calculateStats(mockReadings)!;
       expect(stats.count).toBe(3);
     });
 
@@ -100,7 +100,7 @@ describe('bpHelpers', () => {
         { systolic: 120, diastolic: 80 },
         { systolic: 130, diastolic: 85 },
       ];
-      const stats = calculateStats(readingsNoPulse);
+      const stats = calculateStats(readingsNoPulse)!;
       expect(stats.avgPulse).toBeNull();
     });
   });
@@ -116,7 +116,7 @@ describe('bpHelpers', () => {
     });
 
     it('calculates pulse pressure (PP) correctly', () => {
-      const stats = calculateFullStats(mockReadings);
+      const stats = calculateFullStats(mockReadings)!;
       // PP = systolic - diastolic
       // Reading 1: 120 - 80 = 40
       // Reading 2: 130 - 85 = 45
@@ -125,7 +125,7 @@ describe('bpHelpers', () => {
     });
 
     it('calculates mean arterial pressure (MAP) correctly', () => {
-      const stats = calculateFullStats(mockReadings);
+      const stats = calculateFullStats(mockReadings)!;
       // MAP = diastolic + (1/3 * PP)
       // Reading 1: 80 + (40/3) = 93.333...
       // Reading 2: 85 + (45/3) = 100
@@ -134,7 +134,7 @@ describe('bpHelpers', () => {
     });
 
     it('includes systolic, diastolic, and pulse stats', () => {
-      const stats = calculateFullStats(mockReadings);
+      const stats = calculateFullStats(mockReadings)!;
       expect(stats.systolic).toBeDefined();
       expect(stats.diastolic).toBeDefined();
       expect(stats.pulse).toBeDefined();
@@ -186,7 +186,7 @@ describe('bpHelpers', () => {
         { systolic: 140, diastolic: 90, datetime: '2024-01-01' },
         { systolic: 130, diastolic: 85, datetime: '2024-01-02' },
       ];
-      const trend = getTrend(readings);
+      const trend = getTrend(readings)!;
       expect(trend.systolic.isImproving).toBe(true);
       expect(trend.diastolic.isImproving).toBe(true);
     });
@@ -196,7 +196,7 @@ describe('bpHelpers', () => {
         { systolic: 120, diastolic: 80, datetime: '2024-01-01' },
         { systolic: 130, diastolic: 85, datetime: '2024-01-02' },
       ];
-      const trend = getTrend(readings);
+      const trend = getTrend(readings)!;
       expect(trend.systolic.isImproving).toBe(false);
       expect(trend.diastolic.isImproving).toBe(false);
     });
@@ -206,7 +206,7 @@ describe('bpHelpers', () => {
         { systolic: 120, diastolic: 80, datetime: '2024-01-01' },
         { systolic: 125, diastolic: 82, datetime: '2024-01-02' },
       ];
-      const trend = getTrend(readings);
+      const trend = getTrend(readings)!;
       expect(trend.systolic.diff).toBe(5);
       expect(trend.diastolic.diff).toBe(2);
     });
@@ -216,7 +216,7 @@ describe('bpHelpers', () => {
         { systolic: 120, diastolic: 80, datetime: '2024-01-01' },
         { systolic: 120, diastolic: 80, datetime: '2024-01-02' },
       ];
-      const trend = getTrend(readings);
+      const trend = getTrend(readings)!;
       expect(trend.systolic.direction).toBe('stable');
       expect(trend.diastolic.direction).toBe('stable');
     });
@@ -224,7 +224,7 @@ describe('bpHelpers', () => {
 
   describe('getPreviousPeriodReadings', () => {
     const now = new Date();
-    const daysAgo = (days) => {
+    const daysAgo = (days: number) => {
       const date = new Date(now);
       date.setDate(date.getDate() - days);
       return date.toISOString();

@@ -4,7 +4,27 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useSettings } from '@/lib/SettingsContext';
 import { BP_GUIDELINES, BP_CATEGORY_INFO } from '../../constants/bpGuidelines';
 
-function GuidelineOption({ guidelineKey, guideline, isSelected, onSelect }) {
+interface BPThreshold {
+  systolic: { min?: number; max?: number };
+  diastolic: { min?: number; max?: number };
+}
+
+interface BPGuideline {
+  key: string;
+  name: string;
+  description: string;
+  categories: string[];
+  thresholds: Record<string, BPThreshold>;
+}
+
+interface GuidelineOptionProps {
+  guidelineKey: string;
+  guideline: BPGuideline;
+  isSelected: boolean;
+  onSelect: (key: string) => void;
+}
+
+function GuidelineOption({ guidelineKey, guideline, isSelected, onSelect }: GuidelineOptionProps) {
   const categories = guideline.categories.map((cat) => BP_CATEGORY_INFO[cat]);
 
   return (
@@ -39,7 +59,11 @@ function GuidelineOption({ guidelineKey, guideline, isSelected, onSelect }) {
   );
 }
 
-function ThresholdTable({ guideline }) {
+interface ThresholdTableProps {
+  guideline: BPGuideline;
+}
+
+function ThresholdTable({ guideline }: ThresholdTableProps) {
   const { thresholds, categories } = guideline;
 
   return (
@@ -61,7 +85,7 @@ function ThresholdTable({ guideline }) {
             const diaMin = threshold.diastolic?.min;
             const diaMax = threshold.diastolic?.max;
 
-            const formatRange = (min, max) => {
+            const formatRange = (min: number | undefined, max: number | undefined): string => {
               if (min !== undefined && max !== undefined) return `${min}-${max}`;
               if (min !== undefined) return `≥${min}`;
               if (max !== undefined) return `<${max + 1}`;
@@ -92,7 +116,12 @@ function ThresholdTable({ guideline }) {
   );
 }
 
-export function SettingsModal({ open, onOpenChange }) {
+interface SettingsModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   const { settings, updateSetting } = useSettings();
   const selectedGuideline = BP_GUIDELINES[settings.bpGuideline];
 

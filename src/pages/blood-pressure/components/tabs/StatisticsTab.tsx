@@ -4,8 +4,43 @@ import { useSettings } from '@/lib/SettingsContext';
 import { BP_GUIDELINES, DEFAULT_GUIDELINE } from '../../constants/bpGuidelines';
 import { getDateRange } from '@/lib/dateUtils';
 import { ChangeIndicator, type ChangeConfig } from '@/components/shared/ChangeIndicator';
+import type { TimeOfDay } from '@/types/bloodPressure';
 
-function StatsTable({ currentStats, previousStats, dateRange, normalThresholds }) {
+interface BPReading {
+  datetime: string;
+  systolic: number;
+  diastolic: number;
+  pulse?: number | null;
+}
+
+interface StatValues {
+  min: number | null;
+  max: number | null;
+  avg: number | null;
+}
+
+interface FullStats {
+  systolic: StatValues;
+  diastolic: StatValues;
+  pulse: StatValues;
+  pp: StatValues;
+  map: StatValues;
+  count: number;
+}
+
+interface NormalThresholds {
+  systolic: number;
+  diastolic: number;
+}
+
+interface StatsTableProps {
+  currentStats: FullStats | null;
+  previousStats: FullStats | null;
+  dateRange: string;
+  normalThresholds: NormalThresholds;
+}
+
+function StatsTable({ currentStats, previousStats, dateRange, normalThresholds }: StatsTableProps) {
   const rows: Array<{
     label: string;
     key: string;
@@ -75,8 +110,12 @@ function StatsTable({ currentStats, previousStats, dateRange, normalThresholds }
         </thead>
         <tbody>
           {rows.map((row) => {
-            const current = currentStats?.[row.key];
-            const previous = previousStats?.[row.key];
+            const current = currentStats?.[row.key as keyof Omit<FullStats, 'count'>] as
+              | StatValues
+              | undefined;
+            const previous = previousStats?.[row.key as keyof Omit<FullStats, 'count'>] as
+              | StatValues
+              | undefined;
 
             // Skip pulse row if no pulse data
             if (row.key === 'pulse' && current?.avg === null) {
@@ -101,8 +140,8 @@ function StatsTable({ currentStats, previousStats, dateRange, normalThresholds }
                 </td>
                 <td className="py-3 pl-1 text-right">
                   <ChangeIndicator
-                    current={current?.avg}
-                    previous={previous?.avg}
+                    current={current?.avg ?? null}
+                    previous={previous?.avg ?? null}
                     config={row.config}
                     disabled={dateRange === 'all'}
                   />
@@ -116,7 +155,14 @@ function StatsTable({ currentStats, previousStats, dateRange, normalThresholds }
   );
 }
 
-export function StatisticsTab({ readings, allReadings, dateRange, timeOfDay }) {
+interface StatisticsTabProps {
+  readings: BPReading[];
+  allReadings: BPReading[];
+  dateRange: string;
+  timeOfDay: TimeOfDay | 'all';
+}
+
+export function StatisticsTab({ readings, allReadings, dateRange, timeOfDay }: StatisticsTabProps) {
   const { settings } = useSettings();
 
   // Get the normal thresholds from the selected guideline
@@ -180,11 +226,12 @@ export function StatisticsTab({ readings, allReadings, dateRange, timeOfDay }) {
           </p>
         </div>
 
-        {hasPreviousData && (
+        {hasPreviousData && previousStats && (
           <div className="sm:text-right">
             <p className="text-sm text-muted-foreground mb-1">Previous Period</p>
             <p className="text-xl font-semibold text-muted-foreground">
-              {Math.round(previousStats.systolic.avg)}/{Math.round(previousStats.diastolic.avg)}
+              {previousStats.systolic.avg != null ? Math.round(previousStats.systolic.avg) : '—'}/
+              {previousStats.diastolic.avg != null ? Math.round(previousStats.diastolic.avg) : '—'}
               <span className="text-sm font-normal ml-1">mmHg</span>
             </p>
           </div>

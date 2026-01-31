@@ -11,8 +11,41 @@ import {
 import { formatDateTime } from '../../utils/bpHelpers';
 import { useBloodPressureSettings } from '../../hooks/useBloodPressureSettings';
 
+interface BPReading {
+  datetime: string;
+  systolic: number;
+  diastolic: number;
+  notes?: string | null;
+}
+
+interface ChartDataPoint {
+  x: number;
+  y: number;
+  datetime: string;
+  dateLabel: string;
+  systolic: number;
+  diastolic: number;
+  category: string;
+  notes?: string | null;
+}
+
+interface CategoryInfo {
+  label: string;
+  shortLabel?: string;
+  textClass: string;
+  chartColor: string;
+}
+
+type GetCategoryInfo = (category: string) => CategoryInfo;
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{ payload: ChartDataPoint }>;
+  getCategoryInfo: GetCategoryInfo;
+}
+
 // Custom tooltip component
-function CustomTooltip({ active, payload, getCategoryInfo }) {
+function CustomTooltip({ active, payload, getCategoryInfo }: CustomTooltipProps) {
   if (!active || !payload || !payload.length) return null;
 
   const data = payload[0].payload;
@@ -35,8 +68,23 @@ function CustomTooltip({ active, payload, getCategoryInfo }) {
   );
 }
 
+interface ReferenceAreaData {
+  x1: number;
+  x2: number;
+  y1: number;
+  y2: number;
+  category: string;
+}
+
 // Generate reference areas based on guideline
-function getReferenceAreas(guidelineKey, categories, xMin, xMax, yMin, yMax) {
+function getReferenceAreas(
+  guidelineKey: string,
+  _categories: CategoryInfo[],
+  xMin: number,
+  xMax: number,
+  yMin: number,
+  yMax: number
+): ReferenceAreaData[] {
   // For simplicity, we'll generate zones based on the guideline's categories
   // This is a simplified version - complex guidelines might need custom handling
 
@@ -99,7 +147,12 @@ function getReferenceAreas(guidelineKey, categories, xMin, xMax, yMin, yMax) {
   ];
 }
 
-export function BPScatterChart({ readings, height = 280 }) {
+interface BPScatterChartProps {
+  readings: BPReading[];
+  height?: number;
+}
+
+export function BPScatterChart({ readings, height = 280 }: BPScatterChartProps) {
   const { getCategory, getCategoryInfo, guidelineKey, guideline, categories } =
     useBloodPressureSettings();
 
@@ -144,7 +197,10 @@ export function BPScatterChart({ readings, height = 280 }) {
   const referenceAreas = getReferenceAreas(guidelineKey, categories, xMin, xMax, yMin, yMax);
 
   // Create tooltip renderer
-  const renderTooltip = (props) => <CustomTooltip {...props} getCategoryInfo={getCategoryInfo} />;
+
+  const renderTooltip = (props: any) => (
+    <CustomTooltip {...props} getCategoryInfo={getCategoryInfo} />
+  );
 
   return (
     <div className="w-full">

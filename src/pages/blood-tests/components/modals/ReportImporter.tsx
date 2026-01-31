@@ -106,7 +106,8 @@ export function ReportImporter({ onClose }: ReportImporterProps) {
     setSaving(true);
 
     // Build metrics object for database
-    const metricsObj = {};
+    const metricsObj: Record<string, { value: number; unit: string; reference: ParsedReference }> =
+      {};
     for (const metric of metrics) {
       if (metric.key && metric.value) {
         metricsObj[metric.key] = {
@@ -119,8 +120,8 @@ export function ReportImporter({ onClose }: ReportImporterProps) {
 
     const report = {
       date: reportDate,
-      orderNumber: orderNumber || null,
-      orderedBy: orderedBy || null,
+      orderNumber: orderNumber || undefined,
+      orderedBy: orderedBy || undefined,
       metrics: metricsObj,
     };
 

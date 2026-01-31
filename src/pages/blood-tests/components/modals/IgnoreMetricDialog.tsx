@@ -9,7 +9,21 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 
-export function IgnoreMetricDialog({ open, onOpenChange, metricName, isIgnored, onConfirm }) {
+interface IgnoreMetricDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  metricName: string;
+  isIgnored: boolean;
+  onConfirm: () => void;
+}
+
+export function IgnoreMetricDialog({
+  open,
+  onOpenChange,
+  metricName,
+  isIgnored,
+  onConfirm,
+}: IgnoreMetricDialogProps) {
   const handleConfirm = () => {
     onConfirm();
     onOpenChange(false);

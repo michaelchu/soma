@@ -3,7 +3,19 @@ import { BPStatusBadge } from './BPStatusBadge';
 import { formatDateTime, getTrend } from '../../utils/bpHelpers';
 import { useBloodPressureSettings } from '../../hooks/useBloodPressureSettings';
 
-export function LatestReading({ readings }) {
+interface BPReading {
+  datetime: string;
+  systolic: number;
+  diastolic: number;
+  pulse?: number | null;
+  notes?: string | null;
+}
+
+interface LatestReadingProps {
+  readings: BPReading[];
+}
+
+export function LatestReading({ readings }: LatestReadingProps) {
   const { getCategory } = useBloodPressureSettings();
 
   if (!readings || readings.length === 0) {
@@ -50,8 +62,8 @@ export function LatestReading({ readings }) {
 
           {trend && (
             <div className="mt-3 flex gap-4 text-sm">
-              <TrendDisplay label="Systolic" trend={trend.systolic} />
-              <TrendDisplay label="Diastolic" trend={trend.diastolic} />
+              <TrendDisplay label="Systolic" trend={trend.systolic as TrendData} />
+              <TrendDisplay label="Diastolic" trend={trend.diastolic as TrendData} />
             </div>
           )}
 
@@ -66,7 +78,18 @@ export function LatestReading({ readings }) {
   );
 }
 
-function TrendDisplay({ label, trend }) {
+interface TrendData {
+  diff: number;
+  direction: 'up' | 'down' | 'stable';
+  isImproving: boolean;
+}
+
+interface TrendDisplayProps {
+  label: string;
+  trend: TrendData;
+}
+
+function TrendDisplay({ label, trend }: TrendDisplayProps) {
   if (trend.diff === 0) return null;
 
   const arrow = trend.direction === 'up' ? '↑' : '↓';

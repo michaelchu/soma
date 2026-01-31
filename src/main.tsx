@@ -18,7 +18,7 @@ import './index.css';
 applyFont(getStoredFont());
 applyFontSize(getStoredFontSize());
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ErrorBoundary>
       <ThemeProvider>

@@ -1,15 +1,17 @@
+import type { ReactNode } from 'react';
+
 /**
  * Simple markdown renderer for AI responses
  * Supports headers, bold text, italic text, bullet lists, and numbered lists
  */
-export function MarkdownRenderer({ content }) {
-  const renderMarkdown = (text) => {
+export function MarkdownRenderer({ content }: { content: string }) {
+  const renderMarkdown = (text: string): ReactNode[] | null => {
     if (!text) return null;
 
     // Split into lines for processing
     const lines = text.split('\n');
-    const elements = [];
-    let currentList = [];
+    const elements: ReactNode[] = [];
+    let currentList: string[] = [];
 
     const flushList = () => {
       if (currentList.length > 0) {
@@ -26,9 +28,9 @@ export function MarkdownRenderer({ content }) {
       }
     };
 
-    const processInlineMarkdown = (text) => {
+    const processInlineMarkdown = (text: string): ReactNode[] | string => {
       // Process bold **text** and *text*
-      const parts = [];
+      const parts: ReactNode[] = [];
       let remaining = text;
       let key = 0;
 
@@ -38,26 +40,29 @@ export function MarkdownRenderer({ content }) {
         // Bold/italic with *
         const italicMatch = remaining.match(/\*(.+?)\*/);
 
-        if (boldMatch && (!italicMatch || boldMatch.index <= italicMatch.index)) {
-          if (boldMatch.index > 0) {
-            parts.push(<span key={key++}>{remaining.slice(0, boldMatch.index)}</span>);
+        const boldIndex = boldMatch?.index ?? Infinity;
+        const italicIndex = italicMatch?.index ?? Infinity;
+
+        if (boldMatch && boldIndex <= italicIndex) {
+          if (boldIndex > 0) {
+            parts.push(<span key={key++}>{remaining.slice(0, boldIndex)}</span>);
           }
           parts.push(
             <strong key={key++} className="font-semibold text-foreground">
               {boldMatch[1]}
             </strong>
           );
-          remaining = remaining.slice(boldMatch.index + boldMatch[0].length);
-        } else if (italicMatch) {
-          if (italicMatch.index > 0) {
-            parts.push(<span key={key++}>{remaining.slice(0, italicMatch.index)}</span>);
+          remaining = remaining.slice(boldIndex + boldMatch[0].length);
+        } else if (italicMatch && italicIndex !== Infinity) {
+          if (italicIndex > 0) {
+            parts.push(<span key={key++}>{remaining.slice(0, italicIndex)}</span>);
           }
           parts.push(
             <em key={key++} className="italic">
               {italicMatch[1]}
             </em>
           );
-          remaining = remaining.slice(italicMatch.index + italicMatch[0].length);
+          remaining = remaining.slice(italicIndex + italicMatch[0].length);
         } else {
           parts.push(<span key={key++}>{remaining}</span>);
           break;
@@ -67,7 +72,7 @@ export function MarkdownRenderer({ content }) {
       return parts.length > 0 ? parts : text;
     };
 
-    lines.forEach((line, index) => {
+    lines.forEach((line: string, index: number) => {
       const trimmed = line.trim();
 
       // Headers
