@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Activity, Download, Settings } from 'lucide-react';
+import { Activity, Brain, Download, Settings } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { PageLoading, PageError } from '@/components/shared/PageStates';
@@ -44,7 +44,7 @@ function DashboardContent() {
       <Navbar
         leftContent={
           <div className="flex items-center gap-2">
-            <Activity className="h-6 w-6 text-foreground" strokeWidth={2.5} />
+            <Brain className="h-6 w-6 text-foreground" strokeWidth={2.5} />
             <span className="text-xl font-bold">Soma</span>
           </div>
         }
