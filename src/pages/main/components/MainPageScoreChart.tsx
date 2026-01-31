@@ -4,9 +4,10 @@ import { Activity, Moon, Flame, FlaskConical, CheckCircle2, AlertTriangle } from
 import { formatDate } from '@/lib/dateUtils';
 import { ScoreBarChart, type ScoreBarChartItem } from '@/components/shared/ScoreBarChart';
 import { useMainPage } from '../context/MainPageContext';
-import { calculateHealthScore, calculateSleepHealthScore } from '../utils/healthScore';
+import { calculateHealthScore } from '../utils/healthScore';
 import { calculateDailyActivityScore } from '@/pages/activity/utils/activityHelpers';
 import { getStatus } from '@/pages/blood-tests/utils/statusHelpers';
+import { calculateSleepScore, calculatePersonalBaseline } from '@/pages/sleep/utils/sleepHelpers';
 
 const CHART_DAYS = 30;
 
@@ -116,6 +117,11 @@ export function MainPageScoreChart({ children }: MainPageScoreChartProps) {
     return map;
   }, [activities]);
 
+  // Calculate personal sleep baseline from all entries
+  const sleepBaseline = useMemo(() => {
+    return calculatePersonalBaseline(sleepEntries);
+  }, [sleepEntries]);
+
   // Get the most recent blood test report
   const latestBloodTestReport = useMemo(() => {
     if (!bloodTestReports || bloodTestReports.length === 0) return null;
@@ -183,11 +189,11 @@ export function MainPageScoreChart({ children }: MainPageScoreChartProps) {
       bpAvg = { systolic: avgSystolic, diastolic: avgDiastolic };
     }
 
-    // Calculate sleep score for the day
+    // Calculate sleep score for the day using personalized baseline
     let sleepScore: number | null = null;
     if (daySleepEntry) {
-      const sleepScoreResult = calculateSleepHealthScore([daySleepEntry]);
-      sleepScore = sleepScoreResult?.score ?? null;
+      const sleepScoreResult = calculateSleepScore(daySleepEntry, sleepBaseline);
+      sleepScore = sleepScoreResult.overall;
     }
 
     // Calculate activity score for the day
@@ -201,7 +207,7 @@ export function MainPageScoreChart({ children }: MainPageScoreChartProps) {
       sleepScore,
       activityScore,
     };
-  }, [selectedDate, bpByDate, sleepByDate, activitiesByDate, activities]);
+  }, [selectedDate, bpByDate, sleepByDate, sleepBaseline, activitiesByDate, activities]);
 
   const hasData = bpReadings.length > 0 || sleepEntries.length > 0;
 
