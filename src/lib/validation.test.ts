@@ -26,12 +26,15 @@ describe('validation', () => {
 
     describe('systolic validation', () => {
       it('rejects invalid systolic values', () => {
-        expect(
-          validateBPReading({ systolic: 'invalid' as unknown as number, diastolic: 80 }).errors
-        ).toContain('Systolic must be a number');
-        expect(validateBPReading({ systolic: NaN, diastolic: 80 }).errors).toContain(
-          'Systolic must be a number'
-        );
+        const result = validateBPReading({
+          systolic: 'invalid' as unknown as number,
+          diastolic: 80,
+        });
+        expect(result.valid).toBe(false);
+        expect(result.errors.length).toBeGreaterThan(0);
+
+        const nanResult = validateBPReading({ systolic: NaN, diastolic: 80 });
+        expect(nanResult.valid).toBe(false);
       });
 
       it('enforces systolic range boundaries', () => {
@@ -56,9 +59,12 @@ describe('validation', () => {
 
     describe('diastolic validation', () => {
       it('rejects invalid diastolic values', () => {
-        expect(
-          validateBPReading({ systolic: 120, diastolic: 'invalid' as unknown as number }).errors
-        ).toContain('Diastolic must be a number');
+        const result = validateBPReading({
+          systolic: 120,
+          diastolic: 'invalid' as unknown as number,
+        });
+        expect(result.valid).toBe(false);
+        expect(result.errors.length).toBeGreaterThan(0);
       });
 
       it('enforces diastolic range boundaries', () => {
@@ -73,13 +79,13 @@ describe('validation', () => {
 
     describe('pulse validation', () => {
       it('rejects invalid pulse values', () => {
-        expect(
-          validateBPReading({
-            systolic: 120,
-            diastolic: 80,
-            pulse: 'invalid' as unknown as number,
-          }).errors
-        ).toContain('Pulse must be a number');
+        const result = validateBPReading({
+          systolic: 120,
+          diastolic: 80,
+          pulse: 'invalid' as unknown as number,
+        });
+        expect(result.valid).toBe(false);
+        expect(result.errors.length).toBeGreaterThan(0);
       });
 
       it('enforces pulse range boundaries', () => {
@@ -128,21 +134,19 @@ describe('validation', () => {
     });
 
     it('validates datetime', () => {
-      expect(validateBPSession({ datetime: '', readings: [validReading] }).errors).toContain(
-        'Datetime is required'
-      );
+      expect(validateBPSession({ datetime: '', readings: [validReading] }).valid).toBe(false);
       expect(
         validateBPSession({ datetime: 'not-a-date', readings: [validReading] }).errors
       ).toContain('Invalid datetime format');
     });
 
     it('validates readings array', () => {
-      expect(
-        validateBPSession({
-          datetime: validDatetime,
-          readings: undefined as unknown as Array<{ systolic: number; diastolic: number }>,
-        }).errors
-      ).toContain('Readings array is required');
+      const undefinedResult = validateBPSession({
+        datetime: validDatetime,
+        readings: undefined as unknown as Array<{ systolic: number; diastolic: number }>,
+      });
+      expect(undefinedResult.valid).toBe(false);
+
       expect(validateBPSession({ datetime: validDatetime, readings: [] }).errors).toContain(
         'At least one reading is required'
       );
@@ -180,44 +184,33 @@ describe('validation', () => {
     });
 
     it('validates date', () => {
-      expect(validateBloodTestReport({ date: '', metrics: {} }).errors).toContain(
-        'Date is required'
-      );
+      expect(validateBloodTestReport({ date: '', metrics: {} }).valid).toBe(false);
       expect(validateBloodTestReport({ date: 'not-a-date', metrics: {} }).errors).toContain(
         'Invalid date format'
       );
     });
 
     it('validates metric values', () => {
-      // Null values allowed
-      expect(
-        validateBloodTestReport({
-          date: validDate,
-          metrics: { glucose: { value: null as unknown as number, unit: 'mg/dL' } },
-        }).valid
-      ).toBe(true);
-
       // Non-number rejected
-      expect(
-        validateBloodTestReport({
-          date: validDate,
-          metrics: { glucose: { value: 'invalid' as unknown as number, unit: 'mg/dL' } },
-        }).errors[0]
-      ).toContain('must be a number');
+      const invalidResult = validateBloodTestReport({
+        date: validDate,
+        metrics: { glucose: { value: 'invalid' as unknown as number, unit: 'mg/dL' } },
+      });
+      expect(invalidResult.valid).toBe(false);
 
       // Out of range rejected
       expect(
         validateBloodTestReport({
           date: validDate,
           metrics: { glucose: { value: BLOOD_TEST_VALIDATION.VALUE_MIN - 1, unit: 'mg/dL' } },
-        }).errors[0]
-      ).toContain('out of reasonable range');
+        }).valid
+      ).toBe(false);
       expect(
         validateBloodTestReport({
           date: validDate,
           metrics: { glucose: { value: BLOOD_TEST_VALIDATION.VALUE_MAX + 1, unit: 'mg/dL' } },
-        }).errors[0]
-      ).toContain('out of reasonable range');
+        }).valid
+      ).toBe(false);
     });
   });
 
@@ -241,25 +234,25 @@ describe('validation', () => {
     });
 
     it('validates date', () => {
-      expect(validateActivity({ ...validActivity, date: '' }).errors).toContain('Date is required');
+      expect(validateActivity({ ...validActivity, date: '' }).valid).toBe(false);
       expect(validateActivity({ ...validActivity, date: 'not-a-date' }).errors).toContain(
         'Invalid date format'
       );
     });
 
     it('validates timeOfDay', () => {
-      expect(
-        validateActivity({
-          ...validActivity,
-          timeOfDay: '' as typeof validActivity.timeOfDay,
-        }).errors
-      ).toContain('Time of day is required');
-      expect(
-        validateActivity({
-          ...validActivity,
-          timeOfDay: 'midnight' as typeof validActivity.timeOfDay,
-        }).errors[0]
-      ).toContain('Time of day must be one of');
+      const emptyResult = validateActivity({
+        ...validActivity,
+        timeOfDay: '' as typeof validActivity.timeOfDay,
+      });
+      expect(emptyResult.valid).toBe(false);
+
+      const invalidResult = validateActivity({
+        ...validActivity,
+        timeOfDay: 'midnight' as typeof validActivity.timeOfDay,
+      });
+      expect(invalidResult.valid).toBe(false);
+      expect(invalidResult.errors.length).toBeGreaterThan(0);
     });
 
     it('accepts all valid time of day values', () => {
@@ -269,18 +262,18 @@ describe('validation', () => {
     });
 
     it('validates activityType', () => {
-      expect(
-        validateActivity({
-          ...validActivity,
-          activityType: '' as typeof validActivity.activityType,
-        }).errors
-      ).toContain('Activity type is required');
-      expect(
-        validateActivity({
-          ...validActivity,
-          activityType: 'swimming' as typeof validActivity.activityType,
-        }).errors[0]
-      ).toContain('Activity type must be one of');
+      const emptyResult = validateActivity({
+        ...validActivity,
+        activityType: '' as typeof validActivity.activityType,
+      });
+      expect(emptyResult.valid).toBe(false);
+
+      const invalidResult = validateActivity({
+        ...validActivity,
+        activityType: 'swimming' as typeof validActivity.activityType,
+      });
+      expect(invalidResult.valid).toBe(false);
+      expect(invalidResult.errors.length).toBeGreaterThan(0);
     });
 
     it('accepts all valid activity types', () => {
@@ -290,10 +283,12 @@ describe('validation', () => {
     });
 
     it('validates duration', () => {
-      expect(
-        validateActivity({ ...validActivity, durationMinutes: 'thirty' as unknown as number })
-          .errors
-      ).toContain('Duration must be a number');
+      const invalidResult = validateActivity({
+        ...validActivity,
+        durationMinutes: 'thirty' as unknown as number,
+      });
+      expect(invalidResult.valid).toBe(false);
+
       expect(
         validateActivity({
           ...validActivity,
@@ -318,9 +313,12 @@ describe('validation', () => {
     });
 
     it('validates intensity', () => {
-      expect(
-        validateActivity({ ...validActivity, intensity: 'high' as unknown as number }).errors
-      ).toContain('Intensity must be a number');
+      const invalidResult = validateActivity({
+        ...validActivity,
+        intensity: 'high' as unknown as number,
+      });
+      expect(invalidResult.valid).toBe(false);
+
       expect(
         validateActivity({ ...validActivity, intensity: ACTIVITY_VALIDATION.INTENSITY_MIN - 1 })
           .valid

@@ -1,5 +1,5 @@
 import { supabase } from '../supabase';
-import { sanitizeString, validateSleepEntry } from '../validation';
+import { sanitizeString, validateSleepEntry, type SleepEntryInput } from '../validation';
 import { logError } from '../logger';
 import { calculateDurationFromTimes } from '../dateUtils';
 
@@ -58,27 +58,8 @@ export interface SleepEntry {
   notes: string | null;
 }
 
-export interface SleepEntryInput {
-  date: string;
-  timezone?: string | null;
-  totalSleepMinutes?: number | null; // Actual sleep time (externally calculated)
-  sleepStart?: string | null;
-  sleepEnd?: string | null;
-  hrvLow?: number | null;
-  hrvHigh?: number | null;
-  restingHr?: number | null;
-  lowestHrTime?: string | null;
-  hrDropMinutes?: number | null;
-  deepSleepPct?: number | null;
-  remSleepPct?: number | null;
-  lightSleepPct?: number | null;
-  awakePct?: number | null;
-  skinTempAvg?: number | null;
-  sleepCyclesFull?: number | null;
-  sleepCyclesPartial?: number | null;
-  movementCount?: number | null;
-  notes?: string | null;
-}
+// Re-export SleepEntryInput from validation for convenience
+export type { SleepEntryInput } from '../validation';
 
 function rowToEntry(row: SleepEntryRow): SleepEntry {
   // Calculate time in bed from sleep times
