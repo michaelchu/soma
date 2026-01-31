@@ -27,6 +27,36 @@ export function getLocalDatetimeNow(): string {
 }
 
 /**
+ * Get the current date formatted for date input (YYYY-MM-DD)
+ */
+export function getLocalDateNow(): string {
+  const now = new Date();
+  const offset = now.getTimezoneOffset();
+  const localDate = new Date(now.getTime() - offset * 60 * 1000);
+  return localDate.toISOString().slice(0, 10);
+}
+
+/**
+ * Calculate duration in minutes from start and end times (HH:MM format)
+ * Handles overnight periods (end time before start time)
+ */
+export function calculateDurationFromTimes(start: string, end: string): number {
+  if (!start || !end) return 0;
+  const [startH, startM] = start.split(':').map(Number);
+  const [endH, endM] = end.split(':').map(Number);
+
+  let startMinutes = startH * 60 + startM;
+  let endMinutes = endH * 60 + endM;
+
+  // If end is before start, it's overnight
+  if (endMinutes < startMinutes) {
+    endMinutes += 24 * 60;
+  }
+
+  return endMinutes - startMinutes;
+}
+
+/**
  * Format a Date object for datetime-local input
  */
 export function formatDateForInput(date: Date): string {

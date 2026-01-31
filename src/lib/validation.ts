@@ -5,6 +5,7 @@
 
 import type { BPSessionInput, BloodTestReportInput } from '@/types';
 import type { ActivityInput, ActivityType, ActivityTimeOfDay } from '@/types/activity';
+import type { SleepEntryInput } from '@/lib/db/sleep';
 
 // Blood pressure validation constants
 export const BP_VALIDATION = {
@@ -31,6 +32,19 @@ export const ACTIVITY_VALIDATION = {
   NOTES_MAX_LENGTH: 500,
   VALID_ACTIVITY_TYPES: ['walking', 'badminton', 'pickleball', 'other'] as ActivityType[],
   VALID_TIME_OF_DAY: ['morning', 'afternoon', 'evening', 'late_evening'] as ActivityTimeOfDay[],
+} as const;
+
+// Sleep validation constants
+export const SLEEP_VALIDATION = {
+  HRV_MIN: 1,
+  HRV_MAX: 500,
+  HR_MIN: 20,
+  HR_MAX: 200,
+  SLEEP_PCT_MIN: 0,
+  SLEEP_PCT_MAX: 100,
+  SKIN_TEMP_MIN: 20,
+  SKIN_TEMP_MAX: 45,
+  NOTES_MAX_LENGTH: 500,
 } as const;
 
 interface ValidationResult {
@@ -236,6 +250,105 @@ export function validateActivity(activity: ActivityInput | null | undefined): Va
   // Validate notes length if provided
   if (activity.notes && activity.notes.length > ACTIVITY_VALIDATION.NOTES_MAX_LENGTH) {
     errors.push(`Notes must be ${ACTIVITY_VALIDATION.NOTES_MAX_LENGTH} characters or less`);
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
+/**
+ * Validate a sleep entry input
+ */
+export function validateSleepEntry(entry: SleepEntryInput | null | undefined): ValidationResult {
+  const errors: string[] = [];
+
+  if (!entry) {
+    return { valid: false, errors: ['Sleep entry is required'] };
+  }
+
+  // Validate date
+  if (!entry.date) {
+    errors.push('Date is required');
+  } else {
+    const date = new Date(entry.date);
+    if (isNaN(date.getTime())) {
+      errors.push('Invalid date format');
+    }
+  }
+
+  // Validate HRV values if provided
+  if (entry.hrvLow !== null && entry.hrvLow !== undefined) {
+    if (typeof entry.hrvLow !== 'number' || isNaN(entry.hrvLow)) {
+      errors.push('HRV low must be a number');
+    } else if (entry.hrvLow < SLEEP_VALIDATION.HRV_MIN || entry.hrvLow > SLEEP_VALIDATION.HRV_MAX) {
+      errors.push(
+        `HRV low must be between ${SLEEP_VALIDATION.HRV_MIN} and ${SLEEP_VALIDATION.HRV_MAX}`
+      );
+    }
+  }
+
+  if (entry.hrvHigh !== null && entry.hrvHigh !== undefined) {
+    if (typeof entry.hrvHigh !== 'number' || isNaN(entry.hrvHigh)) {
+      errors.push('HRV high must be a number');
+    } else if (
+      entry.hrvHigh < SLEEP_VALIDATION.HRV_MIN ||
+      entry.hrvHigh > SLEEP_VALIDATION.HRV_MAX
+    ) {
+      errors.push(
+        `HRV high must be between ${SLEEP_VALIDATION.HRV_MIN} and ${SLEEP_VALIDATION.HRV_MAX}`
+      );
+    }
+  }
+
+  // Validate resting HR if provided
+  if (entry.restingHr !== null && entry.restingHr !== undefined) {
+    if (typeof entry.restingHr !== 'number' || isNaN(entry.restingHr)) {
+      errors.push('Resting HR must be a number');
+    } else if (
+      entry.restingHr < SLEEP_VALIDATION.HR_MIN ||
+      entry.restingHr > SLEEP_VALIDATION.HR_MAX
+    ) {
+      errors.push(
+        `Resting HR must be between ${SLEEP_VALIDATION.HR_MIN} and ${SLEEP_VALIDATION.HR_MAX}`
+      );
+    }
+  }
+
+  // Validate sleep stage percentages if provided
+  const pctFields: Array<{ key: keyof SleepEntryInput; name: string }> = [
+    { key: 'deepSleepPct', name: 'Deep sleep' },
+    { key: 'remSleepPct', name: 'REM sleep' },
+    { key: 'lightSleepPct', name: 'Light sleep' },
+    { key: 'awakePct', name: 'Awake' },
+  ];
+
+  for (const { key, name } of pctFields) {
+    const value = entry[key] as number | null | undefined;
+    if (value !== null && value !== undefined) {
+      if (typeof value !== 'number' || isNaN(value)) {
+        errors.push(`${name} percentage must be a number`);
+      } else if (value < SLEEP_VALIDATION.SLEEP_PCT_MIN || value > SLEEP_VALIDATION.SLEEP_PCT_MAX) {
+        errors.push(`${name} percentage must be between 0 and 100`);
+      }
+    }
+  }
+
+  // Validate skin temperature if provided
+  if (entry.skinTempAvg !== null && entry.skinTempAvg !== undefined) {
+    if (typeof entry.skinTempAvg !== 'number' || isNaN(entry.skinTempAvg)) {
+      errors.push('Skin temperature must be a number');
+    } else if (
+      entry.skinTempAvg < SLEEP_VALIDATION.SKIN_TEMP_MIN ||
+      entry.skinTempAvg > SLEEP_VALIDATION.SKIN_TEMP_MAX
+    ) {
+      errors.push(
+        `Skin temperature must be between ${SLEEP_VALIDATION.SKIN_TEMP_MIN} and ${SLEEP_VALIDATION.SKIN_TEMP_MAX}`
+      );
+    }
+  }
+
+  // Validate notes length if provided
+  if (entry.notes && entry.notes.length > SLEEP_VALIDATION.NOTES_MAX_LENGTH) {
+    errors.push(`Notes must be ${SLEEP_VALIDATION.NOTES_MAX_LENGTH} characters or less`);
   }
 
   return { valid: errors.length === 0, errors };

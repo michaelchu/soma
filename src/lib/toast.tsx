@@ -58,6 +58,20 @@ export function showWithUndo(message: string, onUndo: () => void | Promise<void>
   });
 }
 
+/**
+ * Extract a user-friendly error message from various error types
+ * Handles Error objects, strings, and unknown types consistently
+ */
+export function extractErrorMessage(error: Error | string | unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === 'string') {
+    return error;
+  }
+  return String(error);
+}
+
 interface HandleErrorOptions {
   silent?: boolean;
   context?: string;
