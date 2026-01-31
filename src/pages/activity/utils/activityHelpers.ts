@@ -1,4 +1,8 @@
 import type { Activity, ActivityType, ActivityTimeOfDay } from '@/types/activity';
+import { formatDurationLong } from '@/lib/dateUtils';
+
+// Re-export formatDuration for backwards compatibility (activity uses "45 min" format)
+export const formatDuration = formatDurationLong;
 
 /**
  * Calculate consistency multiplier based on workouts in the past 7 days
@@ -131,23 +135,6 @@ export function filterActivities(activities: Activity[], range: string): Activit
   cutoff.setDate(cutoff.getDate() - daysBack);
 
   return activities.filter((a) => new Date(a.date) >= cutoff);
-}
-
-/**
- * Format duration in minutes to readable string
- * @param minutes Duration in minutes
- * @returns Formatted string (e.g., "45 min" or "1h 15m")
- */
-export function formatDuration(minutes: number): string {
-  if (minutes < 60) {
-    return `${minutes} min`;
-  }
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  if (mins === 0) {
-    return `${hours}h`;
-  }
-  return `${hours}h ${mins}m`;
 }
 
 /**

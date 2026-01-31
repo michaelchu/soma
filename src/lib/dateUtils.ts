@@ -353,3 +353,37 @@ export function formatTimeString(timeStr: string | null): string | null {
 
   return `${hour12}:${minute} ${period}`;
 }
+
+/**
+ * Format duration in minutes to readable string
+ * @param minutes Duration in minutes
+ * @returns Formatted string (e.g., "45m", "1h", "1h 15m")
+ */
+export function formatDuration(minutes: number): string {
+  if (minutes < 60) {
+    return `${minutes}m`;
+  }
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  if (mins === 0) {
+    return `${hours}h`;
+  }
+  return `${hours}h ${mins}m`;
+}
+
+/**
+ * Format duration with full "min" label for short durations
+ * @param minutes Duration in minutes
+ * @returns Formatted string (e.g., "45 min", "1h", "1h 15m")
+ */
+export function formatDurationLong(minutes: number): string {
+  if (minutes < 60) {
+    return `${minutes} min`;
+  }
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  if (mins === 0) {
+    return `${hours}h`;
+  }
+  return `${hours}h ${mins}m`;
+}
