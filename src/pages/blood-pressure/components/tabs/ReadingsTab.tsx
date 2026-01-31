@@ -88,8 +88,8 @@ export function ReadingsTab({ readings }: ReadingsTabProps) {
             systolic: r.systolic,
             diastolic: r.diastolic,
             arm: r.arm,
+            pulse: r.pulse,
           })),
-          pulse: deletedItem.pulse,
           notes: deletedItem.notes,
         });
         if (undoError) {

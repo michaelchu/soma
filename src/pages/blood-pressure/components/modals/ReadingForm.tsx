@@ -183,7 +183,7 @@ function ReadingFormContent({ session, onOpenChange }: ReadingFormContentProps) 
 
     setDeleting(true);
 
-    const { error: deleteError, deletedSession } = await deleteSession(session.sessionId);
+    const { error: deleteError, deletedItem } = await deleteSession(session.sessionId);
 
     setDeleting(false);
 
@@ -194,17 +194,17 @@ function ReadingFormContent({ session, onOpenChange }: ReadingFormContentProps) 
     }
 
     showWithUndo('Reading deleted', async () => {
-      if (deletedSession) {
+      if (deletedItem) {
         // Re-add the session with its readings
         const { error: undoError } = await addSession({
-          datetime: deletedSession.datetime,
-          readings: deletedSession.readings.map((r) => ({
+          datetime: deletedItem.datetime,
+          readings: deletedItem.readings.map((r) => ({
             systolic: r.systolic,
             diastolic: r.diastolic,
             arm: r.arm,
             pulse: r.pulse,
           })),
-          notes: deletedSession.notes,
+          notes: deletedItem.notes,
         });
         if (undoError) {
           showError('Failed to restore reading');
