@@ -8,6 +8,16 @@ import {
   getSleepQuality,
 } from '../../utils/sleepHelpers';
 import { formatDate, formatTimeString } from '@/lib/dateUtils';
+import {
+  createMarkdownTable,
+  createCSVContent,
+  getDateRangeString,
+  generateExportHeader,
+  generateExportFooter,
+  escapeMarkdownCell,
+  sortForExport,
+  formatPercentage,
+} from '@/lib/exportUtils';
 import type { SleepEntry } from '@/lib/db/sleep';
 
 function generateMarkdown(entries: SleepEntry[]) {
@@ -15,21 +25,13 @@ function generateMarkdown(entries: SleepEntry[]) {
     return '# Sleep Summary\n\nNo sleep entries available.';
   }
 
-  // Sort entries by date (newest first for display, but we'll show oldest to newest in tables)
-  const sortedEntries = [...entries].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-  );
-
-  // Calculate date range
-  const minDate = new Date(sortedEntries[0].date);
-  const maxDate = new Date(sortedEntries[sortedEntries.length - 1].date);
+  const sortedEntries = sortForExport(entries, 'date');
+  const dateRange = getDateRangeString(entries, 'date', (d) => formatDate(d.slice(0, 10)));
 
   const stats = calculateSleepStats(entries);
   const baseline = calculatePersonalBaseline(entries);
 
-  let md = '# Sleep Summary\n\n';
-  md += `**Analysis Period:** ${formatDate(minDate.toISOString().slice(0, 10))} to ${formatDate(maxDate.toISOString().slice(0, 10))}\n`;
-  md += `**Total Entries:** ${entries.length}\n\n`;
+  let md = generateExportHeader('Sleep Summary', dateRange, entries.length, 'Entries');
 
   // Overall Statistics
   if (stats) {
@@ -68,16 +70,15 @@ function generateMarkdown(entries: SleepEntry[]) {
   });
 
   md += '## Sleep Quality Distribution\n\n';
-  md += '| Quality | Count | Percentage |\n';
-  md += '|---------|-------|------------|\n';
-  Object.entries(qualityCount).forEach(([quality, count]) => {
-    if (count > 0) {
-      const pct = ((count / entries.length) * 100).toFixed(1);
-      const label = quality.charAt(0).toUpperCase() + quality.slice(1);
-      md += `| ${label} | ${count} | ${pct}% |\n`;
-    }
-  });
-  md += '\n';
+  const qualityRows = Object.entries(qualityCount)
+    .filter(([, count]) => count > 0)
+    .map(([quality, count]) => [
+      quality.charAt(0).toUpperCase() + quality.slice(1),
+      count,
+      formatPercentage(count, entries.length),
+    ]);
+  md += createMarkdownTable(['Quality', 'Count', 'Percentage'], qualityRows);
+  md += '\n\n';
 
   // Duration Analysis
   const durations = entries.map((e) => e.durationMinutes);
@@ -86,19 +87,25 @@ function generateMarkdown(entries: SleepEntry[]) {
   const longSleep = durations.filter((d) => d > 540).length; // > 9 hours
 
   md += '## Duration Analysis\n\n';
-  md += `- **Under 6 hours:** ${shortSleep} nights (${((shortSleep / entries.length) * 100).toFixed(1)}%)\n`;
-  md += `- **Optimal (7-9 hours):** ${optimalSleep} nights (${((optimalSleep / entries.length) * 100).toFixed(1)}%)\n`;
-  md += `- **Over 9 hours:** ${longSleep} nights (${((longSleep / entries.length) * 100).toFixed(1)}%)\n\n`;
+  md += `- **Under 6 hours:** ${shortSleep} nights (${formatPercentage(shortSleep, entries.length)})\n`;
+  md += `- **Optimal (7-9 hours):** ${optimalSleep} nights (${formatPercentage(optimalSleep, entries.length)})\n`;
+  md += `- **Over 9 hours:** ${longSleep} nights (${formatPercentage(longSleep, entries.length)})\n\n`;
 
   // Detailed Entries Table
   md += '## Detailed Sleep Log\n\n';
-  md += '| Date | Duration | Sleep Window | Deep | REM | Awake | RHR | HRV | Score | Notes |\n';
-  md += '|------|----------|--------------|------|-----|-------|-----|-----|-------|-------|\n';
-
-  sortedEntries.forEach((entry) => {
-    const dateStr = formatDate(entry.date);
-    const duration = formatDuration(entry.durationMinutes);
-
+  const logHeaders = [
+    'Date',
+    'Duration',
+    'Sleep Window',
+    'Deep',
+    'REM',
+    'Awake',
+    'RHR',
+    'HRV',
+    'Score',
+    'Notes',
+  ];
+  const logRows = sortedEntries.map((entry) => {
     // Format sleep window
     let sleepWindow = '-';
     if (entry.sleepStart && entry.sleepEnd) {
@@ -106,11 +113,6 @@ function generateMarkdown(entries: SleepEntry[]) {
       const endFormatted = formatTimeString(entry.sleepEnd);
       sleepWindow = `${startFormatted} → ${endFormatted}`;
     }
-
-    const deep = entry.deepSleepPct !== null ? `${entry.deepSleepPct}%` : '-';
-    const rem = entry.remSleepPct !== null ? `${entry.remSleepPct}%` : '-';
-    const awake = entry.awakePct !== null ? `${entry.awakePct}%` : '-';
-    const rhr = entry.restingHr !== null ? `${entry.restingHr}` : '-';
 
     let hrv = '-';
     if (entry.hrvLow !== null && entry.hrvHigh !== null) {
@@ -121,15 +123,23 @@ function generateMarkdown(entries: SleepEntry[]) {
       hrv = `${entry.hrvHigh}`;
     }
 
-    // Calculate score for this entry
     const score = calculateSleepScore(entry, baseline);
-    const scoreStr = score.overall !== null ? `${score.overall}` : '-';
 
-    const notes = entry.notes ? entry.notes.replace(/\|/g, '/').substring(0, 30) : '-';
-
-    md += `| ${dateStr} | ${duration} | ${sleepWindow} | ${deep} | ${rem} | ${awake} | ${rhr} | ${hrv} | ${scoreStr} | ${notes} |\n`;
+    return [
+      formatDate(entry.date),
+      formatDuration(entry.durationMinutes),
+      sleepWindow,
+      entry.deepSleepPct !== null ? `${entry.deepSleepPct}%` : '-',
+      entry.remSleepPct !== null ? `${entry.remSleepPct}%` : '-',
+      entry.awakePct !== null ? `${entry.awakePct}%` : '-',
+      entry.restingHr !== null ? `${entry.restingHr}` : '-',
+      hrv,
+      score.overall !== null ? `${score.overall}` : '-',
+      escapeMarkdownCell(entry.notes, 30),
+    ];
   });
-  md += '\n';
+  md += createMarkdownTable(logHeaders, logRows);
+  md += '\n\n';
 
   // Heart Health Trends (if data available)
   const entriesWithHr = entries.filter((e) => e.restingHr !== null);
@@ -196,8 +206,7 @@ function generateMarkdown(entries: SleepEntry[]) {
   md += '- **Low HRV patterns → BP variability**\n';
   md += '- **Sleep quality trends → BP trends over same period**\n\n';
 
-  md += '---\n';
-  md += `*Generated on ${new Date().toLocaleString()}*\n`;
+  md += generateExportFooter();
 
   return md;
 }
@@ -232,19 +241,14 @@ function generateCSV(entries: SleepEntry[]) {
     'Notes',
   ];
 
-  const rows = [headers];
+  const sortedEntries = sortForExport(entries, 'date');
 
-  // Sort entries oldest to newest for CSV
-  const sortedEntries = [...entries].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-  );
-
-  for (const entry of sortedEntries) {
+  const rows = sortedEntries.map((entry) => {
     const restorative = getRestorativeSleepPct(entry);
     const score = calculateSleepScore(entry, baseline);
     const quality = getSleepQuality(entry);
 
-    rows.push([
+    return [
       formatDate(entry.date),
       entry.durationMinutes.toString(),
       formatDuration(entry.durationMinutes),
@@ -269,10 +273,10 @@ function generateCSV(entries: SleepEntry[]) {
       score.overall?.toString() || '',
       quality.charAt(0).toUpperCase() + quality.slice(1),
       entry.notes || '',
-    ]);
-  }
+    ];
+  });
 
-  return rows.map((row) => row.map((cell) => `"${cell}"`).join(',')).join('\n');
+  return createCSVContent(headers, rows);
 }
 
 export function ExportModal({ entries, onClose }: { entries: SleepEntry[]; onClose: () => void }) {
