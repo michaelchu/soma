@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Activity, Settings } from 'lucide-react';
+import { Brain, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import AppIcon from '@/components/AppIcon';
 import Navbar from '@/components/Navbar';
@@ -38,7 +38,7 @@ export default function Launcher() {
       <Navbar
         leftContent={
           <div className="flex items-center gap-2">
-            <Activity className="h-6 w-6 text-foreground" strokeWidth={2.5} />
+            <Brain className="h-6 w-6 text-foreground" strokeWidth={2.5} />
             <span className="text-xl font-bold">Soma</span>
           </div>
         }
