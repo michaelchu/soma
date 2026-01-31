@@ -14,7 +14,8 @@ import {
 import { Slider } from '@/components/ui/slider';
 import { Save, Loader2, Trash2 } from 'lucide-react';
 import { useActivity } from '../../context/ActivityContext';
-import { showError, showSuccess, showWithUndo } from '@/lib/toast';
+import { showError, showSuccess, showWithUndo, extractErrorMessage } from '@/lib/toast';
+import { getLocalDateNow } from '@/lib/dateUtils';
 import { getIntensityLabel } from '../../utils/activityHelpers';
 import {
   ACTIVITY_TYPES,
@@ -23,13 +24,6 @@ import {
   type ActivityType,
   type ActivityTimeOfDay,
 } from '@/types/activity';
-
-function getLocalDateNow(): string {
-  const now = new Date();
-  const offset = now.getTimezoneOffset();
-  const localDate = new Date(now.getTime() - offset * 60 * 1000);
-  return localDate.toISOString().slice(0, 10);
-}
 
 function ActivityFormContent({
   activity,
@@ -84,8 +78,7 @@ function ActivityFormContent({
     setSaving(false);
 
     if (saveError) {
-      const errorMessage = typeof saveError === 'string' ? saveError : saveError.message;
-      showError(errorMessage || 'Failed to save activity');
+      showError(extractErrorMessage(saveError) || 'Failed to save activity');
       return;
     }
 
@@ -107,7 +100,7 @@ function ActivityFormContent({
 
     const { error } = await deleteActivity(activity.id);
     if (error) {
-      showError(typeof error === 'string' ? error : error.message || 'Failed to delete activity');
+      showError(extractErrorMessage(error) || 'Failed to delete activity');
       return;
     }
 

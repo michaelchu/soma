@@ -5,63 +5,23 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Save, Loader2 } from 'lucide-react';
-import { formatTimeString } from '@/lib/dateUtils';
+import {
+  formatTimeString,
+  formatDuration,
+  getLocalDateNow,
+  calculateDurationFromTimes,
+} from '@/lib/dateUtils';
 import { useSleep } from '../../context/SleepContext';
-import { showError, showSuccess } from '@/lib/toast';
+import { showError, showSuccess, extractErrorMessage } from '@/lib/toast';
 import type { SleepEntry } from '@/lib/db/sleep';
-
-function getLocalDateNow(): string {
-  const now = new Date();
-  const offset = now.getTimezoneOffset();
-  const localDate = new Date(now.getTime() - offset * 60 * 1000);
-  return localDate.toISOString().slice(0, 10);
-}
-
-/**
- * Calculate duration in minutes from sleep start and end times
- * Handles overnight sleep (end time before start time)
- */
-function calculateDuration(start: string, end: string): number {
-  if (!start || !end) return 0;
-  const [startH, startM] = start.split(':').map(Number);
-  const [endH, endM] = end.split(':').map(Number);
-
-  let startMinutes = startH * 60 + startM;
-  let endMinutes = endH * 60 + endM;
-
-  // If end is before start, it's overnight sleep
-  if (endMinutes < startMinutes) {
-    endMinutes += 24 * 60;
-  }
-
-  return endMinutes - startMinutes;
-}
 
 /**
  * Calculate HR drop time in minutes from sleep start to lowest HR time
- * Handles overnight sleep
+ * Uses shared calculateDurationFromTimes for overnight handling
  */
 function calculateHrDrop(sleepStart: string, lowestHrTime: string): number | null {
   if (!sleepStart || !lowestHrTime) return null;
-  const [startH, startM] = sleepStart.split(':').map(Number);
-  const [lowH, lowM] = lowestHrTime.split(':').map(Number);
-
-  let startMinutes = startH * 60 + startM;
-  let lowMinutes = lowH * 60 + lowM;
-
-  // If lowest HR time is before sleep start, it's next day
-  if (lowMinutes < startMinutes) {
-    lowMinutes += 24 * 60;
-  }
-
-  return lowMinutes - startMinutes;
-}
-
-function formatDuration(minutes: number): string {
-  if (minutes <= 0) return '';
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return `${h}h ${m}m`;
+  return calculateDurationFromTimes(sleepStart, lowestHrTime);
 }
 
 function SleepEntryFormContent({
@@ -118,7 +78,7 @@ function SleepEntryFormContent({
 
   // Calculate duration and HR drop from times
   const calculatedDuration = useMemo(
-    () => calculateDuration(sleepStart, sleepEnd),
+    () => calculateDurationFromTimes(sleepStart, sleepEnd),
     [sleepStart, sleepEnd]
   );
   const calculatedHrDrop = useMemo(
@@ -171,8 +131,7 @@ function SleepEntryFormContent({
     setSaving(false);
 
     if (saveError) {
-      const errorMessage = typeof saveError === 'string' ? saveError : saveError.message;
-      showError(errorMessage || 'Failed to save sleep entry');
+      showError(extractErrorMessage(saveError) || 'Failed to save sleep entry');
       return;
     }
 
@@ -238,7 +197,7 @@ function SleepEntryFormContent({
             {calculatedDuration > 0 && (
               <p className="text-sm text-muted-foreground">
                 {formatTimeString(sleepStart)} → {formatTimeString(sleepEnd)} (
-                {formatDuration(calculatedDuration)})
+                {formatDuration(calculatedDuration) || `${calculatedDuration}m`})
               </p>
             )}
           </div>

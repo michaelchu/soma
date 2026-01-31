@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Plus } from 'lucide-react';
 import { useBloodPressure } from '../../context/BPContext';
-import { showError, showSuccess, showWithUndo } from '@/lib/toast';
+import { showError, showSuccess, showWithUndo, extractErrorMessage } from '@/lib/toast';
 import { getLocalDatetimeNow, toDatetimeLocalFormat } from '@/lib/dateUtils';
 import { BP_VALIDATION } from '@/lib/validation';
 import { BPRowInput, type BPRowData, type BPRowInputRef } from './BPRowInput';
@@ -155,8 +155,7 @@ function ReadingFormContent({ session, onOpenChange }: ReadingFormContentProps) 
     setSaving(false);
 
     if (saveError) {
-      const errorMessage = saveError instanceof Error ? saveError.message : String(saveError);
-      showError(errorMessage || 'Failed to save reading');
+      showError(extractErrorMessage(saveError) || 'Failed to save reading');
       return;
     }
 
@@ -189,8 +188,7 @@ function ReadingFormContent({ session, onOpenChange }: ReadingFormContentProps) 
     setDeleting(false);
 
     if (deleteError) {
-      const errorMessage = deleteError instanceof Error ? deleteError.message : String(deleteError);
-      showError(errorMessage || 'Failed to delete reading');
+      showError(extractErrorMessage(deleteError) || 'Failed to delete reading');
       setConfirmDelete(false);
       return;
     }
