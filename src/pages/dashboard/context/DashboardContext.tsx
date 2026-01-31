@@ -66,17 +66,28 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         getActivities(),
       ]);
 
+      // Collect and surface any fetch errors
+      const fetchErrors: string[] = [];
       if (bpResult.error) {
         console.error('BP fetch error:', bpResult.error);
+        fetchErrors.push('blood pressure');
       }
       if (sleepResult.error) {
         console.error('Sleep fetch error:', sleepResult.error);
+        fetchErrors.push('sleep');
       }
       if (bloodTestResult.error) {
         console.error('Blood test fetch error:', bloodTestResult.error);
+        fetchErrors.push('blood test');
       }
       if (activityResult.error) {
         console.error('Activity fetch error:', activityResult.error);
+        fetchErrors.push('activity');
+      }
+
+      // Set partial error if some data failed to load
+      if (fetchErrors.length > 0) {
+        setError(`Failed to load ${fetchErrors.join(', ')} data`);
       }
 
       // Flatten BP sessions to individual readings
