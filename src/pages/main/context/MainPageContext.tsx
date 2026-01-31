@@ -32,7 +32,7 @@ interface BloodTestReport {
   metrics: Record<string, MetricData>;
 }
 
-interface DashboardContextType {
+interface MainPageContextType {
   loading: boolean;
   error: string | null;
   healthScore: HealthScoreResult | null;
@@ -44,9 +44,9 @@ interface DashboardContextType {
   refresh: () => Promise<void>;
 }
 
-const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
+const MainPageContext = createContext<MainPageContextType | undefined>(undefined);
 
-export function DashboardProvider({ children }: { children: React.ReactNode }) {
+export function MainPageProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [allBpReadings, setAllBpReadings] = useState<BPReadingSummary[]>([]);
@@ -94,7 +94,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       const bpReadings: BPReadingSummary[] = [];
       if (bpResult.data) {
         for (const session of bpResult.data) {
-          // Use session average as single reading for dashboard
+          // Use session average as single reading for main page
           bpReadings.push({
             datetime: session.datetime,
             systolic: session.systolic,
@@ -110,7 +110,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       setAllActivities((activityResult.data as Activity[]) || []);
       setBloodTestReports((bloodTestResult.data as BloodTestReport[]) || []);
     } catch (err) {
-      setError('Failed to load dashboard data');
+      setError('Failed to load main page data');
       console.error('Dashboard fetch error:', err);
     } finally {
       setLoading(false);
@@ -173,7 +173,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   }, [bpReadings, sleepEntries, activities]);
 
   return (
-    <DashboardContext.Provider
+    <MainPageContext.Provider
       value={{
         loading,
         error,
@@ -187,14 +187,14 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       }}
     >
       {children}
-    </DashboardContext.Provider>
+    </MainPageContext.Provider>
   );
 }
 
-export function useDashboard() {
-  const context = useContext(DashboardContext);
+export function useMainPage() {
+  const context = useContext(MainPageContext);
   if (context === undefined) {
-    throw new Error('useDashboard must be used within a DashboardProvider');
+    throw new Error('useMainPage must be used within a MainPageProvider');
   }
   return context;
 }

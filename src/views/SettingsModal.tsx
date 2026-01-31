@@ -93,7 +93,7 @@ export function applyFontSize(size: number) {
   localStorage.setItem(FONT_SIZE_STORAGE_KEY, size.toString());
 }
 
-export function LauncherSettingsModal({
+export function SettingsModal({
   open,
   onOpenChange,
   currentFont,

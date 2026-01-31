@@ -2,7 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { useAuth } from '@/lib/AuthContext';
 import Auth from '@/views/Auth';
-import Dashboard from '@/pages/Dashboard';
+import MainPage from '@/pages/MainPage';
 import BloodTests from '@/pages/BloodTests';
 import BloodPressure from '@/pages/BloodPressure';
 import Sleep from '@/pages/Sleep';
@@ -28,7 +28,7 @@ export default function App() {
   return (
     <>
       <Routes>
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/" element={<MainPage />} />
         <Route path="/blood-tests" element={<BloodTests />} />
         <Route path="/blood-pressure" element={<BloodPressure />} />
         <Route path="/sleep" element={<Sleep />} />

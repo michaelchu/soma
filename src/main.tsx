@@ -6,12 +6,7 @@ import { AuthProvider } from './lib/AuthContext';
 import { SettingsProvider } from './lib/SettingsContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import App from './App';
-import {
-  getStoredFont,
-  getStoredFontSize,
-  applyFont,
-  applyFontSize,
-} from './views/LauncherSettingsModal';
+import { getStoredFont, getStoredFontSize, applyFont, applyFontSize } from './views/SettingsModal';
 import './index.css';
 
 // Apply stored font preferences on app load

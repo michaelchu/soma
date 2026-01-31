@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Activity, Moon, Flame, FlaskConical, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { formatDate } from '@/lib/dateUtils';
 import { ScoreBarChart, type ScoreBarChartItem } from '@/components/shared/ScoreBarChart';
-import { useDashboard } from '../context/DashboardContext';
+import { useMainPage } from '../context/MainPageContext';
 import { calculateHealthScore, calculateSleepHealthScore } from '../utils/healthScore';
 import { calculateDailyActivityScore } from '@/pages/activity/utils/activityHelpers';
 import { getStatus } from '@/pages/blood-tests/utils/statusHelpers';
@@ -55,13 +55,13 @@ function MetricCard({
   );
 }
 
-interface DashboardScoreChartProps {
+interface MainPageScoreChartProps {
   children?: ReactNode;
 }
 
-export function DashboardScoreChart({ children }: DashboardScoreChartProps) {
+export function MainPageScoreChart({ children }: MainPageScoreChartProps) {
   const navigate = useNavigate();
-  const { bpReadings, sleepEntries, activities, bloodTestReports } = useDashboard();
+  const { bpReadings, sleepEntries, activities, bloodTestReports } = useMainPage();
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   // Generate all dates for the last 30 days

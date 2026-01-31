@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Activity, Moon, Flame } from 'lucide-react';
-import { useDashboard } from '../context/DashboardContext';
+import { useMainPage } from '../context/MainPageContext';
 import { formatDate, formatTimeString } from '@/lib/dateUtils';
 import {
   getActivityTypeLabel,
@@ -11,7 +11,7 @@ import type { Activity as ActivityType } from '@/types/activity';
 const TIMELINE_DAYS = 30;
 
 export function Timeline() {
-  const { timeline } = useDashboard();
+  const { timeline } = useMainPage();
   const navigate = useNavigate();
 
   // Filter timeline to only show entries from the last 30 days
