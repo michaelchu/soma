@@ -5,7 +5,7 @@ import { formatDate } from '@/lib/dateUtils';
 import { ScoreBarChart, type ScoreBarChartItem } from '@/components/shared/ScoreBarChart';
 import { useMainPage } from '../context/MainPageContext';
 import { calculateHealthScore } from '../utils/healthScore';
-import { calculateDailyActivityScore } from '@/pages/activity/utils/activityHelpers';
+import { getDailyActivityScore } from '@/pages/activity/utils/activityHelpers';
 import { calculateDailyBPAverage } from '@/pages/blood-pressure/utils/bpHelpers';
 import { getStatus } from '@/pages/blood-tests/utils/statusHelpers';
 import { getDailySleepScore } from '@/pages/sleep/utils/sleepHelpers';
@@ -106,18 +106,6 @@ export function MainPageScoreChart({ children }: MainPageScoreChartProps) {
     return map;
   }, [sleepEntries]);
 
-  // Group activities by date
-  const activitiesByDate = useMemo(() => {
-    const map = new Map<string, typeof activities>();
-    for (const activity of activities) {
-      if (!map.has(activity.date)) {
-        map.set(activity.date, []);
-      }
-      map.get(activity.date)!.push(activity);
-    }
-    return map;
-  }, [activities]);
-
   // Get the most recent blood test report
   const latestBloodTestReport = useMemo(() => {
     if (!bloodTestReports || bloodTestReports.length === 0) return null;
@@ -170,20 +158,18 @@ export function MainPageScoreChart({ children }: MainPageScoreChartProps) {
     if (!selectedDate) return null;
 
     const dayBpReadings = bpByDate.get(selectedDate) || [];
-    const dayActivities = activitiesByDate.get(selectedDate) || [];
 
     // Use shared helpers for consistent calculations across pages
     const bpAvg = calculateDailyBPAverage(dayBpReadings);
     const sleepScore = getDailySleepScore(selectedDate, sleepEntries)?.overall ?? null;
-    const activityScore =
-      dayActivities.length > 0 ? calculateDailyActivityScore(dayActivities, activities) : null;
+    const activityScore = getDailyActivityScore(selectedDate, activities);
 
     return {
       bpAvg,
       sleepScore,
       activityScore,
     };
-  }, [selectedDate, bpByDate, sleepEntries, activitiesByDate, activities]);
+  }, [selectedDate, bpByDate, sleepEntries, activities]);
 
   const hasData = bpReadings.length > 0 || sleepEntries.length > 0;
 
