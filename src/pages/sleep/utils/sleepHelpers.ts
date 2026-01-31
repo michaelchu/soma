@@ -437,6 +437,21 @@ export function calculateSleepScore(
 }
 
 /**
+ * Get sleep score for a specific date
+ * Convenience function that calculates baseline and returns score for the given date
+ */
+export function getDailySleepScore(
+  date: string,
+  allEntries: SleepEntry[]
+): SleepScoreBreakdown | null {
+  const entry = allEntries.find((e) => e.date === date);
+  if (!entry) return null;
+
+  const baseline = calculatePersonalBaseline(allEntries, entry.id);
+  return calculateSleepScore(entry, baseline);
+}
+
+/**
  * Get score label based on value
  */
 export function getScoreLabel(score: number | null): string {

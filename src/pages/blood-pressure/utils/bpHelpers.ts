@@ -87,6 +87,24 @@ export function getCategoryClasses(category: BPCategoryKey | null): string {
 }
 
 /**
+ * Calculate daily BP average from readings
+ */
+export function calculateDailyBPAverage(
+  readings: BPReading[] | null | undefined
+): { systolic: number; diastolic: number } | null {
+  if (!readings || readings.length === 0) return null;
+
+  const avgSystolic = Math.round(
+    readings.reduce((sum, r) => sum + r.systolic, 0) / readings.length
+  );
+  const avgDiastolic = Math.round(
+    readings.reduce((sum, r) => sum + r.diastolic, 0) / readings.length
+  );
+
+  return { systolic: avgSystolic, diastolic: avgDiastolic };
+}
+
+/**
  * Calculate statistics from readings array
  */
 export function calculateStats(readings: BPReading[] | null | undefined) {
