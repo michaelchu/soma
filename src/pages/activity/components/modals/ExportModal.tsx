@@ -7,6 +7,17 @@ import {
   getIntensityLabel,
 } from '../../utils/activityHelpers';
 import { formatDate } from '@/lib/dateUtils';
+import {
+  createMarkdownTable,
+  createCSVContent,
+  getDateRangeString,
+  generateExportHeader,
+  generateExportFooter,
+  escapeMarkdownCell,
+  sortForExport,
+  formatPercentage,
+  countByKey,
+} from '@/lib/exportUtils';
 import type { Activity } from '@/types/activity';
 
 function generateMarkdown(activities: Activity[]) {
@@ -14,14 +25,8 @@ function generateMarkdown(activities: Activity[]) {
     return '# Activity Summary\n\nNo activities available.';
   }
 
-  // Sort activities by date (oldest to newest)
-  const sortedActivities = [...activities].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-  );
-
-  // Calculate date range
-  const minDate = new Date(sortedActivities[0].date);
-  const maxDate = new Date(sortedActivities[sortedActivities.length - 1].date);
+  const sortedActivities = sortForExport(activities, 'date');
+  const dateRange = getDateRangeString(activities, 'date', (d) => formatDate(d.slice(0, 10)));
 
   // Calculate statistics
   const totalMinutes = activities.reduce((sum, a) => sum + a.durationMinutes, 0);
@@ -39,9 +44,7 @@ function generateMarkdown(activities: Activity[]) {
     typeCount[a.activityType].minutes += a.durationMinutes;
   });
 
-  let md = '# Activity Summary\n\n';
-  md += `**Analysis Period:** ${formatDate(minDate.toISOString().slice(0, 10))} to ${formatDate(maxDate.toISOString().slice(0, 10))}\n`;
-  md += `**Total Activities:** ${activities.length}\n\n`;
+  let md = generateExportHeader('Activity Summary', dateRange, activities.length, 'Activities');
 
   // Overall Statistics
   md += '## Overall Statistics\n\n';
@@ -52,46 +55,38 @@ function generateMarkdown(activities: Activity[]) {
 
   // Activity Type Breakdown
   md += '## Activity Breakdown\n\n';
-  md += '| Activity | Count | Total Time | Avg Duration |\n';
-  md += '|----------|-------|------------|---------------|\n';
-  Object.entries(typeCount).forEach(([type, data]) => {
+  const breakdownRows = Object.entries(typeCount).map(([type, data]) => {
     const label = getActivityTypeLabel(type as Activity['activityType']);
     const avgDur = Math.round(data.minutes / data.count);
-    md += `| ${label} | ${data.count} | ${formatDuration(data.minutes)} | ${formatDuration(avgDur)} |\n`;
+    return [label, data.count, formatDuration(data.minutes), formatDuration(avgDur)];
   });
-  md += '\n';
+  md += createMarkdownTable(['Activity', 'Count', 'Total Time', 'Avg Duration'], breakdownRows);
+  md += '\n\n';
 
   // Time of Day Distribution
-  const todCount: Record<string, number> = {};
-  activities.forEach((a) => {
-    todCount[a.timeOfDay] = (todCount[a.timeOfDay] || 0) + 1;
-  });
+  const todCount = countByKey(activities, (a) => a.timeOfDay);
 
   md += '## Time of Day Distribution\n\n';
   Object.entries(todCount).forEach(([tod, count]) => {
     const label = getTimeOfDayLabel(tod as Activity['timeOfDay']);
-    const pct = ((count / activities.length) * 100).toFixed(1);
-    md += `- **${label}:** ${count} activities (${pct}%)\n`;
+    md += `- **${label}:** ${count} activities (${formatPercentage(count, activities.length)})\n`;
   });
   md += '\n';
 
   // Detailed Activity Log
   md += '## Detailed Activity Log\n\n';
-  md += '| Date | Activity | Time of Day | Duration | Intensity | Score | Notes |\n';
-  md += '|------|----------|-------------|----------|-----------|-------|-------|\n';
-
-  sortedActivities.forEach((activity) => {
-    const dateStr = formatDate(activity.date);
-    const typeLabel = getActivityTypeLabel(activity.activityType);
-    const todLabel = getTimeOfDayLabel(activity.timeOfDay);
-    const duration = formatDuration(activity.durationMinutes);
-    const intensityStr = `${activity.intensity}/5`;
-    const score = calculateActivityScore(activity, activities);
-    const notes = activity.notes ? activity.notes.replace(/\|/g, '/').substring(0, 30) : '-';
-
-    md += `| ${dateStr} | ${typeLabel} | ${todLabel} | ${duration} | ${intensityStr} | ${score} | ${notes} |\n`;
-  });
-  md += '\n';
+  const logHeaders = ['Date', 'Activity', 'Time of Day', 'Duration', 'Intensity', 'Score', 'Notes'];
+  const logRows = sortedActivities.map((activity) => [
+    formatDate(activity.date),
+    getActivityTypeLabel(activity.activityType),
+    getTimeOfDayLabel(activity.timeOfDay),
+    formatDuration(activity.durationMinutes),
+    `${activity.intensity}/5`,
+    calculateActivityScore(activity, activities),
+    escapeMarkdownCell(activity.notes, 30),
+  ]);
+  md += createMarkdownTable(logHeaders, logRows);
+  md += '\n\n';
 
   // Notes Summary
   const activitiesWithNotes = activities.filter((a) => a.notes);
@@ -116,8 +111,7 @@ function generateMarkdown(activities: Activity[]) {
   md += '- **Activity frequency → BP trends over same period**\n';
   md += "- **Morning activity → that day's BP readings**\n\n";
 
-  md += '---\n';
-  md += `*Generated on ${new Date().toLocaleString()}*\n`;
+  md += generateExportFooter();
 
   return md;
 }
@@ -135,30 +129,21 @@ function generateCSV(activities: Activity[]) {
     'Notes',
   ];
 
-  const rows = [headers];
+  const sortedActivities = sortForExport(activities, 'date');
 
-  // Sort activities oldest to newest for CSV
-  const sortedActivities = [...activities].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-  );
+  const rows = sortedActivities.map((activity) => [
+    formatDate(activity.date),
+    getActivityTypeLabel(activity.activityType),
+    getTimeOfDayLabel(activity.timeOfDay),
+    activity.durationMinutes.toString(),
+    formatDuration(activity.durationMinutes),
+    activity.intensity.toString(),
+    getIntensityLabel(activity.intensity),
+    calculateActivityScore(activity, activities).toString(),
+    activity.notes || '',
+  ]);
 
-  for (const activity of sortedActivities) {
-    const score = calculateActivityScore(activity, activities);
-
-    rows.push([
-      formatDate(activity.date),
-      getActivityTypeLabel(activity.activityType),
-      getTimeOfDayLabel(activity.timeOfDay),
-      activity.durationMinutes.toString(),
-      formatDuration(activity.durationMinutes),
-      activity.intensity.toString(),
-      getIntensityLabel(activity.intensity),
-      score.toString(),
-      activity.notes || '',
-    ]);
-  }
-
-  return rows.map((row) => row.map((cell) => `"${cell}"`).join(',')).join('\n');
+  return createCSVContent(headers, rows);
 }
 
 export function ExportModal({

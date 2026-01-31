@@ -3,93 +3,16 @@ import { calculateFullStats, getPreviousPeriodReadings } from '../../utils/bpHel
 import { useSettings } from '@/lib/SettingsContext';
 import { BP_GUIDELINES, DEFAULT_GUIDELINE } from '../../constants/bpGuidelines';
 import { getDateRange } from '@/lib/dateUtils';
-
-// Determine color for change indicator based on metric type and buffer zones
-function getChangeColor(current, previous, config) {
-  const { type, optimalMax, midpoint, bufferMin, bufferMax } = config;
-
-  if (type === 'lowerIsBetter') {
-    // For systolic/diastolic: if both are below optimal threshold, show grey
-    if (current <= optimalMax && previous <= optimalMax) {
-      return 'neutral';
-    }
-    // Otherwise, lower is better
-    return current < previous ? 'improving' : current > previous ? 'worsening' : 'neutral';
-  }
-
-  if (type === 'midpoint') {
-    // For PP/MAP/Pulse: compare distance from midpoint
-    const currentInBuffer = current >= bufferMin && current <= bufferMax;
-    const previousInBuffer = previous >= bufferMin && previous <= bufferMax;
-
-    // If both are in the buffer zone, show grey
-    if (currentInBuffer && previousInBuffer) {
-      return 'neutral';
-    }
-
-    // Compare distance from midpoint - closer is better
-    const currentDist = Math.abs(current - midpoint);
-    const previousDist = Math.abs(previous - midpoint);
-
-    if (currentDist < previousDist) return 'improving';
-    if (currentDist > previousDist) return 'worsening';
-    return 'neutral';
-  }
-
-  return 'neutral';
-}
-
-function ChangeIndicator({ current, previous, config, disabled = false }) {
-  if (disabled || current === null || previous === null) {
-    return <span className="text-muted-foreground">—</span>;
-  }
-
-  const diff = current - previous;
-
-  // Truncate to 1 decimal place (floor for positive, ceil for negative)
-  const truncateToOneDecimal = (val: number) => {
-    const factor = val >= 0 ? Math.floor : Math.ceil;
-    return factor(val * 10) / 10;
-  };
-
-  const truncatedDiff = truncateToOneDecimal(diff);
-  const pctChange = previous !== 0 ? truncateToOneDecimal((diff / previous) * 100) : 0;
-
-  // Check if diff truncates to 0.0 for display purposes - show dash like no data
-  if (truncatedDiff === 0) {
-    return <span className="text-muted-foreground">—</span>;
-  }
-
-  const changeType = getChangeColor(current, previous, config);
-
-  const colorClass =
-    changeType === 'improving'
-      ? 'text-green-600 dark:text-green-400'
-      : changeType === 'worsening'
-        ? 'text-red-600 dark:text-red-400'
-        : 'text-muted-foreground';
-
-  const sign = truncatedDiff > 0 ? '+' : '';
-  const displayDiff = truncatedDiff.toFixed(1);
-
-  return (
-    <span
-      className={`inline-flex items-center justify-center gap-0.5 whitespace-nowrap ${colorClass}`}
-    >
-      <span className="font-medium">
-        {sign}
-        {displayDiff}
-      </span>
-      <span className="text-xs opacity-75">
-        ({sign}
-        {pctChange}%)
-      </span>
-    </span>
-  );
-}
+import { ChangeIndicator, type ChangeConfig } from '@/components/shared/ChangeIndicator';
 
 function StatsTable({ currentStats, previousStats, dateRange, normalThresholds }) {
-  const rows = [
+  const rows: Array<{
+    label: string;
+    key: string;
+    unit: string;
+    tooltip?: string;
+    config: ChangeConfig;
+  }> = [
     {
       label: 'Systolic',
       key: 'systolic',

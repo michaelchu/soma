@@ -1,4 +1,5 @@
 import { ExportModal as SharedExportModal } from '@/components/shared/ExportModal';
+import { createMarkdownTable, createCSVContent } from '@/lib/exportUtils';
 
 interface MetricData {
   value: number;
@@ -19,6 +20,13 @@ interface ExportModalProps {
   onClose: () => void;
   reports: Report[];
   ignoredMetrics?: Set<string>;
+}
+
+function formatReferenceRange(min?: number | null, max?: number | null): string {
+  if (min != null && max != null) return `${min}-${max}`;
+  if (min != null) return `>${min}`;
+  if (max != null) return `<${max}`;
+  return '';
 }
 
 function generateMarkdown(reports: Report[], ignoredMetrics = new Set<string>()) {
@@ -43,20 +51,14 @@ function generateMarkdown(reports: Report[], ignoredMetrics = new Set<string>())
     for (const [category, metrics] of Object.entries(byCategory)) {
       if (metrics.length === 0) continue;
       md += `### ${category}\n\n`;
-      md += '| Metric | Value | Reference | Unit |\n';
-      md += '|--------|-------|-----------|------|\n';
-      for (const m of metrics) {
-        const refStr =
-          m.min != null && m.max != null
-            ? `${m.min}-${m.max}`
-            : m.min != null
-              ? `>${m.min}`
-              : m.max != null
-                ? `<${m.max}`
-                : '';
-        md += `| ${m.key} | ${m.value} | ${refStr} | ${m.unit || ''} |\n`;
-      }
-      md += '\n';
+      const rows = metrics.map((m) => [
+        m.key,
+        m.value,
+        formatReferenceRange(m.min, m.max),
+        m.unit || '',
+      ]);
+      md += createMarkdownTable(['Metric', 'Value', 'Reference', 'Unit'], rows);
+      md += '\n\n';
     }
 
     md += '---\n\n';
@@ -66,18 +68,18 @@ function generateMarkdown(reports: Report[], ignoredMetrics = new Set<string>())
 }
 
 function generateCSV(reports: Report[], ignoredMetrics = new Set<string>()) {
-  const rows: Array<(string | number)[]> = [
-    [
-      'Date',
-      'Order Number',
-      'Ordered By',
-      'Metric',
-      'Value',
-      'Unit',
-      'Reference Min',
-      'Reference Max',
-    ],
+  const headers = [
+    'Date',
+    'Order Number',
+    'Ordered By',
+    'Metric',
+    'Value',
+    'Unit',
+    'Reference Min',
+    'Reference Max',
   ];
+
+  const rows: Array<(string | number)[]> = [];
 
   for (const report of reports) {
     for (const [key, metric] of Object.entries(report.metrics)) {
@@ -95,7 +97,7 @@ function generateCSV(reports: Report[], ignoredMetrics = new Set<string>()) {
     }
   }
 
-  return rows.map((row) => row.map((cell) => `"${cell}"`).join(',')).join('\n');
+  return createCSVContent(headers, rows);
 }
 
 export function ExportModal({
