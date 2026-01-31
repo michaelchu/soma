@@ -4,9 +4,11 @@ import { Activity, Moon, Flame, FlaskConical, CheckCircle2, AlertTriangle } from
 import { formatDate } from '@/lib/dateUtils';
 import { ScoreBarChart, type ScoreBarChartItem } from '@/components/shared/ScoreBarChart';
 import { useMainPage } from '../context/MainPageContext';
-import { calculateHealthScore, calculateSleepHealthScore } from '../utils/healthScore';
-import { calculateDailyActivityScore } from '@/pages/activity/utils/activityHelpers';
+import { calculateHealthScore } from '../utils/healthScore';
+import { getDailyActivityScore } from '@/pages/activity/utils/activityHelpers';
+import { calculateDailyBPAverage } from '@/pages/blood-pressure/utils/bpHelpers';
 import { getStatus } from '@/pages/blood-tests/utils/statusHelpers';
+import { getDailySleepScore } from '@/pages/sleep/utils/sleepHelpers';
 
 const CHART_DAYS = 30;
 
@@ -104,18 +106,6 @@ export function MainPageScoreChart({ children }: MainPageScoreChartProps) {
     return map;
   }, [sleepEntries]);
 
-  // Group activities by date
-  const activitiesByDate = useMemo(() => {
-    const map = new Map<string, typeof activities>();
-    for (const activity of activities) {
-      if (!map.has(activity.date)) {
-        map.set(activity.date, []);
-      }
-      map.get(activity.date)!.push(activity);
-    }
-    return map;
-  }, [activities]);
-
   // Get the most recent blood test report
   const latestBloodTestReport = useMemo(() => {
     if (!bloodTestReports || bloodTestReports.length === 0) return null;
@@ -156,10 +146,11 @@ export function MainPageScoreChart({ children }: MainPageScoreChartProps) {
         return { date, score: null };
       }
 
-      const healthScore = calculateHealthScore(dayBpReadings, daySleepEntries);
+      // Pass all sleep entries for personalized scoring baseline
+      const healthScore = calculateHealthScore(dayBpReadings, daySleepEntries, sleepEntries);
       return { date, score: healthScore.overall };
     });
-  }, [allDatesInRange, bpByDate, sleepByDate]);
+  }, [allDatesInRange, bpByDate, sleepByDate, sleepEntries]);
 
   // Get selected date's data
   const selectedDate = chartItems[selectedIndex]?.date;
@@ -168,40 +159,18 @@ export function MainPageScoreChart({ children }: MainPageScoreChartProps) {
     if (!selectedDate) return null;
 
     const dayBpReadings = bpByDate.get(selectedDate) || [];
-    const daySleepEntry = sleepByDate.get(selectedDate);
-    const dayActivities = activitiesByDate.get(selectedDate) || [];
 
-    // Calculate BP average for the day
-    let bpAvg: { systolic: number; diastolic: number } | null = null;
-    if (dayBpReadings.length > 0) {
-      const avgSystolic = Math.round(
-        dayBpReadings.reduce((sum, r) => sum + r.systolic, 0) / dayBpReadings.length
-      );
-      const avgDiastolic = Math.round(
-        dayBpReadings.reduce((sum, r) => sum + r.diastolic, 0) / dayBpReadings.length
-      );
-      bpAvg = { systolic: avgSystolic, diastolic: avgDiastolic };
-    }
-
-    // Calculate sleep score for the day
-    let sleepScore: number | null = null;
-    if (daySleepEntry) {
-      const sleepScoreResult = calculateSleepHealthScore([daySleepEntry]);
-      sleepScore = sleepScoreResult?.score ?? null;
-    }
-
-    // Calculate activity score for the day
-    let activityScore: number | null = null;
-    if (dayActivities.length > 0) {
-      activityScore = calculateDailyActivityScore(dayActivities, activities);
-    }
+    // Use shared helpers for consistent calculations across pages
+    const bpAvg = calculateDailyBPAverage(dayBpReadings);
+    const sleepScore = getDailySleepScore(selectedDate, sleepEntries)?.overall ?? null;
+    const activityScore = getDailyActivityScore(selectedDate, activities);
 
     return {
       bpAvg,
       sleepScore,
       activityScore,
     };
-  }, [selectedDate, bpByDate, sleepByDate, activitiesByDate, activities]);
+  }, [selectedDate, bpByDate, sleepEntries, activities]);
 
   const hasData = bpReadings.length > 0 || sleepEntries.length > 0;
 

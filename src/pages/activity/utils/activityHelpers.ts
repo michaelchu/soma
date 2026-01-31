@@ -75,6 +75,17 @@ export function calculateDailyActivityScore(
 }
 
 /**
+ * Get activity score for a specific date
+ * Convenience function that filters activities and returns score for the given date
+ */
+export function getDailyActivityScore(date: string, allActivities: Activity[]): number | null {
+  const dayActivities = allActivities.filter((a) => a.date === date);
+  if (dayActivities.length === 0) return null;
+
+  return calculateDailyActivityScore(dayActivities, allActivities);
+}
+
+/**
  * Group activities by date and calculate daily aggregates
  * @param activities Activities to group
  * @param allActivities All activities (for consistency calculation)
