@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import {
   ComposedChart,
   Line,
@@ -9,7 +8,6 @@ import {
   CartesianGrid,
 } from 'recharts';
 import { useBloodPressureSettings } from '../../hooks/useBloodPressureSettings';
-import { getDateRange } from '@/lib/dateUtils';
 
 interface Reading {
   datetime: string;
@@ -144,7 +142,6 @@ interface BPTimeChartProps {
   showTrendline?: boolean;
   showMarkers?: boolean;
   showMAP?: boolean;
-  dateRange?: string;
 }
 
 export function BPTimeChart({
@@ -153,22 +150,8 @@ export function BPTimeChart({
   showTrendline = true,
   showMarkers = true,
   showMAP = false,
-  dateRange = 'all',
 }: BPTimeChartProps) {
   const { getCategory, getCategoryInfo } = useBloodPressureSettings();
-
-  // Format date range label using theoretical filter range
-  const dateRangeLabel = useMemo(() => {
-    if (dateRange === 'all') return 'All Time';
-
-    const { start, end } = getDateRange(dateRange);
-    if (!start) return 'All Time';
-
-    const formatDate = (date: Date) =>
-      date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-
-    return `${formatDate(start)} - ${formatDate(end)}`;
-  }, [dateRange]);
 
   if (!readings || readings.length === 0) {
     return (
@@ -346,10 +329,6 @@ export function BPTimeChart({
           )}
         </ComposedChart>
       </ResponsiveContainer>
-
-      <div className="mt-4 text-xs text-muted-foreground/70 text-center">
-        {chartData.length} reading{chartData.length !== 1 ? 's' : ''} · {dateRangeLabel}
-      </div>
     </div>
   );
 }

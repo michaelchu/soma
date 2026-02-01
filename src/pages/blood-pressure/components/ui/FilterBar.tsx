@@ -31,7 +31,7 @@ export function FilterBar({
       <DateRangeTabs value={dateRange} onChange={onDateRangeChange} />
 
       <Select value={timeOfDay} onValueChange={onTimeOfDayChange}>
-        <SelectTrigger className="min-w-0 flex-1 h-8">
+        <SelectTrigger className="min-w-0 flex-1 md:flex-none md:w-auto h-8 gap-2">
           <span>{selectedTimeLabel}</span>
         </SelectTrigger>
         <SelectContent>

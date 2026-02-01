@@ -261,6 +261,7 @@ export function ReadingsTab({ readings }: ReadingsTabProps) {
         <Table>
           <TableHeader className="bg-white/5">
             <TableRow>
+              <TableHead className="w-8"></TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Time</TableHead>
               <TableHead className="text-right">BP</TableHead>
@@ -274,26 +275,81 @@ export function ReadingsTab({ readings }: ReadingsTabProps) {
             {readings.map((session) => {
               const { date, time } = formatDateTime(session.datetime);
               const category = getCategory(session.systolic, session.diastolic);
+              const isExpanded = expandedSessionId === session.sessionId;
+              const hasMultipleReadings = session.readingCount > 1;
+
               return (
-                <TableRow key={session.sessionId}>
-                  <TableCell className="font-medium">{date}</TableCell>
-                  <TableCell className="text-muted-foreground">{time}</TableCell>
-                  <TableCell className="text-right font-mono">
-                    {session.systolic}/{session.diastolic}
-                  </TableCell>
-                  <TableCell className="text-center text-muted-foreground">
-                    {session.readingCount > 1 ? `${session.readingCount}x` : '—'}
-                  </TableCell>
-                  <TableCell className="text-right text-muted-foreground">
-                    {session.pulse || '—'}
-                  </TableCell>
-                  <TableCell>
-                    <BPStatusBadge category={category} size="sm" />
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-sm truncate max-w-[200px]">
-                    {session.notes || '—'}
-                  </TableCell>
-                </TableRow>
+                <>
+                  <TableRow
+                    key={session.sessionId}
+                    className={hasMultipleReadings ? 'cursor-pointer hover:bg-white/5' : ''}
+                    onClick={() => hasMultipleReadings && handleExpandToggle(session)}
+                  >
+                    <TableCell className="w-8 pr-0">
+                      {hasMultipleReadings && (
+                        <button className="p-1 text-muted-foreground hover:text-foreground">
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </button>
+                      )}
+                    </TableCell>
+                    <TableCell className="font-medium">{date}</TableCell>
+                    <TableCell className="text-muted-foreground">{time}</TableCell>
+                    <TableCell className="text-right font-mono">
+                      {session.systolic}/{session.diastolic}
+                    </TableCell>
+                    <TableCell className="text-center text-muted-foreground">
+                      {hasMultipleReadings ? `${session.readingCount}x` : '—'}
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      {session.pulse || '—'}
+                    </TableCell>
+                    <TableCell>
+                      <BPStatusBadge category={category} size="sm" />
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm truncate max-w-[200px]">
+                      {session.notes || '—'}
+                    </TableCell>
+                  </TableRow>
+
+                  {/* Expanded individual readings */}
+                  {isExpanded &&
+                    session.readings.map((reading, readingIndex) => {
+                      const readingCategory = getCategory(reading.systolic, reading.diastolic);
+                      return (
+                        <TableRow
+                          key={`${session.sessionId}-${reading.id}`}
+                          className="bg-white/[0.02]"
+                        >
+                          <TableCell className="w-8 pr-0"></TableCell>
+                          <TableCell className="text-muted-foreground text-xs pl-4">
+                            #{readingIndex + 1}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {reading.arm && (
+                              <span className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                                {reading.arm}
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right font-mono">
+                            {reading.systolic}/{reading.diastolic}
+                          </TableCell>
+                          <TableCell></TableCell>
+                          <TableCell className="text-right text-muted-foreground">
+                            {reading.pulse || '—'}
+                          </TableCell>
+                          <TableCell>
+                            <BPStatusBadge category={readingCategory} size="sm" />
+                          </TableCell>
+                          <TableCell></TableCell>
+                        </TableRow>
+                      );
+                    })}
+                </>
               );
             })}
           </TableBody>

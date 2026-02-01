@@ -103,7 +103,7 @@ function CompactStatsBar({
           {/* Entries count */}
           <div className="text-center">
             <p className="text-2xl font-bold">{currentStats.count}</p>
-            <p className="text-xs text-muted-foreground">readings</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">readings</p>
           </div>
 
           <div className="w-px h-8 bg-white/10" />
@@ -115,7 +115,7 @@ function CompactStatsBar({
               {currentStats.diastolic.avg != null ? Math.round(currentStats.diastolic.avg) : '—'}
               <span className="text-sm font-normal text-muted-foreground ml-1">mmHg</span>
             </p>
-            <p className="text-xs text-muted-foreground">avg BP</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">avg BP</p>
           </div>
 
           {/* Avg Pulse */}
@@ -127,7 +127,7 @@ function CompactStatsBar({
                   {Math.round(currentStats.pulse.avg!)}
                   <span className="text-sm font-normal text-muted-foreground ml-1">bpm</span>
                 </p>
-                <p className="text-xs text-muted-foreground">avg pulse</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">avg pulse</p>
               </div>
             </>
           )}
@@ -141,7 +141,7 @@ function CompactStatsBar({
                   {Math.round(currentStats.pp.avg)}
                   <span className="text-sm font-normal text-muted-foreground ml-1">mmHg</span>
                 </p>
-                <p className="text-xs text-muted-foreground">avg PP</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">avg PP</p>
               </div>
             </>
           )}
@@ -155,7 +155,7 @@ function CompactStatsBar({
                   {Math.round(currentStats.map.avg)}
                   <span className="text-sm font-normal text-muted-foreground ml-1">mmHg</span>
                 </p>
-                <p className="text-xs text-muted-foreground">avg MAP</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">avg MAP</p>
               </div>
             </>
           )}
@@ -316,8 +316,20 @@ function DetailedStatsTable({
 function ReferenceRangesTable() {
   const { guideline } = useBloodPressureSettings();
 
+  // Get normal thresholds from the guideline
+  const normalCategory = guideline?.thresholds?.normal || guideline?.thresholds?.optimal;
+  const sysMax = normalCategory?.systolic?.max;
+  const diaMax = normalCategory?.diastolic?.max;
+
   const ranges = [
-    { metric: 'Blood Pressure', range: guideline?.name || 'AHA 2017' },
+    {
+      metric: 'Systolic',
+      range: sysMax != null ? `< ${sysMax + 1} mmHg` : '< 120 mmHg',
+    },
+    {
+      metric: 'Diastolic',
+      range: diaMax != null ? `< ${diaMax + 1} mmHg` : '< 80 mmHg',
+    },
     { metric: 'Pulse (resting)', range: '60–100 bpm' },
     { metric: 'Pulse Pressure', range: '30–60 mmHg' },
     { metric: 'Mean Arterial Pressure', range: '70–100 mmHg' },
@@ -329,7 +341,7 @@ function ReferenceRangesTable() {
         <tr className="border-b border-white/10">
           <th className="text-left py-2 pr-3 font-medium text-muted-foreground text-xs">Metric</th>
           <th className="text-right py-2 pl-3 font-medium text-muted-foreground text-xs">
-            Reference
+            Normal ({guideline?.name || 'AHA 2017'})
           </th>
         </tr>
       </thead>
@@ -365,7 +377,7 @@ export function DesktopBPView({ readings, allReadings, dateRange, timeOfDay }: D
           <h3 className="text-sm font-semibold mb-4 text-muted-foreground uppercase tracking-wide">
             Trend Over Time
           </h3>
-          <BPTimeChart readings={readings} height={260} dateRange={dateRange} />
+          <BPTimeChart readings={readings} height={320} />
         </div>
 
         {/* Distribution Chart */}
@@ -373,7 +385,7 @@ export function DesktopBPView({ readings, allReadings, dateRange, timeOfDay }: D
           <h3 className="text-sm font-semibold mb-4 text-muted-foreground uppercase tracking-wide">
             Distribution
           </h3>
-          <BPScatterChart readings={readings} height={260} />
+          <BPScatterChart readings={readings} height={320} />
         </div>
       </div>
 

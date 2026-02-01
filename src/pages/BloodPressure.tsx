@@ -27,7 +27,7 @@ function BloodPressureContent() {
   const [showForm, setShowForm] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [dateRange, setDateRange] = useState('30');
+  const [dateRange, setDateRange] = useState('1m');
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay | 'all'>('all');
 
   // Get active tab from URL, default to 'readings'
@@ -77,7 +77,7 @@ function BloodPressureContent() {
           />
         );
       case 'charts':
-        return <ChartsTab readings={filteredReadings} dateRange={dateRange} />;
+        return <ChartsTab readings={filteredReadings} />;
       default:
         return <ReadingsTab readings={filteredReadings} />;
     }

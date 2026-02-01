@@ -153,8 +153,7 @@ interface BPScatterChartProps {
 }
 
 export function BPScatterChart({ readings, height = 280 }: BPScatterChartProps) {
-  const { getCategory, getCategoryInfo, guidelineKey, guideline, categories } =
-    useBloodPressureSettings();
+  const { getCategory, getCategoryInfo, guidelineKey, categories } = useBloodPressureSettings();
 
   if (!readings || readings.length === 0) {
     return (
@@ -205,7 +204,7 @@ export function BPScatterChart({ readings, height = 280 }: BPScatterChartProps) 
   return (
     <div className="w-full">
       <ResponsiveContainer width="100%" height={height}>
-        <ScatterChart margin={{ top: 10, right: 30, bottom: 20, left: 10 }}>
+        <ScatterChart margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
           {/* Background zones - colored regions for each BP category */}
           {referenceAreas.map((area, index) => {
             const info = getCategoryInfo(area.category);
@@ -230,13 +229,6 @@ export function BPScatterChart({ readings, height = 280 }: BPScatterChartProps) 
             tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
             stroke="hsl(var(--muted-foreground))"
             axisLine={false}
-            label={{
-              value: 'Diastolic (mmHg)',
-              position: 'bottom',
-              offset: 0,
-              fontSize: 12,
-              fill: 'hsl(var(--muted-foreground))',
-            }}
           />
 
           <YAxis
@@ -246,17 +238,8 @@ export function BPScatterChart({ readings, height = 280 }: BPScatterChartProps) 
             ticks={yTicks}
             tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
             stroke="hsl(var(--muted-foreground))"
-            width={55}
+            width={35}
             axisLine={false}
-            label={{
-              value: 'Systolic (mmHg)',
-              angle: -90,
-              position: 'insideLeft',
-              offset: 10,
-              fontSize: 12,
-              fill: 'hsl(var(--muted-foreground))',
-              dx: -5,
-            }}
           />
 
           <RechartsTooltip content={renderTooltip} />
@@ -271,19 +254,6 @@ export function BPScatterChart({ readings, height = 280 }: BPScatterChartProps) 
           </Scatter>
         </ScatterChart>
       </ResponsiveContainer>
-
-      <div className="mt-1 flex justify-center gap-4 text-xs text-muted-foreground flex-wrap">
-        {categories.map((cat) => (
-          <span key={cat.key} className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.chartColor }} />
-            {cat.shortLabel || cat.label}
-          </span>
-        ))}
-      </div>
-
-      <p className="mt-6 text-xs text-muted-foreground text-center">
-        Classification: {guideline?.name}
-      </p>
     </div>
   );
 }

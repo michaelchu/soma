@@ -118,7 +118,7 @@ function CompactStatsBar({
           {/* Entries count */}
           <div className="text-center">
             <p className="text-2xl font-bold">{currentStats.count}</p>
-            <p className="text-xs text-muted-foreground">entries</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">entries</p>
           </div>
 
           <div className="w-px h-8 bg-white/10" />
@@ -126,7 +126,7 @@ function CompactStatsBar({
           {/* Avg Duration */}
           <div className="text-center">
             <p className="text-2xl font-bold">{formatDuration(currentStats.duration.avg)}</p>
-            <p className="text-xs text-muted-foreground">avg duration</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">avg duration</p>
           </div>
 
           {/* Avg HRV */}
@@ -138,7 +138,7 @@ function CompactStatsBar({
                   {Math.round(currentStats.hrvLow!.avg!)}–{Math.round(currentStats.hrvHigh!.avg!)}
                   <span className="text-sm font-normal text-muted-foreground ml-1">ms</span>
                 </p>
-                <p className="text-xs text-muted-foreground">avg HRV</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">avg HRV</p>
               </div>
             </>
           )}
@@ -152,7 +152,9 @@ function CompactStatsBar({
                   {Math.round(currentStats.restorative.avg)}
                   <span className="text-sm font-normal text-muted-foreground ml-1">%</span>
                 </p>
-                <p className="text-xs text-muted-foreground">avg restorative</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                  avg restorative
+                </p>
               </div>
             </>
           )}
@@ -166,7 +168,9 @@ function CompactStatsBar({
                   {Math.round(currentStats.restingHr.avg)}
                   <span className="text-sm font-normal text-muted-foreground ml-1">bpm</span>
                 </p>
-                <p className="text-xs text-muted-foreground">avg resting HR</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                  avg resting HR
+                </p>
               </div>
             </>
           )}

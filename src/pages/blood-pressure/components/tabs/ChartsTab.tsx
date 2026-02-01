@@ -15,10 +15,9 @@ interface BPReading {
 
 interface ChartsTabProps {
   readings: BPReading[];
-  dateRange?: string;
 }
 
-export function ChartsTab({ readings, dateRange = 'all' }: ChartsTabProps) {
+export function ChartsTab({ readings }: ChartsTabProps) {
   const [showTrendline, setShowTrendline] = useState(true);
   const [showMarkers, setShowMarkers] = useState(false);
   const [showMAP, setShowMAP] = useState(true);
@@ -51,7 +50,6 @@ export function ChartsTab({ readings, dateRange = 'all' }: ChartsTabProps) {
           showTrendline={showTrendline}
           showMarkers={showMarkers}
           showMAP={showMAP}
-          dateRange={dateRange}
         />
         <div className="flex flex-wrap justify-center gap-2 mt-4">
           {[
