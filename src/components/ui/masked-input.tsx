@@ -353,4 +353,10 @@ const DurationInput = React.forwardRef<HTMLInputElement, DurationInputProps>(
 DurationInput.displayName = 'DurationInput';
 
 export { MaskedInput, TimeInput, NumericInput, DecimalInput, DurationInput };
-export type { MaskedInputProps, TimeInputProps, NumericInputProps, DecimalInputProps, DurationInputProps };
+export type {
+  MaskedInputProps,
+  TimeInputProps,
+  NumericInputProps,
+  DecimalInputProps,
+  DurationInputProps,
+};
