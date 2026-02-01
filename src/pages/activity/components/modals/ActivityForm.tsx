@@ -81,15 +81,18 @@ function ActivityFormContent({
   const [saving, setSaving] = useState(false);
 
   // Auto-format zone time input: "5403" → "54:03", "431" → "4:31"
+  // Max format: mmm:ss (3 digit minutes, 2 digit seconds capped at 59)
   const formatZoneInput = (val: string): string => {
-    // Strip everything except digits
-    const digits = val.replace(/\D/g, '');
+    // Strip everything except digits, limit to 5 digits (mmm + ss)
+    const digits = val.replace(/\D/g, '').slice(0, 5);
 
     // Auto-insert colon when 3+ digits (last 2 are seconds)
     if (digits.length >= 3) {
       const mins = digits.slice(0, -2);
-      const secs = digits.slice(-2);
-      return `${mins}:${secs}`;
+      let secs = parseInt(digits.slice(-2), 10);
+      // Cap seconds at 59
+      if (secs > 59) secs = 59;
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
     }
 
     return digits;
