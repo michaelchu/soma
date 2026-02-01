@@ -257,9 +257,9 @@ export function ReadingsTab({ readings }: ReadingsTabProps) {
       </div>
 
       {/* Desktop: Table layout */}
-      <div className="hidden md:block rounded-lg border overflow-hidden">
+      <div className="hidden md:block">
         <Table>
-          <TableHeader className="bg-muted/50">
+          <TableHeader className="bg-white/5">
             <TableRow>
               <TableHead>Date</TableHead>
               <TableHead>Time</TableHead>

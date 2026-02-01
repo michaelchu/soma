@@ -209,8 +209,8 @@ export function daysAgo(days: number): Date {
 }
 
 /**
- * Get date range boundaries based on calendar periods
- * Supports: '1w' (current week), '1m' (current month), '3m' (current + 2 previous months), 'all', or number of days
+ * Get date range boundaries based on rolling periods
+ * Supports: '1w' (rolling 7 days), '1m' (rolling 1 month), '3m' (rolling 3 months), 'all', or number of days
  */
 export function getDateRange(range: string | number): { start: Date | null; end: Date } {
   const end = new Date();
@@ -221,27 +221,25 @@ export function getDateRange(range: string | number): { start: Date | null; end:
 
   const start = new Date();
 
-  // Handle period-based ranges
+  // Handle period-based ranges (rolling)
   if (typeof range === 'string') {
     if (range === '1w') {
-      // Start of current week (Sunday)
-      const dayOfWeek = start.getDay();
-      start.setDate(start.getDate() - dayOfWeek);
+      // Rolling 7 days
+      start.setDate(start.getDate() - 6); // -6 because today counts as day 1
       start.setHours(0, 0, 0, 0);
       return { start, end };
     }
 
     if (range === '1m') {
-      // Start of current month
-      start.setDate(1);
+      // Rolling 1 month (same date last month)
+      start.setMonth(start.getMonth() - 1);
       start.setHours(0, 0, 0, 0);
       return { start, end };
     }
 
     if (range === '3m') {
-      // Start of 2 months ago (current month + 2 previous months)
-      start.setMonth(start.getMonth() - 2);
-      start.setDate(1);
+      // Rolling 3 months (same date 3 months ago)
+      start.setMonth(start.getMonth() - 3);
       start.setHours(0, 0, 0, 0);
       return { start, end };
     }

@@ -367,16 +367,17 @@ export function DesktopSleepView({ entries, allEntries, dateRange }: DesktopSlee
       // Use earliest entry date
       startDate = new Date(sortedEntries[0].date + 'T00:00:00');
     } else if (dateRange === '1w') {
-      // Start of current week (Sunday)
+      // Rolling 7 days
       startDate = new Date(today);
-      const dayOfWeek = startDate.getDay();
-      startDate.setDate(startDate.getDate() - dayOfWeek);
+      startDate.setDate(startDate.getDate() - 6);
     } else if (dateRange === '1m') {
-      // Start of current month
-      startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+      // Rolling 1 month
+      startDate = new Date(today);
+      startDate.setMonth(startDate.getMonth() - 1);
     } else if (dateRange === '3m') {
-      // Start of 2 months ago
-      startDate = new Date(today.getFullYear(), today.getMonth() - 2, 1);
+      // Rolling 3 months
+      startDate = new Date(today);
+      startDate.setMonth(startDate.getMonth() - 3);
     } else {
       // Fallback: try parsing as days
       const days = parseInt(dateRange, 10);

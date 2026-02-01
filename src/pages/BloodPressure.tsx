@@ -12,11 +12,10 @@ import { FilterBar, filterReadings } from './blood-pressure/components/ui/Filter
 import { ReadingsTab } from './blood-pressure/components/tabs/ReadingsTab';
 import { StatisticsTab } from './blood-pressure/components/tabs/StatisticsTab';
 import { ChartsTab } from './blood-pressure/components/tabs/ChartsTab';
+import { DesktopBPView } from './blood-pressure/components/desktop/DesktopBPView';
 import { ReadingForm } from './blood-pressure/components/modals/ReadingForm';
 import { ExportModal } from './blood-pressure/components/modals/ExportModal';
 import { SettingsModal } from './blood-pressure/components/modals/SettingsModal';
-import { LatestReading } from './blood-pressure/components/ui/LatestReading';
-import { calculateStats } from './blood-pressure/utils/bpHelpers';
 import type { TimeOfDay } from '@/types/bloodPressure';
 
 const VALID_TABS = ['readings', 'statistics', 'charts'];
@@ -158,60 +157,13 @@ function BloodPressureContent() {
             <div className="md:hidden">{renderMobileTabContent()}</div>
 
             {/* Desktop: Full card layout */}
-            <div className="hidden md:block space-y-6">
-              {/* Latest Reading & Stats - side by side */}
-              <div className="grid grid-cols-2 gap-6">
-                <div className="rounded-lg border bg-card shadow-sm p-6">
-                  <LatestReading readings={filteredReadings} />
-                </div>
-                <div className="rounded-lg border bg-card shadow-sm p-6">
-                  <h3 className="text-base font-semibold mb-4">Statistics</h3>
-                  {(() => {
-                    const stats = calculateStats(filteredReadings);
-                    if (!stats) return <p className="text-muted-foreground">No data</p>;
-                    return (
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <p className="text-muted-foreground">Average</p>
-                          <p className="text-lg font-semibold">
-                            {stats.avgSystolic}/{stats.avgDiastolic}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Readings</p>
-                          <p className="text-lg font-semibold">{stats.count}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Systolic Range</p>
-                          <p className="font-medium">
-                            {stats.minSystolic} - {stats.maxSystolic}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Diastolic Range</p>
-                          <p className="font-medium">
-                            {stats.minDiastolic} - {stats.maxDiastolic}
-                          </p>
-                        </div>
-                        {stats.avgPulse && (
-                          <div className="col-span-2">
-                            <p className="text-muted-foreground">Average Pulse</p>
-                            <p className="font-medium">{stats.avgPulse} bpm</p>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </div>
-              </div>
-
-              {/* Charts Section */}
-              <div className="rounded-lg border bg-card shadow-sm p-6">
-                <ChartsTab readings={filteredReadings} dateRange={dateRange} />
-              </div>
-
-              {/* Readings Table */}
-              <ReadingsTab readings={filteredReadings} />
+            <div className="hidden md:block">
+              <DesktopBPView
+                readings={filteredReadings}
+                allReadings={readings}
+                dateRange={dateRange}
+                timeOfDay={timeOfDay}
+              />
             </div>
           </>
         )}

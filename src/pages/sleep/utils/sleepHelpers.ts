@@ -115,8 +115,8 @@ export function calculateSleepStats(entries: SleepEntry[]) {
 }
 
 /**
- * Filter entries by date range
- * Supports: '1w', '1m', '3m', 'all', or number of days
+ * Filter entries by date range (rolling periods)
+ * Supports: '1w' (rolling 7 days), '1m' (rolling 1 month), '3m' (rolling 3 months), 'all', or number of days
  */
 export function filterEntriesByDateRange(
   entries: SleepEntry[],
@@ -124,22 +124,24 @@ export function filterEntriesByDateRange(
 ): SleepEntry[] {
   if (range === 'all') return entries;
 
-  const now = new Date();
   let cutoff: Date;
 
   if (typeof range === 'string') {
     if (range === '1w') {
-      // Start of current week (Sunday)
+      // Rolling 7 days
       cutoff = new Date();
-      const dayOfWeek = cutoff.getDay();
-      cutoff.setDate(cutoff.getDate() - dayOfWeek);
+      cutoff.setDate(cutoff.getDate() - 6); // -6 because today counts as day 1
       cutoff.setHours(0, 0, 0, 0);
     } else if (range === '1m') {
-      // Start of current month
-      cutoff = new Date(now.getFullYear(), now.getMonth(), 1);
+      // Rolling 1 month (same date last month)
+      cutoff = new Date();
+      cutoff.setMonth(cutoff.getMonth() - 1);
+      cutoff.setHours(0, 0, 0, 0);
     } else if (range === '3m') {
-      // Start of 2 months ago
-      cutoff = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+      // Rolling 3 months (same date 3 months ago)
+      cutoff = new Date();
+      cutoff.setMonth(cutoff.getMonth() - 3);
+      cutoff.setHours(0, 0, 0, 0);
     } else {
       // Fallback: try parsing as days
       const days = parseInt(range, 10);
@@ -157,8 +159,8 @@ export function filterEntriesByDateRange(
 }
 
 /**
- * Get entries from the previous period for comparison
- * e.g., if dateRange is 30, get entries from 31-60 days ago
+ * Get entries from the previous period for comparison (rolling periods)
+ * e.g., if dateRange is '1m', get entries from 1-2 months ago
  */
 export function getPreviousPeriodEntries(
   allEntries: SleepEntry[],
@@ -172,36 +174,43 @@ export function getPreviousPeriodEntries(
   let previousEnd: Date;
 
   if (dateRange === '1w') {
-    // Current: this week (starting Sunday)
-    // Previous: last week
-    const dayOfWeek = now.getDay();
+    // Current: rolling 7 days
+    // Previous: the 7 days before that
     currentStart = new Date(now);
-    currentStart.setDate(currentStart.getDate() - dayOfWeek);
+    currentStart.setDate(currentStart.getDate() - 6);
     currentStart.setHours(0, 0, 0, 0);
-
-    previousEnd = new Date(currentStart);
-    previousEnd.setMilliseconds(-1); // End of previous week
-
-    previousStart = new Date(currentStart);
-    previousStart.setDate(previousStart.getDate() - 7);
-  } else if (dateRange === '1m') {
-    // Current: this month
-    // Previous: last month
-    currentStart = new Date(now.getFullYear(), now.getMonth(), 1);
-
-    previousEnd = new Date(currentStart);
-    previousEnd.setMilliseconds(-1); // End of previous month
-
-    previousStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  } else if (dateRange === '3m') {
-    // Current: this month + 2 previous months
-    // Previous: the 3 months before that
-    currentStart = new Date(now.getFullYear(), now.getMonth() - 2, 1);
 
     previousEnd = new Date(currentStart);
     previousEnd.setMilliseconds(-1);
 
-    previousStart = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+    previousStart = new Date(currentStart);
+    previousStart.setDate(previousStart.getDate() - 7);
+  } else if (dateRange === '1m') {
+    // Current: rolling 1 month
+    // Previous: the month before that
+    currentStart = new Date(now);
+    currentStart.setMonth(currentStart.getMonth() - 1);
+    currentStart.setHours(0, 0, 0, 0);
+
+    previousEnd = new Date(currentStart);
+    previousEnd.setMilliseconds(-1);
+
+    previousStart = new Date(now);
+    previousStart.setMonth(previousStart.getMonth() - 2);
+    previousStart.setHours(0, 0, 0, 0);
+  } else if (dateRange === '3m') {
+    // Current: rolling 3 months
+    // Previous: the 3 months before that
+    currentStart = new Date(now);
+    currentStart.setMonth(currentStart.getMonth() - 3);
+    currentStart.setHours(0, 0, 0, 0);
+
+    previousEnd = new Date(currentStart);
+    previousEnd.setMilliseconds(-1);
+
+    previousStart = new Date(now);
+    previousStart.setMonth(previousStart.getMonth() - 6);
+    previousStart.setHours(0, 0, 0, 0);
   } else {
     // Fallback: try parsing as days
     const days = parseInt(dateRange, 10);
