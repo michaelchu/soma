@@ -9,14 +9,13 @@ import { PageLoading, PageError } from '@/components/shared/PageStates';
 import { SleepProvider, useSleep } from './sleep/context/SleepContext';
 import { BottomNav } from './sleep/components/ui/BottomNav';
 import { FilterBar, filterEntries } from './sleep/components/ui/FilterBar';
-import { ReadingsTab } from './sleep/components/tabs/ReadingsTab';
 import { DetailsTab } from './sleep/components/tabs/DetailsTab';
 import { StatisticsTab } from './sleep/components/tabs/StatisticsTab';
 import { SleepEntryForm } from './sleep/components/modals/SleepEntryForm';
 import { ExportModal } from './sleep/components/modals/ExportModal';
 import { DesktopSleepView } from './sleep/components/desktop/DesktopSleepView';
 
-const VALID_TABS = ['readings', 'details', 'statistics'];
+const VALID_TABS = ['details', 'statistics'];
 
 function SleepContent() {
   const navigate = useNavigate();
@@ -26,12 +25,12 @@ function SleepContent() {
   const [showExport, setShowExport] = useState(false);
   const [dateRange, setDateRange] = useState('1m');
 
-  // Get active tab from URL, default to 'readings'
+  // Get active tab from URL, default to 'details'
   const tabParam = searchParams.get('tab');
-  const activeTab = tabParam && VALID_TABS.includes(tabParam) ? tabParam : 'readings';
+  const activeTab = tabParam && VALID_TABS.includes(tabParam) ? tabParam : 'details';
 
   const setActiveTab = (tab: string) => {
-    if (tab === 'readings') {
+    if (tab === 'details') {
       searchParams.delete('tab');
     } else {
       searchParams.set('tab', tab);
@@ -51,8 +50,6 @@ function SleepContent() {
 
   const renderMobileTabContent = () => {
     switch (activeTab) {
-      case 'readings':
-        return <ReadingsTab entries={filteredEntries} />;
       case 'details':
         return <DetailsTab entries={filteredEntries} allEntries={entries} dateRange={dateRange} />;
       case 'statistics':
@@ -60,7 +57,7 @@ function SleepContent() {
           <StatisticsTab entries={filteredEntries} allEntries={entries} dateRange={dateRange} />
         );
       default:
-        return <ReadingsTab entries={filteredEntries} />;
+        return <DetailsTab entries={filteredEntries} allEntries={entries} dateRange={dateRange} />;
     }
   };
 
@@ -124,7 +121,7 @@ function SleepContent() {
         ) : (
           <>
             {/* Mobile: Tab-based view with scrollable content */}
-            <div className={`md:hidden ${activeTab !== 'readings' ? 'pt-4' : ''}`}>
+            <div className="md:hidden pt-4">
               {renderMobileTabContent()}
             </div>
 
@@ -140,8 +137,8 @@ function SleepContent() {
         )}
       </main>
 
-      {/* FAB Button - mobile only, readings tab only */}
-      {activeTab === 'readings' && <FabButton onClick={() => setShowForm(true)} />}
+      {/* FAB Button - mobile only, details tab only */}
+      {activeTab === 'details' && <FabButton onClick={() => setShowForm(true)} />}
 
       {/* Bottom Navigation - mobile only */}
       <div className="md:hidden">

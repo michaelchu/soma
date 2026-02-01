@@ -234,6 +234,7 @@ export function DetailsTab({ entries, allEntries, dateRange }: DetailsTabProps) 
           barGap={3}
           maxBarHeight={120}
           minBarHeight={50}
+          showLegend={false}
           compact
         />
       </div>
