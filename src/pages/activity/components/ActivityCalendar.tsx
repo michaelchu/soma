@@ -155,9 +155,13 @@ export function ActivityCalendar({ activities, onViewActivity }: ActivityCalenda
   // Calculate month-specific stats
   const monthStats = useMemo(() => {
     const activeWeeks = weekData.filter((w) => w.hasActivity).length;
-    const totalActivities = weekData.reduce((sum, w) => sum + w.activities.length, 0);
+    // Only count activities that are in the selected month
+    const totalActivities = activities.filter((activity) => {
+      const date = new Date(activity.date);
+      return date.getFullYear() === currentYear && date.getMonth() === currentMonth;
+    }).length;
     return { activeWeeks, totalActivities };
-  }, [weekData]);
+  }, [weekData, activities, currentYear, currentMonth]);
 
   // Get all calendar days for the grid
   const calendarDays = useMemo(
