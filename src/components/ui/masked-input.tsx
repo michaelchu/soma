@@ -84,5 +84,55 @@ const TimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(
 );
 TimeInput.displayName = 'TimeInput';
 
-export { MaskedInput, TimeInput };
-export type { MaskedInputProps, TimeInputProps };
+// Numeric input with digit limit and optional max value capping
+interface NumericInputProps extends Omit<React.ComponentProps<'input'>, 'type' | 'onChange'> {
+  value?: string;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  /** Maximum number of digits allowed */
+  maxDigits?: number;
+  /** Maximum value (will cap input at this value) */
+  maxValue?: number;
+  /** Minimum value (for display purposes, not enforced during typing) */
+  minValue?: number;
+}
+
+const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps>(
+  ({ className, value, onChange, maxDigits = 3, maxValue, minValue, ...props }, ref) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      // Strip non-digits and limit length
+      let digits = e.target.value.replace(/\D/g, '').slice(0, maxDigits);
+
+      // Cap at maxValue if specified
+      if (maxValue !== undefined && digits.length > 0) {
+        const num = parseInt(digits, 10);
+        if (num > maxValue) {
+          digits = maxValue.toString();
+        }
+      }
+
+      const syntheticEvent = {
+        ...e,
+        target: { ...e.target, value: digits },
+      } as React.ChangeEvent<HTMLInputElement>;
+      onChange?.(syntheticEvent);
+    };
+
+    return (
+      <input
+        ref={ref}
+        type="text"
+        inputMode="numeric"
+        className={cn(inputClassName, className)}
+        value={value}
+        onChange={handleChange}
+        min={minValue}
+        max={maxValue}
+        {...props}
+      />
+    );
+  }
+);
+NumericInput.displayName = 'NumericInput';
+
+export { MaskedInput, TimeInput, NumericInput };
+export type { MaskedInputProps, TimeInputProps, NumericInputProps };

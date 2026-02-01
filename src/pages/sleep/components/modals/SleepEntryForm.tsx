@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { NumericInput } from '@/components/ui/masked-input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Save, Loader2 } from 'lucide-react';
@@ -206,23 +207,21 @@ function SleepEntryFormContent({
           <div className="space-y-2">
             <Label>Total Sleep</Label>
             <div className="flex items-center gap-2">
-              <Input
-                type="number"
+              <NumericInput
                 placeholder="Hours"
                 value={totalSleepHours}
                 onChange={(e) => setTotalSleepHours(e.target.value)}
-                min={0}
-                max={24}
+                maxDigits={2}
+                maxValue={24}
                 className="flex-1"
               />
               <span className="text-muted-foreground">h</span>
-              <Input
-                type="number"
+              <NumericInput
                 placeholder="Min"
                 value={totalSleepMins}
                 onChange={(e) => setTotalSleepMins(e.target.value)}
-                min={0}
-                max={59}
+                maxDigits={2}
+                maxValue={59}
                 className="flex-1"
               />
               <span className="text-muted-foreground">m</span>
@@ -240,40 +239,36 @@ function SleepEntryFormContent({
           <div className="space-y-2">
             <Label>Percentages</Label>
             <div className="grid grid-cols-4 gap-2">
-              <Input
-                type="number"
+              <NumericInput
                 placeholder="Awake"
                 value={awakePct}
                 onChange={(e) => setAwakePct(e.target.value)}
-                min={0}
-                max={100}
+                maxDigits={3}
+                maxValue={100}
                 className="text-center"
               />
-              <Input
-                type="number"
+              <NumericInput
                 placeholder="REM"
                 value={remSleepPct}
                 onChange={(e) => setRemSleepPct(e.target.value)}
-                min={0}
-                max={100}
+                maxDigits={3}
+                maxValue={100}
                 className="text-center"
               />
-              <Input
-                type="number"
+              <NumericInput
                 placeholder="Light"
                 value={lightSleepPct}
                 onChange={(e) => setLightSleepPct(e.target.value)}
-                min={0}
-                max={100}
+                maxDigits={3}
+                maxValue={100}
                 className="text-center"
               />
-              <Input
-                type="number"
+              <NumericInput
                 placeholder="Deep"
                 value={deepSleepPct}
                 onChange={(e) => setDeepSleepPct(e.target.value)}
-                min={0}
-                max={100}
+                maxDigits={3}
+                maxValue={100}
                 className="text-center"
               />
             </div>
@@ -283,21 +278,19 @@ function SleepEntryFormContent({
           <div className="space-y-2">
             <Label>Sleep Cycles</Label>
             <div className="grid grid-cols-2 gap-3">
-              <Input
-                type="number"
+              <NumericInput
                 placeholder="Full"
                 value={sleepCyclesFull}
                 onChange={(e) => setSleepCyclesFull(e.target.value)}
-                min={0}
-                max={20}
+                maxDigits={2}
+                maxValue={20}
               />
-              <Input
-                type="number"
+              <NumericInput
                 placeholder="Partial"
                 value={sleepCyclesPartial}
                 onChange={(e) => setSleepCyclesPartial(e.target.value)}
-                min={0}
-                max={20}
+                maxDigits={2}
+                maxValue={20}
               />
             </div>
           </div>
@@ -311,14 +304,13 @@ function SleepEntryFormContent({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="restingHr">Resting HR (bpm)</Label>
-              <Input
+              <NumericInput
                 id="restingHr"
-                type="number"
                 placeholder="e.g., 52"
                 value={restingHr}
                 onChange={(e) => setRestingHr(e.target.value)}
-                min={20}
-                max={200}
+                maxDigits={3}
+                maxValue={200}
               />
             </div>
             <div className="space-y-2">
@@ -341,23 +333,21 @@ function SleepEntryFormContent({
           <div className="space-y-2">
             <Label>HRV Range (ms)</Label>
             <div className="flex items-center gap-2">
-              <Input
-                type="number"
+              <NumericInput
                 placeholder="Low"
                 value={hrvLow}
                 onChange={(e) => setHrvLow(e.target.value)}
-                min={1}
-                max={500}
+                maxDigits={3}
+                maxValue={500}
                 className="flex-1"
               />
               <span className="text-muted-foreground">-</span>
-              <Input
-                type="number"
+              <NumericInput
                 placeholder="High"
                 value={hrvHigh}
                 onChange={(e) => setHrvHigh(e.target.value)}
-                min={1}
-                max={500}
+                maxDigits={3}
+                maxValue={500}
                 className="flex-1"
               />
             </div>
@@ -384,14 +374,13 @@ function SleepEntryFormContent({
             </div>
             <div className="space-y-2">
               <Label htmlFor="movementCount">Movements</Label>
-              <Input
+              <NumericInput
                 id="movementCount"
-                type="number"
                 placeholder="e.g., 15"
                 value={movementCount}
                 onChange={(e) => setMovementCount(e.target.value)}
-                min={0}
-                max={500}
+                maxDigits={3}
+                maxValue={500}
               />
             </div>
           </div>

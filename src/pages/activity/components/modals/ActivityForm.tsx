@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { TimeInput } from '@/components/ui/masked-input';
+import { TimeInput, NumericInput } from '@/components/ui/masked-input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -242,14 +242,13 @@ function ActivityFormContent({
           {/* Duration */}
           <div className="space-y-2">
             <Label htmlFor="duration">Duration (minutes)</Label>
-            <Input
+            <NumericInput
               id="duration"
-              type="number"
               placeholder="e.g., 45"
               value={durationMinutes}
               onChange={(e) => setDurationMinutes(e.target.value)}
-              min={1}
-              max={480}
+              maxDigits={3}
+              maxValue={480}
             />
           </div>
 
