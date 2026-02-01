@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { NumericInput } from '@/components/ui/masked-input';
+import { NumericInput, DecimalInput } from '@/components/ui/masked-input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Save, Loader2 } from 'lucide-react';
@@ -361,15 +361,13 @@ function SleepEntryFormContent({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="skinTempAvg">Skin Temp Avg (°C)</Label>
-              <Input
+              <DecimalInput
                 id="skinTempAvg"
-                type="number"
-                step="0.1"
                 placeholder="e.g., 34.5"
                 value={skinTempAvg}
                 onChange={(e) => setSkinTempAvg(e.target.value)}
-                min={20}
-                max={45}
+                maxValue={45}
+                minValue={20}
               />
             </div>
             <div className="space-y-2">

@@ -134,5 +134,85 @@ const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps>(
 );
 NumericInput.displayName = 'NumericInput';
 
-export { MaskedInput, TimeInput, NumericInput };
-export type { MaskedInputProps, TimeInputProps, NumericInputProps };
+// Decimal input with auto-decimal insertion (XX.X format)
+// Used for values like temperature (34.5°C)
+interface DecimalInputProps extends Omit<React.ComponentProps<'input'>, 'type' | 'onChange'> {
+  value?: string;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  /** Maximum value (will cap input at this value) */
+  maxValue?: number;
+  /** Minimum value (for display purposes) */
+  minValue?: number;
+  /** Number of digits before decimal (default 2) */
+  wholeDigits?: number;
+  /** Number of digits after decimal (default 1) */
+  decimalDigits?: number;
+}
+
+/**
+ * Formats decimal input: inserts decimal when enough digits are entered
+ * With wholeDigits=2, decimalDigits=1: "345" → "34.5", "35" → "35"
+ */
+const formatDecimalValue = (
+  val: string,
+  wholeDigits: number,
+  decimalDigits: number,
+  maxValue?: number
+): string => {
+  // Strip everything except digits
+  const totalDigits = wholeDigits + decimalDigits;
+  const digits = val.replace(/\D/g, '').slice(0, totalDigits);
+
+  // Insert decimal when we have more than wholeDigits
+  if (digits.length > wholeDigits) {
+    const whole = digits.slice(0, wholeDigits);
+    const decimal = digits.slice(wholeDigits);
+    const formatted = `${whole}.${decimal}`;
+
+    // Cap at maxValue if specified
+    if (maxValue !== undefined) {
+      const num = parseFloat(formatted);
+      if (num > maxValue) {
+        return maxValue.toFixed(decimalDigits);
+      }
+    }
+
+    return formatted;
+  }
+
+  return digits;
+};
+
+const DecimalInput = React.forwardRef<HTMLInputElement, DecimalInputProps>(
+  (
+    { className, value, onChange, maxValue, minValue, wholeDigits = 2, decimalDigits = 1, ...props },
+    ref
+  ) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const formatted = formatDecimalValue(e.target.value, wholeDigits, decimalDigits, maxValue);
+      const syntheticEvent = {
+        ...e,
+        target: { ...e.target, value: formatted },
+      } as React.ChangeEvent<HTMLInputElement>;
+      onChange?.(syntheticEvent);
+    };
+
+    return (
+      <input
+        ref={ref}
+        type="text"
+        inputMode="decimal"
+        className={cn(inputClassName, className)}
+        value={value}
+        onChange={handleChange}
+        min={minValue}
+        max={maxValue}
+        {...props}
+      />
+    );
+  }
+);
+DecimalInput.displayName = 'DecimalInput';
+
+export { MaskedInput, TimeInput, NumericInput, DecimalInput };
+export type { MaskedInputProps, TimeInputProps, NumericInputProps, DecimalInputProps };
