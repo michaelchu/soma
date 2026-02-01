@@ -5,11 +5,11 @@ import { formatDate, formatTimeString } from '@/lib/dateUtils';
 import {
   formatHrvRange,
   getRestorativeSleepPct,
-  calculateSleepScore,
   calculatePersonalBaseline,
+  calculateSleepScore,
   STAGE_COLORS,
 } from '../../utils/sleepHelpers';
-import { ScoreBarChart, type ScoreBarChartItem } from '@/components/shared/ScoreBarChart';
+import { StackedBarChart } from '@/components/shared/StackedBarChart';
 import type { SleepEntry } from '@/lib/db/sleep';
 
 interface DetailsTabProps {
@@ -93,9 +93,6 @@ export function DetailsTab({ entries, allEntries, dateRange }: DetailsTabProps) 
     return [...entries].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [entries]);
 
-  // Calculate baseline for scoring
-  const baseline = useMemo(() => calculatePersonalBaseline(allEntries), [allEntries]);
-
   // Create a map of entries by date for quick lookup
   const entriesByDate = useMemo(() => {
     const map = new Map<string, SleepEntry>();
@@ -149,21 +146,12 @@ export function DetailsTab({ entries, allEntries, dateRange }: DetailsTabProps) 
     return dates;
   }, [sortedEntries, dateRange]);
 
-  // Build chart items for the ScoreBarChart
-  const chartItems = useMemo((): ScoreBarChartItem[] => {
-    return allDatesInRange.map((date) => {
-      const entry = entriesByDate.get(date);
-      if (entry) {
-        const score = calculateSleepScore(entry, baseline);
-        return { date, score: score.overall };
-      }
-      return { date, score: null };
-    });
-  }, [allDatesInRange, entriesByDate, baseline]);
+  // Calculate baseline for scoring
+  const baseline = useMemo(() => calculatePersonalBaseline(allEntries), [allEntries]);
 
   // Get the selected entry based on selectedIndex
   const selectedEntry = (() => {
-    const selectedDate = chartItems[selectedIndex]?.date;
+    const selectedDate = allDatesInRange[selectedIndex];
     if (!selectedDate) return sortedEntries[sortedEntries.length - 1];
 
     const entry = entriesByDate.get(selectedDate);
@@ -171,19 +159,22 @@ export function DetailsTab({ entries, allEntries, dateRange }: DetailsTabProps) 
 
     // For placeholder, find nearest entry (prefer earlier date)
     for (let i = selectedIndex; i >= 0; i--) {
-      const date = chartItems[i]?.date;
+      const date = allDatesInRange[i];
       if (date && entriesByDate.has(date)) {
         return entriesByDate.get(date);
       }
     }
-    for (let i = selectedIndex; i < chartItems.length; i++) {
-      const date = chartItems[i]?.date;
+    for (let i = selectedIndex; i < allDatesInRange.length; i++) {
+      const date = allDatesInRange[i];
       if (date && entriesByDate.has(date)) {
         return entriesByDate.get(date);
       }
     }
     return undefined;
   })();
+
+  // Calculate sleep score for selected entry
+  const sleepScore = selectedEntry ? calculateSleepScore(selectedEntry, baseline) : null;
 
   if (entries.length === 0) {
     return (
@@ -219,27 +210,41 @@ export function DetailsTab({ entries, allEntries, dateRange }: DetailsTabProps) 
         </div>
       )}
 
-      {/* Scrollable Bar Chart */}
-      <div className="pt-2 pb-4 -mx-5 sm:-mx-6">
-        <ScoreBarChart
-          items={chartItems}
+      {/* Scrollable Stacked Bar Chart */}
+      <div className="pt-2 pb-4">
+        <StackedBarChart
+          entriesByDate={entriesByDate}
+          allDatesInRange={allDatesInRange}
           selectedIndex={selectedIndex}
           onSelectIndex={setSelectedIndex}
+          barWidth={28}
+          barGap={3}
+          maxBarHeight={120}
+          minBarHeight={50}
+          compact
         />
       </div>
 
       {/* Selected Day Stats */}
       {selectedEntry && (
         <div className="space-y-4 px-5 sm:px-6 pb-8">
-          {/* Sleep Window */}
-          {sleepWindow && (
-            <div className="rounded-xl p-4 border border-border text-center">
-              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-                Sleep Window
-              </p>
-              <p className="text-lg font-semibold text-foreground">{sleepWindow}</p>
-            </div>
-          )}
+          {/* Sleep Score + Sleep Window row */}
+          <div className="grid grid-cols-2 gap-3">
+            {sleepScore !== null && sleepScore.overall !== null && (
+              <div className="rounded-xl p-4 border border-border text-center">
+                <p className="text-3xl font-bold text-foreground">{sleepScore.overall}</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">Score</p>
+              </div>
+            )}
+            {sleepWindow && (
+              <div className="rounded-xl p-4 border border-border text-center">
+                <p className="text-lg font-semibold text-foreground">{sleepWindow}</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide mt-1">
+                  Sleep Window
+                </p>
+              </div>
+            )}
+          </div>
 
           {/* Primary Stats Grid */}
           <div className="grid grid-cols-2 gap-3">

@@ -1,17 +1,26 @@
 import React, { useRef, useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
-import { STAGE_COLORS } from '../../utils/sleepHelpers';
 import type { SleepEntry } from '@/lib/db/sleep';
+import { STAGE_COLORS } from '@/pages/sleep/utils/sleepHelpers';
 
-const BAR_WIDTH = 36;
-const BAR_GAP = 4;
-const MAX_BAR_HEIGHT = 200;
-const MIN_BAR_HEIGHT = 80;
+// Default dimensions for desktop
+const DEFAULT_BAR_WIDTH = 36;
+const DEFAULT_BAR_GAP = 4;
+const DEFAULT_MAX_BAR_HEIGHT = 200;
+const DEFAULT_MIN_BAR_HEIGHT = 80;
 
-interface StackedSleepChartProps {
+export interface StackedBarChartProps {
   entriesByDate: Map<string, SleepEntry>;
   allDatesInRange: string[];
   selectedIndex: number;
   onSelectIndex: (index: number) => void;
+  // Optional customization for different screen sizes
+  barWidth?: number;
+  barGap?: number;
+  maxBarHeight?: number;
+  minBarHeight?: number;
+  showLegend?: boolean;
+  showMonthLabel?: boolean;
+  compact?: boolean; // For mobile: smaller text, day of week labels
 }
 
 interface BarData {
@@ -25,40 +34,50 @@ function StackedBar({
   bar,
   isSelected,
   maxDuration,
+  barWidth,
+  maxBarHeight,
+  minBarHeight,
+  compact,
 }: {
   bar: BarData;
   isSelected: boolean;
   maxDuration: number;
+  barWidth: number;
+  maxBarHeight: number;
+  minBarHeight: number;
+  compact?: boolean;
 }) {
   const date = new Date(bar.date + 'T00:00:00');
   const dayNumber = date.getDate();
+  const dayName = date.toLocaleDateString('en-US', { weekday: 'short' }).charAt(0);
 
   if (!bar.entry || bar.duration === null) {
-    // Placeholder bar for dates with no data - align with actual bars
+    // Placeholder bar for dates with no data
     return (
       <div
         className="flex flex-col items-center justify-end"
-        style={{ width: BAR_WIDTH, minWidth: BAR_WIDTH }}
+        style={{ width: barWidth, minWidth: barWidth }}
       >
-        {/* Spacer to match bar height area, with line at bottom */}
-        <div className="w-full flex items-end" style={{ height: MIN_BAR_HEIGHT }}>
+        <div className="w-full flex items-end" style={{ height: minBarHeight }}>
           <div className="w-full h-[2px] rounded-full bg-muted-foreground/20" />
         </div>
-        <span className="text-xs mt-1 text-muted-foreground/50">{dayNumber}</span>
+        <span className={`${compact ? 'text-[10px]' : 'text-xs'} mt-1 text-muted-foreground/50`}>
+          {compact ? dayName : dayNumber}
+        </span>
       </div>
     );
   }
 
   // Calculate bar height relative to duration range
   const normalizedHeight =
-    (bar.duration / maxDuration) * (MAX_BAR_HEIGHT - MIN_BAR_HEIGHT) + MIN_BAR_HEIGHT;
+    (bar.duration / maxDuration) * (maxBarHeight - minBarHeight) + minBarHeight;
 
   const hasStages = bar.stages.length > 0;
 
   return (
     <div
       className="flex flex-col items-center justify-end"
-      style={{ width: BAR_WIDTH, minWidth: BAR_WIDTH }}
+      style={{ width: barWidth, minWidth: barWidth }}
     >
       {/* Stacked bar */}
       <div
@@ -78,24 +97,31 @@ function StackedBar({
 
       {/* Day label */}
       <span
-        className={`text-xs mt-1 transition-all duration-300 ${
+        className={`${compact ? 'text-[10px]' : 'text-xs'} mt-1 transition-all duration-300 ${
           isSelected ? 'text-foreground font-semibold' : 'text-muted-foreground'
         }`}
       >
-        {dayNumber}
+        {compact ? dayName : dayNumber}
       </span>
     </div>
   );
 }
 
-export function StackedSleepChart({
+export function StackedBarChart({
   entriesByDate,
   allDatesInRange,
   selectedIndex,
   onSelectIndex,
-}: StackedSleepChartProps) {
+  barWidth = DEFAULT_BAR_WIDTH,
+  barGap = DEFAULT_BAR_GAP,
+  maxBarHeight = DEFAULT_MAX_BAR_HEIGHT,
+  minBarHeight = DEFAULT_MIN_BAR_HEIGHT,
+  showLegend = true,
+  showMonthLabel = true,
+  compact = false,
+}: StackedBarChartProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const barTotalWidth = BAR_WIDTH + BAR_GAP;
+  const barTotalWidth = barWidth + barGap;
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef<{ x: number; scrollLeft: number } | null>(null);
   const hasDraggedRef = useRef(false);
@@ -137,7 +163,6 @@ export function StackedSleepChart({
 
   // Handle scroll to auto-select centered bar (debounced with RAF)
   const handleScroll = useCallback(() => {
-    // Cancel any pending RAF
     if (scrollRafRef.current !== null) {
       cancelAnimationFrame(scrollRafRef.current);
     }
@@ -150,11 +175,9 @@ export function StackedSleepChart({
       const containerWidth = container.clientWidth;
       const centerOffset = scrollLeft + containerWidth / 2;
 
-      // Account for left padding
-      const paddingLeft = containerWidth / 2 - BAR_WIDTH / 2;
+      const paddingLeft = containerWidth / 2 - barWidth / 2;
       const adjustedOffset = centerOffset - paddingLeft;
 
-      // Calculate which bar is centered
       const centeredIndex = Math.round(adjustedOffset / barTotalWidth);
       const clampedIndex = Math.max(0, Math.min(centeredIndex, bars.length - 1));
 
@@ -162,7 +185,7 @@ export function StackedSleepChart({
         onSelectIndex(clampedIndex);
       }
     });
-  }, [bars.length, onSelectIndex, barTotalWidth]);
+  }, [bars.length, onSelectIndex, barTotalWidth, barWidth]);
 
   // Scroll to a specific bar index
   const scrollToIndex = useCallback(
@@ -171,15 +194,15 @@ export function StackedSleepChart({
       if (!container) return;
 
       const containerWidth = container.clientWidth;
-      const paddingLeft = containerWidth / 2 - BAR_WIDTH / 2;
-      const targetScroll = index * barTotalWidth - containerWidth / 2 + paddingLeft + BAR_WIDTH / 2;
+      const paddingLeft = containerWidth / 2 - barWidth / 2;
+      const targetScroll = index * barTotalWidth - containerWidth / 2 + paddingLeft + barWidth / 2;
 
       container.scrollTo({
         left: Math.max(0, targetScroll),
         behavior: 'smooth',
       });
     },
-    [barTotalWidth]
+    [barTotalWidth, barWidth]
   );
 
   // Initial scroll to the latest item (rightmost)
@@ -189,9 +212,9 @@ export function StackedSleepChart({
 
     const lastIndex = bars.length - 1;
     const containerWidth = container.clientWidth;
-    const paddingLeft = containerWidth / 2 - BAR_WIDTH / 2;
+    const paddingLeft = containerWidth / 2 - barWidth / 2;
     const targetScroll =
-      lastIndex * barTotalWidth - containerWidth / 2 + paddingLeft + BAR_WIDTH / 2;
+      lastIndex * barTotalWidth - containerWidth / 2 + paddingLeft + barWidth / 2;
 
     container.scrollLeft = Math.max(0, targetScroll);
     onSelectIndex(lastIndex);
@@ -206,14 +229,13 @@ export function StackedSleepChart({
     container.addEventListener('scroll', handleScroll, { passive: true });
     return () => {
       container.removeEventListener('scroll', handleScroll);
-      // Cleanup RAF on unmount
       if (scrollRafRef.current !== null) {
         cancelAnimationFrame(scrollRafRef.current);
       }
     };
   }, [handleScroll]);
 
-  // Mouse drag handlers
+  // Mouse drag handlers (for desktop)
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const container = scrollContainerRef.current;
     if (!container) return;
@@ -235,9 +257,8 @@ export function StackedSleepChart({
 
       e.preventDefault();
       const x = e.pageX - container.offsetLeft;
-      const walk = (x - dragStartRef.current.x) * 1.5; // Multiply for faster scroll
+      const walk = (x - dragStartRef.current.x) * 1.5;
 
-      // Mark as dragged if moved more than 5 pixels
       if (Math.abs(x - dragStartRef.current.x) > 5) {
         hasDraggedRef.current = true;
       }
@@ -259,7 +280,6 @@ export function StackedSleepChart({
 
   const handleBarClick = useCallback(
     (index: number, hasEntry: boolean) => {
-      // Only trigger click if we didn't drag
       if (!hasDraggedRef.current && hasEntry) {
         scrollToIndex(index);
       }
@@ -285,16 +305,21 @@ export function StackedSleepChart({
 
   return (
     <div className="relative">
-      {/* Month/Year label - left aligned */}
-      {monthYearLabel && (
-        <div className="mb-4">
-          <p className="text-lg font-semibold text-foreground">{monthYearLabel}</p>
+      {/* Month/Year label */}
+      {showMonthLabel && monthYearLabel && (
+        <div className={compact ? 'mb-2 px-4' : 'mb-4'}>
+          <p className={`${compact ? 'text-sm' : 'text-lg'} font-semibold text-foreground`}>
+            {monthYearLabel}
+          </p>
         </div>
       )}
 
       <div
         ref={scrollContainerRef}
-        className={`flex items-end overflow-x-auto scrollbar-hide py-4 select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+        className={`flex items-end overflow-x-auto scrollbar-hide ${compact ? 'py-2' : 'py-4'} select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+        style={{
+          WebkitOverflowScrolling: 'touch',
+        }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -303,7 +328,7 @@ export function StackedSleepChart({
         {/* Left padding to allow first item to center */}
         <div
           style={{
-            minWidth: `calc(50% - ${BAR_WIDTH / 2}px)`,
+            minWidth: `calc(50% - ${barWidth / 2}px)`,
             flexShrink: 0,
           }}
         />
@@ -313,42 +338,52 @@ export function StackedSleepChart({
             key={bar.date}
             className={`flex-shrink-0 ${bar.entry ? 'cursor-pointer' : ''}`}
             style={{
-              marginRight: index < bars.length - 1 ? BAR_GAP : 0,
+              marginRight: index < bars.length - 1 ? barGap : 0,
             }}
             onClick={() => handleBarClick(index, !!bar.entry)}
           >
-            <StackedBar bar={bar} isSelected={index === selectedIndex} maxDuration={maxDuration} />
+            <StackedBar
+              bar={bar}
+              isSelected={index === selectedIndex}
+              maxDuration={maxDuration}
+              barWidth={barWidth}
+              maxBarHeight={maxBarHeight}
+              minBarHeight={minBarHeight}
+              compact={compact}
+            />
           </div>
         ))}
 
         {/* Right padding to allow last item to center */}
         <div
           style={{
-            minWidth: `calc(50% - ${BAR_WIDTH / 2}px)`,
+            minWidth: `calc(50% - ${barWidth / 2}px)`,
             flexShrink: 0,
           }}
         />
       </div>
 
       {/* Legend - below chart */}
-      <div className="flex items-center justify-center gap-4 text-xs mt-4">
-        <div className="flex items-center gap-1.5">
-          <span className={`w-2.5 h-2.5 rounded-sm ${STAGE_COLORS.deep}`} />
-          <span className="text-muted-foreground">Deep</span>
+      {showLegend && (
+        <div className={`flex items-center justify-center gap-4 ${compact ? 'text-[10px] mt-2' : 'text-xs mt-4'}`}>
+          <div className="flex items-center gap-1.5">
+            <span className={`${compact ? 'w-2 h-2' : 'w-2.5 h-2.5'} rounded-sm ${STAGE_COLORS.deep}`} />
+            <span className="text-muted-foreground">Deep</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className={`${compact ? 'w-2 h-2' : 'w-2.5 h-2.5'} rounded-sm ${STAGE_COLORS.rem}`} />
+            <span className="text-muted-foreground">REM</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className={`${compact ? 'w-2 h-2' : 'w-2.5 h-2.5'} rounded-sm ${STAGE_COLORS.light}`} />
+            <span className="text-muted-foreground">Light</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className={`${compact ? 'w-2 h-2' : 'w-2.5 h-2.5'} rounded-sm ${STAGE_COLORS.awake}`} />
+            <span className="text-muted-foreground">Awake</span>
+          </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className={`w-2.5 h-2.5 rounded-sm ${STAGE_COLORS.rem}`} />
-          <span className="text-muted-foreground">REM</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className={`w-2.5 h-2.5 rounded-sm ${STAGE_COLORS.light}`} />
-          <span className="text-muted-foreground">Light</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className={`w-2.5 h-2.5 rounded-sm ${STAGE_COLORS.awake}`} />
-          <span className="text-muted-foreground">Awake</span>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -11,7 +11,7 @@ import {
   formatDuration,
   STAGE_COLORS,
 } from '../../utils/sleepHelpers';
-import { StackedSleepChart } from '../charts/StackedSleepChart';
+import { StackedBarChart } from '@/components/shared/StackedBarChart';
 import type { SleepEntry } from '@/lib/db/sleep';
 
 interface DesktopSleepViewProps {
@@ -453,7 +453,7 @@ export function DesktopSleepView({ entries, allEntries, dateRange }: DesktopSlee
   return (
     <div className="space-y-6">
       {/* Scrollable Stacked Bar Chart */}
-      <StackedSleepChart
+      <StackedBarChart
         entriesByDate={entriesByDate}
         allDatesInRange={allDatesInRange}
         selectedIndex={selectedIndex}
