@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { TimeInput, NumericInput } from '@/components/ui/masked-input';
+import { TimeInput, DurationInput, parseDurationToMinutes, minutesToDuration } from '@/components/ui/masked-input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -46,8 +46,8 @@ function ActivityFormContent({
   const [activityType, setActivityType] = useState<ActivityType>(
     () => activity?.activityType || 'walking'
   );
-  const [durationMinutes, setDurationMinutes] = useState(() =>
-    activity?.durationMinutes ? String(activity.durationMinutes) : ''
+  const [duration, setDuration] = useState(() =>
+    activity?.durationMinutes ? minutesToDuration(activity.durationMinutes) : ''
   );
   const [intensity, setIntensity] = useState(() => activity?.intensity || 3);
   const [notes, setNotes] = useState(() => activity?.notes || '');
@@ -100,8 +100,8 @@ function ActivityFormContent({
     return isNaN(num) ? null : num;
   };
 
-  const isValid =
-    date && timeOfDay && activityType && durationMinutes && parseInt(durationMinutes) > 0;
+  const parsedDuration = parseDurationToMinutes(duration);
+  const isValid = date && timeOfDay && activityType && parsedDuration && parsedDuration > 0;
 
   const handleSave = async () => {
     setSaving(true);
@@ -110,7 +110,7 @@ function ActivityFormContent({
       date,
       timeOfDay,
       activityType,
-      durationMinutes: parseInt(durationMinutes),
+      durationMinutes: parsedDuration!,
       intensity,
       notes: notes || null,
       zone1Minutes: parseZoneMinutes(zone1Minutes),
@@ -144,7 +144,7 @@ function ActivityFormContent({
     setDate(getLocalDateNow());
     setTimeOfDay('morning');
     setActivityType('walking');
-    setDurationMinutes('');
+    setDuration('');
     setIntensity(3);
     setNotes('');
     setZone1Minutes('');
@@ -241,14 +241,12 @@ function ActivityFormContent({
 
           {/* Duration */}
           <div className="space-y-2">
-            <Label htmlFor="duration">Duration (minutes)</Label>
-            <NumericInput
+            <Label htmlFor="duration">Duration</Label>
+            <DurationInput
               id="duration"
-              placeholder="e.g., 45"
-              value={durationMinutes}
-              onChange={(e) => setDurationMinutes(e.target.value)}
-              maxDigits={3}
-              maxValue={480}
+              placeholder="mm:ss or H:mm:ss"
+              value={duration}
+              onChange={(e) => setDuration(e.target.value)}
             />
           </div>
 
