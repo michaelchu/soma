@@ -7,6 +7,7 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from 'recharts';
+import { formatDate } from '@/lib/dateUtils';
 import { useBloodPressureSettings } from '../../hooks/useBloodPressureSettings';
 
 interface Reading {
@@ -168,8 +169,7 @@ export function BPTimeChart({
 
   // Transform data for chart
   const chartData: ChartDataPoint[] = sortedReadings.map((r) => {
-    const d = new Date(r.datetime);
-    const date = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const date = formatDate(r.datetime);
     const category = getCategory(r.systolic, r.diastolic);
     const pp = r.systolic - r.diastolic;
     const map = r.diastolic + pp / 3;
