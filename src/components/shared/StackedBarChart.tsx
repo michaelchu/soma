@@ -306,8 +306,8 @@ export function StackedBarChart({
     <div className="relative">
       {/* Month/Year label */}
       {showMonthLabel && monthYearLabel && (
-        <div className={compact ? 'mb-2 px-4' : 'mb-4'}>
-          <p className={`${compact ? 'text-sm' : 'text-lg'} font-semibold text-foreground`}>
+        <div className={compact ? 'mb-2 px-4 text-center' : 'mb-4'}>
+          <p className={`${compact ? 'text-base' : 'text-lg'} font-semibold text-foreground`}>
             {monthYearLabel}
           </p>
         </div>
