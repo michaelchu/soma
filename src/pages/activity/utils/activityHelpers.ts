@@ -158,6 +158,17 @@ export function calculateDailyEffortScore(activities: Activity[]): number {
 }
 
 /**
+ * Get effort score for a specific date
+ * Convenience function that filters activities and returns effort score for the given date
+ */
+export function getDailyEffortScore(date: string, allActivities: Activity[]): number | null {
+  const dayActivities = allActivities.filter((a) => a.date === date);
+  if (dayActivities.length === 0) return null;
+
+  return calculateDailyEffortScore(dayActivities);
+}
+
+/**
  * Calculate consistency multiplier based on workouts in the past 7 days
  * @param activities All activities
  * @param referenceDate The date to calculate consistency from (activity date)
