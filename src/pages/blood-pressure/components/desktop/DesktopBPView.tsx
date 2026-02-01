@@ -359,6 +359,9 @@ function ReferenceRangesTable() {
 
 export function DesktopBPView({ readings, allReadings, dateRange, timeOfDay }: DesktopBPViewProps) {
   const [statsExpanded, setStatsExpanded] = useState(true);
+  const [showTrendline, setShowTrendline] = useState(true);
+  const [showMarkers, setShowMarkers] = useState(true);
+  const [showMAP, setShowMAP] = useState(false);
 
   if (readings.length === 0) {
     return (
@@ -374,10 +377,50 @@ export function DesktopBPView({ readings, allReadings, dateRange, timeOfDay }: D
       <div className="grid grid-cols-2 gap-6">
         {/* Timeline Chart */}
         <div className="rounded-xl border border-white/10 p-4">
-          <h3 className="text-sm font-semibold mb-4 text-muted-foreground uppercase tracking-wide">
-            Trend Over Time
-          </h3>
-          <BPTimeChart readings={readings} height={320} />
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+              Trend Over Time
+            </h3>
+            <div className="flex gap-1">
+              <button
+                onClick={() => setShowTrendline(!showTrendline)}
+                className={`px-2 py-0.5 text-xs rounded-full transition-colors ${
+                  showTrendline
+                    ? 'bg-white/10 text-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Trend
+              </button>
+              <button
+                onClick={() => setShowMarkers(!showMarkers)}
+                className={`px-2 py-0.5 text-xs rounded-full transition-colors ${
+                  showMarkers
+                    ? 'bg-white/10 text-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Markers
+              </button>
+              <button
+                onClick={() => setShowMAP(!showMAP)}
+                className={`px-2 py-0.5 text-xs rounded-full transition-colors ${
+                  showMAP
+                    ? 'bg-white/10 text-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                MAP
+              </button>
+            </div>
+          </div>
+          <BPTimeChart
+            readings={readings}
+            height={320}
+            showTrendline={showTrendline}
+            showMarkers={showMarkers}
+            showMAP={showMAP}
+          />
         </div>
 
         {/* Distribution Chart */}

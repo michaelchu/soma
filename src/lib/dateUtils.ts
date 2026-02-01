@@ -209,6 +209,47 @@ export function daysAgo(days: number): Date {
 }
 
 /**
+ * Calculate the start date for a rolling period
+ * Internal helper to avoid duplication
+ */
+function calculatePeriodStart(range: string | number, fromDate: Date = new Date()): Date | null {
+  const start = new Date(fromDate);
+
+  if (typeof range === 'string') {
+    if (range === '1w') {
+      start.setDate(start.getDate() - 6); // -6 because today counts as day 1
+      start.setHours(0, 0, 0, 0);
+      return start;
+    }
+    if (range === '1m') {
+      start.setMonth(start.getMonth() - 1);
+      start.setHours(0, 0, 0, 0);
+      return start;
+    }
+    if (range === '3m') {
+      start.setMonth(start.getMonth() - 3);
+      start.setHours(0, 0, 0, 0);
+      return start;
+    }
+    // Fallback: try parsing as number of days
+    const days = parseInt(range, 10);
+    if (!isNaN(days)) {
+      start.setDate(start.getDate() - (days - 1));
+      start.setHours(0, 0, 0, 0);
+      return start;
+    }
+  }
+
+  if (typeof range === 'number') {
+    start.setDate(start.getDate() - (range - 1));
+    start.setHours(0, 0, 0, 0);
+    return start;
+  }
+
+  return null;
+}
+
+/**
  * Get date range boundaries based on rolling periods
  * Supports: '1w' (rolling 7 days), '1m' (rolling 1 month), '3m' (rolling 3 months), 'all', or number of days
  */
@@ -219,48 +260,36 @@ export function getDateRange(range: string | number): { start: Date | null; end:
     return { start: null, end };
   }
 
-  const start = new Date();
+  const start = calculatePeriodStart(range);
+  return { start, end };
+}
 
-  // Handle period-based ranges (rolling)
-  if (typeof range === 'string') {
-    if (range === '1w') {
-      // Rolling 7 days
-      start.setDate(start.getDate() - 6); // -6 because today counts as day 1
-      start.setHours(0, 0, 0, 0);
-      return { start, end };
-    }
-
-    if (range === '1m') {
-      // Rolling 1 month (same date last month)
-      start.setMonth(start.getMonth() - 1);
-      start.setHours(0, 0, 0, 0);
-      return { start, end };
-    }
-
-    if (range === '3m') {
-      // Rolling 3 months (same date 3 months ago)
-      start.setMonth(start.getMonth() - 3);
-      start.setHours(0, 0, 0, 0);
-      return { start, end };
-    }
-
-    // Fallback: try parsing as number of days
-    const days = parseInt(range, 10);
-    if (!isNaN(days)) {
-      start.setDate(end.getDate() - (days - 1));
-      start.setHours(0, 0, 0, 0);
-      return { start, end };
-    }
+/**
+ * Get date range boundaries for the previous equivalent period
+ * e.g., if range is '1m', returns the boundaries for 1-2 months ago
+ * Supports: '1w', '1m', '3m', or number of days
+ */
+export function getPreviousDateRange(range: string | number): {
+  start: Date | null;
+  end: Date | null;
+} {
+  if (range === 'all') {
+    return { start: null, end: null };
   }
 
-  // Handle numeric days
-  if (typeof range === 'number') {
-    start.setDate(end.getDate() - (range - 1));
-    start.setHours(0, 0, 0, 0);
-    return { start, end };
+  // Current period start becomes the previous period end
+  const currentStart = calculatePeriodStart(range);
+  if (!currentStart) {
+    return { start: null, end: null };
   }
 
-  return { start: null, end };
+  const previousEnd = new Date(currentStart);
+  previousEnd.setHours(0, 0, 0, 0);
+
+  // Calculate previous period start (same offset from current start)
+  const previousStart = calculatePeriodStart(range, currentStart);
+
+  return { start: previousStart, end: previousEnd };
 }
 
 /**

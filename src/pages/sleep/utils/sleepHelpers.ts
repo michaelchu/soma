@@ -1,6 +1,6 @@
 import type { SleepEntry } from '../../../lib/db/sleep';
 import { avgRounded, calcStatsRounded } from '@/lib/statsUtils';
-import { formatDuration } from '@/lib/dateUtils';
+import { formatDuration, getDateRange, getPreviousDateRange } from '@/lib/dateUtils';
 
 // Re-export formatDuration for backwards compatibility
 export { formatDuration };
@@ -124,38 +124,10 @@ export function filterEntriesByDateRange(
 ): SleepEntry[] {
   if (range === 'all') return entries;
 
-  let cutoff: Date;
+  const { start } = getDateRange(range);
+  if (!start) return entries;
 
-  if (typeof range === 'string') {
-    if (range === '1w') {
-      // Rolling 7 days
-      cutoff = new Date();
-      cutoff.setDate(cutoff.getDate() - 6); // -6 because today counts as day 1
-      cutoff.setHours(0, 0, 0, 0);
-    } else if (range === '1m') {
-      // Rolling 1 month (same date last month)
-      cutoff = new Date();
-      cutoff.setMonth(cutoff.getMonth() - 1);
-      cutoff.setHours(0, 0, 0, 0);
-    } else if (range === '3m') {
-      // Rolling 3 months (same date 3 months ago)
-      cutoff = new Date();
-      cutoff.setMonth(cutoff.getMonth() - 3);
-      cutoff.setHours(0, 0, 0, 0);
-    } else {
-      // Fallback: try parsing as days
-      const days = parseInt(range, 10);
-      cutoff = new Date();
-      cutoff.setDate(cutoff.getDate() - days);
-      cutoff.setHours(0, 0, 0, 0);
-    }
-  } else {
-    cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - range);
-    cutoff.setHours(0, 0, 0, 0);
-  }
-
-  return entries.filter((e) => new Date(e.date + 'T00:00:00') >= cutoff);
+  return entries.filter((e) => new Date(e.date + 'T00:00:00') >= start);
 }
 
 /**
@@ -168,69 +140,12 @@ export function getPreviousPeriodEntries(
 ): SleepEntry[] {
   if (dateRange === 'all') return [];
 
-  const now = new Date();
-  let currentStart: Date;
-  let previousStart: Date;
-  let previousEnd: Date;
-
-  if (dateRange === '1w') {
-    // Current: rolling 7 days
-    // Previous: the 7 days before that
-    currentStart = new Date(now);
-    currentStart.setDate(currentStart.getDate() - 6);
-    currentStart.setHours(0, 0, 0, 0);
-
-    previousEnd = new Date(currentStart);
-    previousEnd.setMilliseconds(-1);
-
-    previousStart = new Date(currentStart);
-    previousStart.setDate(previousStart.getDate() - 7);
-  } else if (dateRange === '1m') {
-    // Current: rolling 1 month
-    // Previous: the month before that
-    currentStart = new Date(now);
-    currentStart.setMonth(currentStart.getMonth() - 1);
-    currentStart.setHours(0, 0, 0, 0);
-
-    previousEnd = new Date(currentStart);
-    previousEnd.setMilliseconds(-1);
-
-    previousStart = new Date(now);
-    previousStart.setMonth(previousStart.getMonth() - 2);
-    previousStart.setHours(0, 0, 0, 0);
-  } else if (dateRange === '3m') {
-    // Current: rolling 3 months
-    // Previous: the 3 months before that
-    currentStart = new Date(now);
-    currentStart.setMonth(currentStart.getMonth() - 3);
-    currentStart.setHours(0, 0, 0, 0);
-
-    previousEnd = new Date(currentStart);
-    previousEnd.setMilliseconds(-1);
-
-    previousStart = new Date(now);
-    previousStart.setMonth(previousStart.getMonth() - 6);
-    previousStart.setHours(0, 0, 0, 0);
-  } else {
-    // Fallback: try parsing as days
-    const days = parseInt(dateRange, 10);
-    if (isNaN(days)) return [];
-
-    currentStart = new Date(now);
-    currentStart.setDate(currentStart.getDate() - days);
-    currentStart.setHours(0, 0, 0, 0);
-
-    previousEnd = new Date(currentStart);
-    previousEnd.setMilliseconds(-1);
-
-    previousStart = new Date(now);
-    previousStart.setDate(previousStart.getDate() - days * 2);
-    previousStart.setHours(0, 0, 0, 0);
-  }
+  const { start: previousStart, end: previousEnd } = getPreviousDateRange(dateRange);
+  if (!previousStart || !previousEnd) return [];
 
   return allEntries.filter((e) => {
     const entryDate = new Date(e.date + 'T00:00:00');
-    return entryDate >= previousStart && entryDate <= previousEnd;
+    return entryDate >= previousStart && entryDate < previousEnd;
   });
 }
 

@@ -1,5 +1,5 @@
 import { BP_GUIDELINES, BP_CATEGORY_INFO, DEFAULT_GUIDELINE } from '../constants/bpGuidelines';
-import { isInTimeOfDay } from '@/lib/dateUtils';
+import { isInTimeOfDay, getPreviousDateRange } from '@/lib/dateUtils';
 import { avgRounded, calcStats } from '@/lib/statsUtils';
 import type { BPCategoryKey, TimeOfDay } from '@/types/bloodPressure';
 
@@ -173,53 +173,8 @@ export function getPreviousPeriodReadings(
 ): BPReading[] {
   if (!allReadings || dateRange === 'all') return [];
 
-  const now = new Date();
-  let previousStart: Date;
-  let previousEnd: Date;
-
-  if (dateRange === '1w') {
-    // Current period: last 7 days (today - 6 days to today)
-    // Previous period: 7 days before that (today - 13 days to today - 7 days)
-    previousEnd = new Date();
-    previousEnd.setDate(now.getDate() - 6);
-    previousEnd.setHours(0, 0, 0, 0);
-
-    previousStart = new Date();
-    previousStart.setDate(now.getDate() - 13);
-    previousStart.setHours(0, 0, 0, 0);
-  } else if (dateRange === '1m') {
-    // Current period: last 1 month (same date last month to today)
-    // Previous period: the month before that
-    previousEnd = new Date();
-    previousEnd.setMonth(now.getMonth() - 1);
-    previousEnd.setHours(0, 0, 0, 0);
-
-    previousStart = new Date();
-    previousStart.setMonth(now.getMonth() - 2);
-    previousStart.setHours(0, 0, 0, 0);
-  } else if (dateRange === '3m') {
-    // Current period: last 3 months
-    // Previous period: 3 months before that
-    previousEnd = new Date();
-    previousEnd.setMonth(now.getMonth() - 3);
-    previousEnd.setHours(0, 0, 0, 0);
-
-    previousStart = new Date();
-    previousStart.setMonth(now.getMonth() - 6);
-    previousStart.setHours(0, 0, 0, 0);
-  } else {
-    // Fallback: try parsing as number of days
-    const days = parseInt(dateRange, 10);
-    if (isNaN(days)) return [];
-
-    previousEnd = new Date();
-    previousEnd.setDate(now.getDate() - (days - 1));
-    previousEnd.setHours(0, 0, 0, 0);
-
-    previousStart = new Date();
-    previousStart.setDate(now.getDate() - (days * 2 - 1));
-    previousStart.setHours(0, 0, 0, 0);
-  }
+  const { start: previousStart, end: previousEnd } = getPreviousDateRange(dateRange);
+  if (!previousStart || !previousEnd) return [];
 
   let filtered = allReadings.filter((r) => {
     if (!r.datetime) return false;
