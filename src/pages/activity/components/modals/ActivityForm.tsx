@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { TimeInput } from '@/components/ui/masked-input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -79,24 +80,6 @@ function ActivityFormContent({
   });
 
   const [saving, setSaving] = useState(false);
-
-  // Auto-format zone time input: "5403" → "54:03", "431" → "4:31"
-  // Max format: mmm:ss (3 digit minutes, 2 digit seconds capped at 59)
-  const formatZoneInput = (val: string): string => {
-    // Strip everything except digits, limit to 5 digits (mmm + ss)
-    const digits = val.replace(/\D/g, '').slice(0, 5);
-
-    // Auto-insert colon when 3+ digits (last 2 are seconds)
-    if (digits.length >= 3) {
-      const mins = digits.slice(0, -2);
-      let secs = parseInt(digits.slice(-2), 10);
-      // Cap seconds at 59
-      if (secs > 59) secs = 59;
-      return `${mins}:${secs.toString().padStart(2, '0')}`;
-    }
-
-    return digits;
-  };
 
   // Helper to parse zone time - accepts "54", "54:03", or "4:31" formats
   // Returns rounded minutes (54:03 → 54, 4:31 → 5)
@@ -332,13 +315,11 @@ function ActivityFormContent({
                         {zone.label}{' '}
                         <span className="text-muted-foreground">({zone.description})</span>
                       </Label>
-                      <Input
+                      <TimeInput
                         id={`zone${zone.zone}`}
-                        type="text"
-                        inputMode="numeric"
                         placeholder="mm:ss"
                         value={zoneValues[zone.zone]}
-                        onChange={(e) => zoneSetters[zone.zone](formatZoneInput(e.target.value))}
+                        onChange={(e) => zoneSetters[zone.zone](e.target.value)}
                         className="h-8"
                       />
                     </div>
