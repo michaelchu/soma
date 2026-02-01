@@ -78,20 +78,47 @@ function CalendarDay({
 }
 
 // Week streak indicator component
-function WeekStreakIndicator({ hasActivity }: { hasActivity: boolean }) {
-  const circleClassName = hasActivity ? 'bg-orange-500' : 'border-2 border-muted-foreground/30';
+function WeekStreakIndicator({
+  hasActivity,
+  isInStreak,
+}: {
+  hasActivity: boolean;
+  isInStreak: boolean;
+}) {
+  const circleClassName = isInStreak
+    ? 'bg-orange-500'
+    : hasActivity
+      ? 'bg-muted-foreground'
+      : 'border-2 border-muted-foreground/30';
 
   return (
     <div className="h-12 w-10 flex items-center justify-center relative z-10">
       <div className={`h-6 w-6 rounded-full flex items-center justify-center ${circleClassName}`}>
-        {hasActivity && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
+        {(hasActivity || isInStreak) && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
       </div>
     </div>
   );
 }
 
 // Week activity bar
-function WeekActivityBar({ weekData }: { weekData: WeekData[] }) {
+function WeekActivityBar({ weekData, streak }: { weekData: WeekData[]; streak: number }) {
+  // Find which weeks are in the current streak (counting from the end/bottom)
+  const streakWeekIndices = new Set<number>();
+
+  if (streak > 0) {
+    let consecutiveCount = 0;
+    // Start from the last week and go backwards
+    for (let i = weekData.length - 1; i >= 0 && consecutiveCount < streak; i--) {
+      if (weekData[i].hasActivity) {
+        streakWeekIndices.add(i);
+        consecutiveCount++;
+      } else if (consecutiveCount > 0) {
+        // Gap found, stop counting
+        break;
+      }
+    }
+  }
+
   return (
     <div className="flex flex-col items-center relative">
       {/* Spacer for day headers */}
@@ -100,7 +127,11 @@ function WeekActivityBar({ weekData }: { weekData: WeekData[] }) {
       {/* Week indicators */}
       <div className="flex flex-col gap-1">
         {weekData.map((week: WeekData, index: number) => (
-          <WeekStreakIndicator key={index} hasActivity={week.hasActivity} />
+          <WeekStreakIndicator
+            key={index}
+            hasActivity={week.hasActivity}
+            isInStreak={streakWeekIndices.has(index)}
+          />
         ))}
       </div>
     </div>
@@ -283,7 +314,7 @@ export function ActivityCalendar({ activities, onViewActivity }: ActivityCalenda
         </div>
 
         {/* Week activity bar */}
-        <WeekActivityBar weekData={weekData} />
+        <WeekActivityBar weekData={weekData} streak={streakData.currentStreak} />
       </div>
 
       {/* Divider */}
