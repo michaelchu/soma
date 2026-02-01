@@ -11,14 +11,17 @@ export const formatDuration = formatDurationLong;
 /**
  * Zone multipliers for TRIMP-like effort calculation.
  * Higher zones contribute exponentially more to effort score.
- * These values are calibrated to produce Strava-like scores.
+ * These values are calibrated to produce Strava-like Relative Effort scores.
+ *
+ * Strava uses heart rate reserve (HRR) based weighting where higher
+ * intensity zones contribute progressively more to the score.
  */
 const ZONE_MULTIPLIERS = {
-  zone1: 1.0, // Warm Up (100-119 bpm)
-  zone2: 1.8, // Easy (120-139 bpm)
-  zone3: 2.8, // Aerobic (140-159 bpm)
-  zone4: 4.0, // Threshold (160-179 bpm)
-  zone5: 5.5, // Maximum (>179 bpm)
+  zone1: 0.4, // Warm Up (100-119 bpm) - recovery/easy effort
+  zone2: 0.6, // Easy (120-139 bpm) - light aerobic
+  zone3: 1.0, // Aerobic (140-159 bpm) - moderate effort
+  zone4: 1.4, // Threshold (160-179 bpm) - hard effort
+  zone5: 2.0, // Maximum (>179 bpm) - max effort
 } as const;
 
 /**
@@ -60,7 +63,7 @@ export function hasHrZoneData(activity: Activity): boolean {
 
 /**
  * Calculate effort score from actual HR zone data (TRIMP-like).
- * Returns a score where ~100 is a moderate 60-min workout.
+ * Returns a score where ~50 is a moderate 60-min workout, similar to Strava.
  */
 function calculateEffortFromZones(
   zone1: number,
@@ -130,23 +133,25 @@ export function calculateEffortScore(activity: Activity): number {
 
 /**
  * Get effort level description based on score
+ * Thresholds calibrated for Strava-like scores
  */
 export function getEffortLevel(score: number): { label: string; color: string } {
-  if (score < 25) return { label: 'Light', color: 'text-green-500' };
-  if (score < 75) return { label: 'Moderate', color: 'text-lime-500' };
-  if (score < 150) return { label: 'Challenging', color: 'text-yellow-500' };
-  if (score < 250) return { label: 'Hard', color: 'text-orange-500' };
+  if (score < 10) return { label: 'Light', color: 'text-green-500' };
+  if (score < 25) return { label: 'Moderate', color: 'text-lime-500' };
+  if (score < 50) return { label: 'Challenging', color: 'text-yellow-500' };
+  if (score < 85) return { label: 'Hard', color: 'text-orange-500' };
   return { label: 'Extreme', color: 'text-red-500' };
 }
 
 /**
  * Get effort badge color class based on score
+ * Thresholds calibrated for Strava-like scores
  */
 export function getEffortBadgeColor(score: number): string {
-  if (score < 25) return 'bg-green-500/10 text-green-500';
-  if (score < 75) return 'bg-lime-500/10 text-lime-500';
-  if (score < 150) return 'bg-yellow-500/10 text-yellow-500';
-  if (score < 250) return 'bg-orange-500/10 text-orange-500';
+  if (score < 10) return 'bg-green-500/10 text-green-500';
+  if (score < 25) return 'bg-lime-500/10 text-lime-500';
+  if (score < 50) return 'bg-yellow-500/10 text-yellow-500';
+  if (score < 85) return 'bg-orange-500/10 text-orange-500';
   return 'bg-red-500/10 text-red-500';
 }
 
