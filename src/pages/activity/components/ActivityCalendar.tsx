@@ -156,9 +156,10 @@ export function ActivityCalendar({ activities, onViewActivity }: ActivityCalenda
   const monthStats = useMemo(() => {
     const activeWeeks = weekData.filter((w) => w.hasActivity).length;
     // Only count activities that are in the selected month
+    // Parse date string directly to avoid timezone issues (format: YYYY-MM-DD)
     const totalActivities = activities.filter((activity) => {
-      const date = new Date(activity.date);
-      return date.getFullYear() === currentYear && date.getMonth() === currentMonth;
+      const [year, month] = activity.date.split('-').map(Number);
+      return year === currentYear && month === currentMonth + 1; // month is 1-indexed in date string
     }).length;
     return { activeWeeks, totalActivities };
   }, [weekData, activities, currentYear, currentMonth]);
