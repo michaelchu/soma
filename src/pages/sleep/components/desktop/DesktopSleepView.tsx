@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import { formatDate, formatTimeString, getDateRange } from '@/lib/dateUtils';
+import { formatTimeString } from '@/lib/dateUtils';
 import {
   formatHrvRange,
   getRestorativeSleepPct,
@@ -106,19 +106,6 @@ function CompactStatsBar({
   );
   const previousStats = useMemo(() => calculateDetailedStats(previousEntries), [previousEntries]);
 
-  const dateRangeLabel = useMemo(() => {
-    if (dateRange === 'all') {
-      if (entries.length === 0) return 'All Time';
-      const sorted = [...entries].sort(
-        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-      );
-      return `${formatDate(sorted[0].date)} – ${formatDate(sorted[sorted.length - 1].date)}`;
-    }
-    const { start, end } = getDateRange(dateRange);
-    if (!start) return 'All Time';
-    return `${formatDate(start)} – ${formatDate(end)}`;
-  }, [dateRange, entries]);
-
   if (!currentStats) return null;
 
   const hasHrvData = currentStats.hrvLow?.avg != null && currentStats.hrvHigh?.avg != null;
@@ -185,9 +172,8 @@ function CompactStatsBar({
           )}
         </div>
 
-        {/* Date range + expand button */}
-        <div className="flex items-center gap-3">
-          <p className="text-xs text-muted-foreground">{dateRangeLabel}</p>
+        {/* Expand button */}
+        <div className="flex items-center">
           <button
             onClick={onToggleExpand}
             className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -246,9 +232,9 @@ function DetailedStatsTable({
 
   const rows = [
     { label: 'Deep Sleep', key: 'deepSleepPct' as const, type: 'higherIsBetter' as const },
+    { label: 'REM Sleep', key: 'remSleepPct' as const, type: 'higherIsBetter' as const },
     { label: 'Restorative', key: 'restorative' as const, type: 'higherIsBetter' as const },
     { label: 'Resting HR', key: 'restingHr' as const, type: 'lowerIsBetter' as const },
-    { label: 'REM Sleep', key: 'remSleepPct' as const, type: 'higherIsBetter' as const },
     { label: 'HR Drop', key: 'hrDrop' as const, type: 'lowerIsBetter' as const },
   ];
 
@@ -318,7 +304,6 @@ function DetailedStatsTable({
 
 function ReferenceRangesTable() {
   const ranges = [
-    { metric: 'Sleep Duration', range: '7–9 hours' },
     { metric: 'Deep Sleep', range: '15–25%' },
     { metric: 'REM Sleep', range: '20–25%' },
     { metric: 'Restorative', range: '40–50%' },
@@ -350,7 +335,7 @@ function ReferenceRangesTable() {
 
 export function DesktopSleepView({ entries, allEntries, dateRange }: DesktopSleepViewProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [statsExpanded, setStatsExpanded] = useState(false);
+  const [statsExpanded, setStatsExpanded] = useState(true);
 
   // Sort entries by date ascending (oldest first) for the chart
   const sortedEntries = useMemo(() => {
@@ -462,6 +447,14 @@ export function DesktopSleepView({ entries, allEntries, dateRange }: DesktopSlee
 
   return (
     <div className="space-y-6">
+      {/* Scrollable Stacked Bar Chart */}
+      <StackedSleepChart
+        entriesByDate={entriesByDate}
+        allDatesInRange={allDatesInRange}
+        selectedIndex={selectedIndex}
+        onSelectIndex={setSelectedIndex}
+      />
+
       {/* Compact Stats Bar */}
       <CompactStatsBar
         entries={entries}
@@ -469,14 +462,6 @@ export function DesktopSleepView({ entries, allEntries, dateRange }: DesktopSlee
         dateRange={dateRange}
         isExpanded={statsExpanded}
         onToggleExpand={() => setStatsExpanded(!statsExpanded)}
-      />
-
-      {/* Scrollable Stacked Bar Chart */}
-      <StackedSleepChart
-        entriesByDate={entriesByDate}
-        allDatesInRange={allDatesInRange}
-        selectedIndex={selectedIndex}
-        onSelectIndex={setSelectedIndex}
       />
 
       {/* Selected Day Details */}

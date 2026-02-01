@@ -326,12 +326,6 @@ export function StatisticsTab({ entries, allEntries, dateRange }: StatisticsTabP
           <tbody>
             <tr className="border-b">
               <td className="py-3 pr-3">
-                <span className="font-medium">Sleep Duration</span>
-              </td>
-              <td className="py-3 pl-3 text-right font-mono">7–9 hours</td>
-            </tr>
-            <tr className="border-b">
-              <td className="py-3 pr-3">
                 <span className="font-medium">Deep Sleep</span>
               </td>
               <td className="py-3 pl-3 text-right font-mono">15–25%</td>
