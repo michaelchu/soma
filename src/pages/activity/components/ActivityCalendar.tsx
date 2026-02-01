@@ -14,13 +14,6 @@ import {
   type WeekData,
 } from '../utils/streakCalculator';
 
-// Layout constants for streak bar calculations
-const ROW_HEIGHT = 48; // h-12 in pixels
-const ROW_GAP = 4; // gap-1 in pixels
-const ROW_TOTAL = ROW_HEIGHT + ROW_GAP; // 52px per row
-const ICON_SIZE = 24; // h-6 in pixels
-const ICON_OFFSET = (ROW_HEIGHT - ICON_SIZE) / 2; // 12px - centers icon in row
-
 interface ActivityCalendarProps {
   activities: Activity[];
   onViewActivity: (activity: Activity) => void;
@@ -88,18 +81,11 @@ function CalendarDay({
 function WeekStreakIndicator({
   hasActivity,
   isInStreak,
-  isCurrentWeek,
-  streakCount,
-  isViewingCurrentMonth,
 }: {
   hasActivity: boolean;
   isInStreak: boolean;
-  isCurrentWeek: boolean;
-  streakCount: number;
-  isViewingCurrentMonth: boolean;
 }) {
-  const showStreakCount = isCurrentWeek && isInStreak && streakCount > 0 && isViewingCurrentMonth;
-  const showCheckmark = (hasActivity || isInStreak) && !showStreakCount;
+  const showCheckmark = hasActivity || isInStreak;
 
   const circleClassName = isInStreak
     ? 'bg-orange-500'
@@ -110,7 +96,6 @@ function WeekStreakIndicator({
   return (
     <div className="h-12 w-10 flex items-center justify-center relative z-10">
       <div className={`h-6 w-6 rounded-full flex items-center justify-center ${circleClassName}`}>
-        {showStreakCount && <span className="text-white font-bold text-xs">{streakCount}</span>}
         {showCheckmark && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
       </div>
     </div>
@@ -148,35 +133,18 @@ function StreakBar({
   // Current week is the last one
   const currentWeekIndex = weekData.length - 1;
 
-  // Only include current week in the highlight when viewing current month
-  // (since the streak count number only shows on the current month)
+  // Only include current week in the streak when viewing current month
   if (streak > 0 && isViewingCurrentMonth) {
     streakWeekIndices.add(currentWeekIndex);
   }
-
-  // Find the first and last streak week indices for the background
-  const streakIndices = Array.from(streakWeekIndices).sort((a, b) => a - b);
-  const firstStreakIndex = streakIndices.length > 0 ? streakIndices[0] : -1;
-  const lastStreakIndex = streakIndices.length > 0 ? streakIndices[streakIndices.length - 1] : -1;
 
   return (
     <div className="flex flex-col items-center relative">
       {/* Spacer for day headers */}
       <div className="h-8 mb-1" />
 
-      {/* Week indicators with streak background */}
+      {/* Week indicators */}
       <div className="relative flex-1">
-        {/* Streak background - light orange rounded pill (only show on current month) */}
-        {streak > 0 && firstStreakIndex >= 0 && isViewingCurrentMonth && (
-          <div
-            className="absolute left-1/2 -translate-x-1/2 w-8 bg-orange-500/20 rounded-full"
-            style={{
-              top: `${firstStreakIndex * ROW_TOTAL + ICON_OFFSET}px`,
-              height: `${(lastStreakIndex - firstStreakIndex) * ROW_TOTAL + ICON_SIZE + ROW_HEIGHT}px`,
-            }}
-          />
-        )}
-
         {/* Week indicators */}
         <div className="flex flex-col gap-1 relative">
           {weekData.map((week: WeekData, index: number) => (
@@ -184,9 +152,6 @@ function StreakBar({
               key={index}
               hasActivity={week.hasActivity}
               isInStreak={streakWeekIndices.has(index)}
-              isCurrentWeek={index === currentWeekIndex}
-              streakCount={streak}
-              isViewingCurrentMonth={isViewingCurrentMonth}
             />
           ))}
         </div>
@@ -323,10 +288,12 @@ export function ActivityCalendar({ activities, onViewActivity }: ActivityCalenda
         </div>
         <div>
           <p className="text-xs text-muted-foreground">
-            {isViewingCurrentMonth ? 'Streak Activities' : 'Total Activities'}
+            {isViewingCurrentMonth ? 'Streak Weeks' : 'Total Activities'}
           </p>
           <p className="text-xl font-bold">
-            {isViewingCurrentMonth ? streakData.streakActivities : monthStats.totalActivities}
+            {isViewingCurrentMonth
+              ? `${streakData.currentStreak} ${streakData.currentStreak === 1 ? 'Week' : 'Weeks'}`
+              : monthStats.totalActivities}
           </p>
         </div>
       </div>
