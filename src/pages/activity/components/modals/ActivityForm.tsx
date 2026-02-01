@@ -87,7 +87,7 @@ function ActivityFormContent({
   const [saving, setSaving] = useState(false);
 
   // Helper to parse zone time - accepts "54", "54:03", or "4:31" formats
-  // Returns rounded minutes (54:03 → 54, 4:31 → 5)
+  // Returns minutes with decimal precision (54:03 → 54.05, 4:31 → 4.517)
   const parseZoneMinutes = (val: string): number | null => {
     if (!val.trim()) return null;
 
@@ -96,12 +96,12 @@ function ActivityFormContent({
     if (timeMatch) {
       const mins = parseInt(timeMatch[1], 10);
       const secs = parseInt(timeMatch[2], 10);
-      // Round to nearest minute
-      return Math.round(mins + secs / 60);
+      // Preserve seconds as decimal
+      return mins + secs / 60;
     }
 
     // Otherwise treat as plain minutes
-    const num = parseInt(val, 10);
+    const num = parseFloat(val);
     return isNaN(num) ? null : num;
   };
 

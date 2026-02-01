@@ -23,7 +23,7 @@ const ICON_OFFSET = (ROW_HEIGHT - ICON_SIZE) / 2; // 12px - centers icon in row
 
 interface ActivityCalendarProps {
   activities: Activity[];
-  onEditActivity: (activity: Activity) => void;
+  onViewActivity: (activity: Activity) => void;
 }
 
 // Calendar day cell component
@@ -195,7 +195,7 @@ function StreakBar({
   );
 }
 
-export function ActivityCalendar({ activities, onEditActivity }: ActivityCalendarProps) {
+export function ActivityCalendar({ activities, onViewActivity }: ActivityCalendarProps) {
   const today = useMemo(() => new Date(), []);
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
@@ -389,7 +389,7 @@ export function ActivityCalendar({ activities, onEditActivity }: ActivityCalenda
         allActivities={activities}
         currentMonth={currentMonth}
         currentYear={currentYear}
-        onActivityClick={onEditActivity}
+        onActivityClick={onViewActivity}
       />
     </div>
   );
