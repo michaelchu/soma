@@ -185,7 +185,16 @@ const formatDecimalValue = (
 
 const DecimalInput = React.forwardRef<HTMLInputElement, DecimalInputProps>(
   (
-    { className, value, onChange, maxValue, minValue, wholeDigits = 2, decimalDigits = 1, ...props },
+    {
+      className,
+      value,
+      onChange,
+      maxValue,
+      minValue,
+      wholeDigits = 2,
+      decimalDigits = 1,
+      ...props
+    },
     ref
   ) => {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
