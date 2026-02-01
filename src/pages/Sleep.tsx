@@ -14,8 +14,7 @@ import { DetailsTab } from './sleep/components/tabs/DetailsTab';
 import { StatisticsTab } from './sleep/components/tabs/StatisticsTab';
 import { SleepEntryForm } from './sleep/components/modals/SleepEntryForm';
 import { ExportModal } from './sleep/components/modals/ExportModal';
-import { LatestEntry } from './sleep/components/ui/LatestEntry';
-import { calculateSleepStats } from './sleep/utils/sleepHelpers';
+import { DesktopSleepView } from './sleep/components/desktop/DesktopSleepView';
 
 const VALID_TABS = ['readings', 'details', 'statistics'];
 
@@ -25,7 +24,7 @@ function SleepContent() {
   const { entries, loading, error } = useSleep();
   const [showForm, setShowForm] = useState(false);
   const [showExport, setShowExport] = useState(false);
-  const [dateRange, setDateRange] = useState('30');
+  const [dateRange, setDateRange] = useState('1m');
 
   // Get active tab from URL, default to 'readings'
   const tabParam = searchParams.get('tab');
@@ -129,50 +128,13 @@ function SleepContent() {
               {renderMobileTabContent()}
             </div>
 
-            {/* Desktop: Full card layout */}
-            <div className="hidden md:block space-y-6">
-              {/* Latest Entry & Stats - side by side */}
-              <div className="grid grid-cols-2 gap-6">
-                <div className="rounded-lg border bg-card shadow-sm p-6">
-                  <LatestEntry entries={filteredEntries} />
-                </div>
-                <div className="rounded-lg border bg-card shadow-sm p-6">
-                  <h3 className="text-base font-semibold mb-4">Statistics</h3>
-                  {(() => {
-                    const stats = calculateSleepStats(filteredEntries);
-                    if (!stats) return <p className="text-muted-foreground">No data</p>;
-                    return (
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <p className="text-muted-foreground">Entries</p>
-                          <p className="text-lg font-semibold">{stats.count}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Avg Duration</p>
-                          <p className="text-lg font-semibold">
-                            {Math.floor(stats.avgDuration / 60)}h {stats.avgDuration % 60}m
-                          </p>
-                        </div>
-                        {stats.avgRestingHr !== null && (
-                          <div>
-                            <p className="text-muted-foreground">Avg Resting HR</p>
-                            <p className="font-medium">{stats.avgRestingHr} bpm</p>
-                          </div>
-                        )}
-                        {stats.avgDeepPct !== null && stats.avgRemPct !== null && (
-                          <div>
-                            <p className="text-muted-foreground">Avg Restorative</p>
-                            <p className="font-medium">{stats.avgDeepPct + stats.avgRemPct}%</p>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </div>
-              </div>
-
-              {/* Readings Table */}
-              <ReadingsTab entries={filteredEntries} />
+            {/* Desktop view */}
+            <div className="hidden md:block pt-4">
+              <DesktopSleepView
+                entries={filteredEntries}
+                allEntries={entries}
+                dateRange={dateRange}
+              />
             </div>
           </>
         )}

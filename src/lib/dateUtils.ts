@@ -179,7 +179,8 @@ export function daysAgo(days: number): Date {
 }
 
 /**
- * Get date range boundaries
+ * Get date range boundaries based on calendar periods
+ * Supports: '1w' (current week), '1m' (current month), '3m' (current + 2 previous months), 'all', or number of days
  */
 export function getDateRange(range: string | number): { start: Date | null; end: Date } {
   const end = new Date();
@@ -188,14 +189,50 @@ export function getDateRange(range: string | number): { start: Date | null; end:
     return { start: null, end };
   }
 
-  // "Last 30 days" means today + 29 previous days (today counts as day 1)
-  const days = typeof range === 'string' ? parseInt(range, 10) : range;
   const start = new Date();
-  start.setDate(end.getDate() - (days - 1));
-  // Use start of day (midnight) for consistent date boundaries
-  start.setHours(0, 0, 0, 0);
 
-  return { start, end };
+  // Handle period-based ranges
+  if (typeof range === 'string') {
+    if (range === '1w') {
+      // Start of current week (Sunday)
+      const dayOfWeek = start.getDay();
+      start.setDate(start.getDate() - dayOfWeek);
+      start.setHours(0, 0, 0, 0);
+      return { start, end };
+    }
+
+    if (range === '1m') {
+      // Start of current month
+      start.setDate(1);
+      start.setHours(0, 0, 0, 0);
+      return { start, end };
+    }
+
+    if (range === '3m') {
+      // Start of 2 months ago (current month + 2 previous months)
+      start.setMonth(start.getMonth() - 2);
+      start.setDate(1);
+      start.setHours(0, 0, 0, 0);
+      return { start, end };
+    }
+
+    // Fallback: try parsing as number of days
+    const days = parseInt(range, 10);
+    if (!isNaN(days)) {
+      start.setDate(end.getDate() - (days - 1));
+      start.setHours(0, 0, 0, 0);
+      return { start, end };
+    }
+  }
+
+  // Handle numeric days
+  if (typeof range === 'number') {
+    start.setDate(end.getDate() - (range - 1));
+    start.setHours(0, 0, 0, 0);
+    return { start, end };
+  }
+
+  return { start: null, end };
 }
 
 /**

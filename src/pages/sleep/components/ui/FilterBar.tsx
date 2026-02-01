@@ -16,6 +16,5 @@ export function FilterBar({ dateRange, onDateRangeChange }: FilterBarProps) {
 }
 
 export function filterEntries(entries: SleepEntry[], dateRange: string): SleepEntry[] {
-  const days = dateRange === 'all' ? 'all' : parseInt(dateRange);
-  return filterEntriesByDateRange(entries, days);
+  return filterEntriesByDateRange(entries, dateRange);
 }

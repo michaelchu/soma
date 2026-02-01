@@ -123,18 +123,44 @@ export function calculateSleepStats(entries: SleepEntry[]) {
 
 /**
  * Filter entries by date range
+ * Supports: '1w', '1m', '3m', 'all', or number of days
  */
 export function filterEntriesByDateRange(
   entries: SleepEntry[],
-  days: number | 'all'
+  range: number | string
 ): SleepEntry[] {
-  if (days === 'all') return entries;
+  if (range === 'all') return entries;
 
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - days);
-  cutoff.setHours(0, 0, 0, 0);
+  const now = new Date();
+  let cutoff: Date;
 
-  return entries.filter((e) => new Date(e.date) >= cutoff);
+  if (typeof range === 'string') {
+    if (range === '1w') {
+      // Start of current week (Sunday)
+      cutoff = new Date();
+      const dayOfWeek = cutoff.getDay();
+      cutoff.setDate(cutoff.getDate() - dayOfWeek);
+      cutoff.setHours(0, 0, 0, 0);
+    } else if (range === '1m') {
+      // Start of current month
+      cutoff = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else if (range === '3m') {
+      // Start of 2 months ago
+      cutoff = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+    } else {
+      // Fallback: try parsing as days
+      const days = parseInt(range, 10);
+      cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - days);
+      cutoff.setHours(0, 0, 0, 0);
+    }
+  } else {
+    cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - range);
+    cutoff.setHours(0, 0, 0, 0);
+  }
+
+  return entries.filter((e) => new Date(e.date + 'T00:00:00') >= cutoff);
 }
 
 /**
@@ -147,25 +173,62 @@ export function getPreviousPeriodEntries(
 ): SleepEntry[] {
   if (dateRange === 'all') return [];
 
-  const days = parseInt(dateRange, 10);
-  if (isNaN(days)) return [];
-
   const now = new Date();
-  now.setHours(23, 59, 59, 999);
+  let currentStart: Date;
+  let previousStart: Date;
+  let previousEnd: Date;
 
-  // Current period: now - days to now
-  // Previous period: now - (2 * days) to now - days
-  const currentCutoff = new Date(now);
-  currentCutoff.setDate(currentCutoff.getDate() - days);
-  currentCutoff.setHours(0, 0, 0, 0);
+  if (dateRange === '1w') {
+    // Current: this week (starting Sunday)
+    // Previous: last week
+    const dayOfWeek = now.getDay();
+    currentStart = new Date(now);
+    currentStart.setDate(currentStart.getDate() - dayOfWeek);
+    currentStart.setHours(0, 0, 0, 0);
 
-  const previousCutoff = new Date(now);
-  previousCutoff.setDate(previousCutoff.getDate() - days * 2);
-  previousCutoff.setHours(0, 0, 0, 0);
+    previousEnd = new Date(currentStart);
+    previousEnd.setMilliseconds(-1); // End of previous week
+
+    previousStart = new Date(currentStart);
+    previousStart.setDate(previousStart.getDate() - 7);
+  } else if (dateRange === '1m') {
+    // Current: this month
+    // Previous: last month
+    currentStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    previousEnd = new Date(currentStart);
+    previousEnd.setMilliseconds(-1); // End of previous month
+
+    previousStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  } else if (dateRange === '3m') {
+    // Current: this month + 2 previous months
+    // Previous: the 3 months before that
+    currentStart = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+
+    previousEnd = new Date(currentStart);
+    previousEnd.setMilliseconds(-1);
+
+    previousStart = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+  } else {
+    // Fallback: try parsing as days
+    const days = parseInt(dateRange, 10);
+    if (isNaN(days)) return [];
+
+    currentStart = new Date(now);
+    currentStart.setDate(currentStart.getDate() - days);
+    currentStart.setHours(0, 0, 0, 0);
+
+    previousEnd = new Date(currentStart);
+    previousEnd.setMilliseconds(-1);
+
+    previousStart = new Date(now);
+    previousStart.setDate(previousStart.getDate() - days * 2);
+    previousStart.setHours(0, 0, 0, 0);
+  }
 
   return allEntries.filter((e) => {
-    const entryDate = new Date(e.date);
-    return entryDate >= previousCutoff && entryDate < currentCutoff;
+    const entryDate = new Date(e.date + 'T00:00:00');
+    return entryDate >= previousStart && entryDate <= previousEnd;
   });
 }
 

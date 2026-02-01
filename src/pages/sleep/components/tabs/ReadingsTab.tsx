@@ -258,7 +258,7 @@ export function ReadingsTab({ entries }: ReadingsTabProps) {
           return (
             <div
               key={entry.id}
-              className="py-4 border-b border-border last:border-b-0 cursor-pointer hover:bg-accent/30 -mx-1 px-1 rounded transition-colors"
+              className="py-4 border-b border-border last:border-b-0 cursor-pointer hover:bg-white/5 -mx-3 px-3 rounded transition-colors"
               onClick={() => setDetailEntry(entry)}
             >
               {/* Header row */}

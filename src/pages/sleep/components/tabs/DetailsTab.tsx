@@ -109,15 +109,28 @@ export function DetailsTab({ entries, allEntries, dateRange }: DetailsTabProps) 
   const allDatesInRange = useMemo(() => {
     if (sortedEntries.length === 0) return [];
 
-    const days = dateRange === 'all' ? null : parseInt(dateRange, 10);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     let startDate: Date;
-    if (days === null) {
-      // For 'all', use the earliest entry date
-      startDate = new Date(sortedEntries[0].date);
+
+    if (dateRange === 'all') {
+      // Use earliest entry date
+      startDate = new Date(sortedEntries[0].date + 'T00:00:00');
+    } else if (dateRange === '1w') {
+      // Start of current week (Sunday)
+      startDate = new Date(today);
+      const dayOfWeek = startDate.getDay();
+      startDate.setDate(startDate.getDate() - dayOfWeek);
+    } else if (dateRange === '1m') {
+      // Start of current month
+      startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+    } else if (dateRange === '3m') {
+      // Start of 2 months ago
+      startDate = new Date(today.getFullYear(), today.getMonth() - 2, 1);
     } else {
+      // Fallback: try parsing as days
+      const days = parseInt(dateRange, 10);
       startDate = new Date(today);
       startDate.setDate(startDate.getDate() - days + 1);
     }
@@ -125,8 +138,11 @@ export function DetailsTab({ entries, allEntries, dateRange }: DetailsTabProps) 
     const dates: string[] = [];
     const current = new Date(startDate);
     while (current <= today) {
-      const dateStr = current.toISOString().split('T')[0];
-      dates.push(dateStr);
+      // Use local date formatting to avoid UTC conversion issues
+      const year = current.getFullYear();
+      const month = String(current.getMonth() + 1).padStart(2, '0');
+      const day = String(current.getDate()).padStart(2, '0');
+      dates.push(`${year}-${month}-${day}`);
       current.setDate(current.getDate() + 1);
     }
     return dates;
