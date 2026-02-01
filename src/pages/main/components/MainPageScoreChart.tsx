@@ -5,7 +5,7 @@ import { formatDate } from '@/lib/dateUtils';
 import { ScoreBarChart, type ScoreBarChartItem } from '@/components/shared/ScoreBarChart';
 import { useMainPage } from '../context/MainPageContext';
 import { calculateHealthScore } from '../utils/healthScore';
-import { getDailyActivityScore } from '@/pages/activity/utils/activityHelpers';
+import { getDailyEffortScore } from '@/pages/activity/utils/activityHelpers';
 import { calculateDailyBPAverage } from '@/pages/blood-pressure/utils/bpHelpers';
 import { getStatus } from '@/pages/blood-tests/utils/statusHelpers';
 import { getDailySleepScore } from '@/pages/sleep/utils/sleepHelpers';
@@ -163,12 +163,12 @@ export function MainPageScoreChart({ children }: MainPageScoreChartProps) {
     // Use shared helpers for consistent calculations across pages
     const bpAvg = calculateDailyBPAverage(dayBpReadings);
     const sleepScore = getDailySleepScore(selectedDate, sleepEntries)?.overall ?? null;
-    const activityScore = getDailyActivityScore(selectedDate, activities);
+    const effortScore = getDailyEffortScore(selectedDate, activities);
 
     return {
       bpAvg,
       sleepScore,
-      activityScore,
+      effortScore,
     };
   }, [selectedDate, bpByDate, sleepEntries, activities]);
 
@@ -232,8 +232,8 @@ export function MainPageScoreChart({ children }: MainPageScoreChartProps) {
             onClick={() => navigate('/sleep')}
           />
           <MetricCard
-            label="Activity Score"
-            value={selectedDayData.activityScore}
+            label="Effort Score"
+            value={selectedDayData.effortScore}
             icon={<Flame size={18} />}
             iconColorClass="text-activity"
             accentColor="activity"

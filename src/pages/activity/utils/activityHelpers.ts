@@ -4,6 +4,170 @@ import { formatDurationLong } from '@/lib/dateUtils';
 // Re-export formatDuration for backwards compatibility (activity uses "45 min" format)
 export const formatDuration = formatDurationLong;
 
+// ============================================================================
+// Effort Score Calculation (Strava-like Relative Effort)
+// ============================================================================
+
+/**
+ * Zone multipliers for TRIMP-like effort calculation.
+ * Higher zones contribute exponentially more to effort score.
+ * These values are calibrated to produce Strava-like scores.
+ */
+const ZONE_MULTIPLIERS = {
+  zone1: 1.0, // Warm Up (100-119 bpm)
+  zone2: 1.8, // Easy (120-139 bpm)
+  zone3: 2.8, // Aerobic (140-159 bpm)
+  zone4: 4.0, // Threshold (160-179 bpm)
+  zone5: 5.5, // Maximum (>179 bpm)
+} as const;
+
+/**
+ * Activity type multipliers to account for different metabolic demands.
+ * Used when HR zones are not available.
+ */
+const ACTIVITY_TYPE_MULTIPLIERS: Record<ActivityType, number> = {
+  walking: 0.8,
+  badminton: 1.2,
+  pickleball: 1.1,
+  other: 1.0,
+};
+
+/**
+ * Map intensity (1-5) to estimated zone distribution percentages.
+ * Used to estimate effort when HR zones are not provided.
+ */
+const INTENSITY_TO_ZONE_DISTRIBUTION: Record<number, number[]> = {
+  // [z1%, z2%, z3%, z4%, z5%]
+  1: [80, 20, 0, 0, 0], // Very light - mostly zone 1
+  2: [40, 50, 10, 0, 0], // Light - mostly zones 1-2
+  3: [10, 40, 40, 10, 0], // Moderate - mostly zones 2-3
+  4: [5, 15, 35, 35, 10], // Hard - significant zone 4
+  5: [0, 5, 20, 40, 35], // All out - heavy zone 4-5
+};
+
+/**
+ * Check if an activity has any HR zone data
+ */
+export function hasHrZoneData(activity: Activity): boolean {
+  return !!(
+    activity.zone1Minutes ||
+    activity.zone2Minutes ||
+    activity.zone3Minutes ||
+    activity.zone4Minutes ||
+    activity.zone5Minutes
+  );
+}
+
+/**
+ * Calculate effort score from actual HR zone data (TRIMP-like).
+ * Returns a score where ~100 is a moderate 60-min workout.
+ */
+function calculateEffortFromZones(
+  zone1: number,
+  zone2: number,
+  zone3: number,
+  zone4: number,
+  zone5: number
+): number {
+  const score =
+    zone1 * ZONE_MULTIPLIERS.zone1 +
+    zone2 * ZONE_MULTIPLIERS.zone2 +
+    zone3 * ZONE_MULTIPLIERS.zone3 +
+    zone4 * ZONE_MULTIPLIERS.zone4 +
+    zone5 * ZONE_MULTIPLIERS.zone5;
+
+  return Math.round(score);
+}
+
+/**
+ * Estimate effort score from intensity level and duration.
+ * Used when HR zone data is not available.
+ */
+function estimateEffortFromIntensity(
+  durationMinutes: number,
+  intensity: number,
+  activityType: ActivityType
+): number {
+  const distribution =
+    INTENSITY_TO_ZONE_DISTRIBUTION[intensity] || INTENSITY_TO_ZONE_DISTRIBUTION[3];
+  const activityMultiplier = ACTIVITY_TYPE_MULTIPLIERS[activityType] || 1.0;
+
+  // Distribute duration across zones based on intensity
+  const zone1 = (distribution[0] / 100) * durationMinutes;
+  const zone2 = (distribution[1] / 100) * durationMinutes;
+  const zone3 = (distribution[2] / 100) * durationMinutes;
+  const zone4 = (distribution[3] / 100) * durationMinutes;
+  const zone5 = (distribution[4] / 100) * durationMinutes;
+
+  const baseScore = calculateEffortFromZones(zone1, zone2, zone3, zone4, zone5);
+  return Math.round(baseScore * activityMultiplier);
+}
+
+/**
+ * Calculate effort score for an activity.
+ * Uses actual HR zone data when available, otherwise estimates from intensity.
+ *
+ * @param activity The activity to calculate effort for
+ * @returns Effort score (typically 0-300+ range, similar to Strava)
+ */
+export function calculateEffortScore(activity: Activity): number {
+  if (hasHrZoneData(activity)) {
+    return calculateEffortFromZones(
+      activity.zone1Minutes || 0,
+      activity.zone2Minutes || 0,
+      activity.zone3Minutes || 0,
+      activity.zone4Minutes || 0,
+      activity.zone5Minutes || 0
+    );
+  }
+
+  return estimateEffortFromIntensity(
+    activity.durationMinutes,
+    activity.intensity,
+    activity.activityType
+  );
+}
+
+/**
+ * Get effort level description based on score
+ */
+export function getEffortLevel(score: number): { label: string; color: string } {
+  if (score < 25) return { label: 'Light', color: 'text-green-500' };
+  if (score < 75) return { label: 'Moderate', color: 'text-lime-500' };
+  if (score < 150) return { label: 'Challenging', color: 'text-yellow-500' };
+  if (score < 250) return { label: 'Hard', color: 'text-orange-500' };
+  return { label: 'Extreme', color: 'text-red-500' };
+}
+
+/**
+ * Get effort badge color class based on score
+ */
+export function getEffortBadgeColor(score: number): string {
+  if (score < 25) return 'bg-green-500/10 text-green-500';
+  if (score < 75) return 'bg-lime-500/10 text-lime-500';
+  if (score < 150) return 'bg-yellow-500/10 text-yellow-500';
+  if (score < 250) return 'bg-orange-500/10 text-orange-500';
+  return 'bg-red-500/10 text-red-500';
+}
+
+/**
+ * Calculate total effort for a day's activities
+ */
+export function calculateDailyEffortScore(activities: Activity[]): number {
+  return activities.reduce((total, activity) => total + calculateEffortScore(activity), 0);
+}
+
+/**
+ * Get effort score for a specific date
+ * Convenience function that filters activities and returns effort score for the given date
+ */
+export function getDailyEffortScore(date: string, allActivities: Activity[]): number | null {
+  const dayActivities = allActivities.filter((a) => a.date === date);
+  if (dayActivities.length === 0) return null;
+
+  return calculateDailyEffortScore(dayActivities);
+}
+
 /**
  * Calculate consistency multiplier based on workouts in the past 7 days
  * @param activities All activities

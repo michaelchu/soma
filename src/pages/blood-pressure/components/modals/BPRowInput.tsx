@@ -1,5 +1,5 @@
 import { forwardRef, useImperativeHandle, useRef } from 'react';
-import { Input } from '@/components/ui/input';
+import { NumericInput } from '@/components/ui/masked-input';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 import { BP_VALIDATION } from '@/lib/validation';
@@ -83,35 +83,32 @@ export const BPRowInput = forwardRef<BPRowInputRef, BPRowInputProps>(
 
     return (
       <div className="flex items-center gap-2 px-1 py-1">
-        <Input
+        <NumericInput
           ref={systolicRef}
-          type="number"
           placeholder="Sys"
           value={row.systolic}
           onChange={(e) => handleChange('systolic', e.target.value)}
-          min={BP_VALIDATION.SYSTOLIC_MIN}
-          max={BP_VALIDATION.SYSTOLIC_MAX}
+          maxDigits={3}
+          maxValue={BP_VALIDATION.SYSTOLIC_MAX}
           className="flex-1 min-w-0 text-center"
         />
         <span className="text-xl text-muted-foreground">/</span>
-        <Input
+        <NumericInput
           ref={diastolicRef}
-          type="number"
           placeholder="Dia"
           value={row.diastolic}
           onChange={(e) => handleChange('diastolic', e.target.value)}
-          min={BP_VALIDATION.DIASTOLIC_MIN}
-          max={BP_VALIDATION.DIASTOLIC_MAX}
+          maxDigits={3}
+          maxValue={BP_VALIDATION.DIASTOLIC_MAX}
           className="flex-1 min-w-0 text-center"
         />
-        <Input
+        <NumericInput
           ref={pulseRef}
-          type="number"
           placeholder="Pulse"
           value={row.pulse}
           onChange={(e) => handleChange('pulse', e.target.value)}
-          min={BP_VALIDATION.PULSE_MIN}
-          max={BP_VALIDATION.PULSE_MAX}
+          maxDigits={3}
+          maxValue={BP_VALIDATION.PULSE_MAX}
           className="flex-1 min-w-0 text-center"
         />
         <ArmSelector value={row.arm} onChange={(arm) => onUpdate(index, 'arm', arm)} />
