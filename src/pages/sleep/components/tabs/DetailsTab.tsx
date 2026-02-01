@@ -228,26 +228,12 @@ export function DetailsTab({ entries, allEntries, dateRange }: DetailsTabProps) 
       {/* Selected Day Stats */}
       {selectedEntry && (
         <div className="space-y-4 px-5 sm:px-6 pb-8">
-          {/* Sleep Score + Sleep Window row */}
-          <div className="grid grid-cols-2 gap-3">
-            {sleepScore !== null && sleepScore.overall !== null && (
-              <div className="rounded-xl p-4 border border-border text-center">
-                <p className="text-3xl font-bold text-foreground">{sleepScore.overall}</p>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Score</p>
-              </div>
-            )}
-            {sleepWindow && (
-              <div className="rounded-xl p-4 border border-border text-center">
-                <p className="text-lg font-semibold text-foreground">{sleepWindow}</p>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide mt-1">
-                  Sleep Window
-                </p>
-              </div>
-            )}
-          </div>
-
           {/* Primary Stats Grid */}
           <div className="grid grid-cols-2 gap-3">
+            {sleepScore !== null && sleepScore.overall !== null && (
+              <MetricCard label="Score" value={sleepScore.overall} />
+            )}
+            <MetricCard label="Sleep Window" value={sleepWindow} />
             <MetricCard
               icon={Moon}
               label="Total Sleep"
@@ -289,7 +275,6 @@ export function DetailsTab({ entries, allEntries, dateRange }: DetailsTabProps) 
                 label="HR Drop"
                 value={selectedEntry.hrDropMinutes}
                 unit="min"
-                subValue="to lowest HR"
               />
             )}
             {selectedEntry.skinTempAvg !== null && (
