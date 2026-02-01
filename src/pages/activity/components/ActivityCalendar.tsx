@@ -80,7 +80,7 @@ function CalendarDay({
 // Week streak indicator component
 function WeekStreakIndicator({ hasActivity }: { hasActivity: boolean }) {
   const circleClassName = hasActivity
-    ? 'bg-muted-foreground'
+    ? 'bg-orange-500'
     : 'border-2 border-muted-foreground/30';
 
   return (
