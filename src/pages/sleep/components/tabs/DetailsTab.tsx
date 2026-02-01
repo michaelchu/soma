@@ -85,7 +85,11 @@ function SleepStagesDisplay({ entry, score }: { entry: SleepEntry; score?: numbe
               {/* Bar */}
               <div className="flex h-3 rounded-full overflow-hidden bg-muted mb-3">
                 {stages.map((stage) => (
-                  <div key={stage.key} className={stage.color} style={{ width: `${stage.value}%` }} />
+                  <div
+                    key={stage.key}
+                    className={stage.color}
+                    style={{ width: `${stage.value}%` }}
+                  />
                 ))}
               </div>
 

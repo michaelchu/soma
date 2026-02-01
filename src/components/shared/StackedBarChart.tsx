@@ -364,21 +364,31 @@ export function StackedBarChart({
 
       {/* Legend - below chart */}
       {showLegend && (
-        <div className={`flex items-center justify-center gap-4 ${compact ? 'text-[10px] mt-2' : 'text-xs mt-4'}`}>
+        <div
+          className={`flex items-center justify-center gap-4 ${compact ? 'text-[10px] mt-2' : 'text-xs mt-4'}`}
+        >
           <div className="flex items-center gap-1.5">
-            <span className={`${compact ? 'w-2 h-2' : 'w-2.5 h-2.5'} rounded-sm ${STAGE_COLORS.deep}`} />
+            <span
+              className={`${compact ? 'w-2 h-2' : 'w-2.5 h-2.5'} rounded-sm ${STAGE_COLORS.deep}`}
+            />
             <span className="text-muted-foreground">Deep</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className={`${compact ? 'w-2 h-2' : 'w-2.5 h-2.5'} rounded-sm ${STAGE_COLORS.rem}`} />
+            <span
+              className={`${compact ? 'w-2 h-2' : 'w-2.5 h-2.5'} rounded-sm ${STAGE_COLORS.rem}`}
+            />
             <span className="text-muted-foreground">REM</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className={`${compact ? 'w-2 h-2' : 'w-2.5 h-2.5'} rounded-sm ${STAGE_COLORS.light}`} />
+            <span
+              className={`${compact ? 'w-2 h-2' : 'w-2.5 h-2.5'} rounded-sm ${STAGE_COLORS.light}`}
+            />
             <span className="text-muted-foreground">Light</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className={`${compact ? 'w-2 h-2' : 'w-2.5 h-2.5'} rounded-sm ${STAGE_COLORS.awake}`} />
+            <span
+              className={`${compact ? 'w-2 h-2' : 'w-2.5 h-2.5'} rounded-sm ${STAGE_COLORS.awake}`}
+            />
             <span className="text-muted-foreground">Awake</span>
           </div>
         </div>

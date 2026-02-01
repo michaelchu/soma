@@ -121,9 +121,7 @@ function SleepContent() {
         ) : (
           <>
             {/* Mobile: Tab-based view with scrollable content */}
-            <div className="md:hidden pt-4">
-              {renderMobileTabContent()}
-            </div>
+            <div className="md:hidden pt-4">{renderMobileTabContent()}</div>
 
             {/* Desktop view */}
             <div className="hidden md:block pt-4">
