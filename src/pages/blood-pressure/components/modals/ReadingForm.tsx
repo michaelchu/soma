@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Plus } from 'lucide-react';
 import { useBloodPressure } from '../../context/BPContext';
-import { showError, showSuccess, showWithUndo } from '@/lib/toast';
+import { showError, showSuccess, showWithUndo, extractErrorMessage } from '@/lib/toast';
 import { getLocalDatetimeNow, toDatetimeLocalFormat } from '@/lib/dateUtils';
 import { BP_VALIDATION } from '@/lib/validation';
 import { BPRowInput, type BPRowData, type BPRowInputRef } from './BPRowInput';
@@ -124,7 +124,7 @@ function ReadingFormContent({ session, onOpenChange }: ReadingFormContentProps) 
         )
       : null;
 
-  const isValid = datetime && validRows.length > 0;
+  const isValid = Boolean(datetime && validRows.length > 0);
 
   const handleSave = async () => {
     setSaving(true);
@@ -155,7 +155,7 @@ function ReadingFormContent({ session, onOpenChange }: ReadingFormContentProps) 
     setSaving(false);
 
     if (saveError) {
-      showError(saveError.message || 'Failed to save reading');
+      showError(extractErrorMessage(saveError) || 'Failed to save reading');
       return;
     }
 
@@ -183,28 +183,28 @@ function ReadingFormContent({ session, onOpenChange }: ReadingFormContentProps) 
 
     setDeleting(true);
 
-    const { error: deleteError, deletedSession } = await deleteSession(session.sessionId);
+    const { error: deleteError, deletedItem } = await deleteSession(session.sessionId);
 
     setDeleting(false);
 
     if (deleteError) {
-      showError(deleteError.message || 'Failed to delete reading');
+      showError(extractErrorMessage(deleteError) || 'Failed to delete reading');
       setConfirmDelete(false);
       return;
     }
 
     showWithUndo('Reading deleted', async () => {
-      if (deletedSession) {
+      if (deletedItem) {
         // Re-add the session with its readings
         const { error: undoError } = await addSession({
-          datetime: deletedSession.datetime,
-          readings: deletedSession.readings.map((r) => ({
+          datetime: deletedItem.datetime,
+          readings: deletedItem.readings.map((r) => ({
             systolic: r.systolic,
             diastolic: r.diastolic,
             arm: r.arm,
             pulse: r.pulse,
           })),
-          notes: deletedSession.notes,
+          notes: deletedItem.notes,
         });
         if (undoError) {
           showError('Failed to restore reading');

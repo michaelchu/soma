@@ -37,6 +37,7 @@ export function useDataManager<T extends { [key: string]: any }>({
 
   const dataRef = useRef(data);
   const isMountedRef = useRef(true);
+  const fetchIdRef = useRef(0);
 
   // Keep fetchFn and processData refs to avoid stale closures
   const fetchFnRef = useRef(fetchFn);
@@ -59,10 +60,12 @@ export function useDataManager<T extends { [key: string]: any }>({
     isMountedRef.current = true;
 
     const loadData = async () => {
+      const currentFetchId = ++fetchIdRef.current;
       setLoading(true);
       const { data: fetchedData, error: fetchError } = await fetchFnRef.current();
 
-      if (!isMountedRef.current) return;
+      // Ignore stale responses
+      if (!isMountedRef.current || currentFetchId !== fetchIdRef.current) return;
 
       if (fetchError) {
         setError(errorMessageRef.current);
@@ -86,10 +89,12 @@ export function useDataManager<T extends { [key: string]: any }>({
   }, []);
 
   const fetchData = useCallback(async () => {
+    const currentFetchId = ++fetchIdRef.current;
     setLoading(true);
     const { data: fetchedData, error: fetchError } = await fetchFnRef.current();
 
-    if (!isMountedRef.current) return;
+    // Ignore stale responses
+    if (!isMountedRef.current || currentFetchId !== fetchIdRef.current) return;
 
     if (fetchError) {
       setError(errorMessageRef.current);

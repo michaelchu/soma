@@ -10,7 +10,7 @@ export function useBloodPressureSettings() {
 
   // Memoize getCategory to prevent unnecessary re-renders in child components
   const getCategory = useCallback(
-    (systolic, diastolic) => getBPCategory(systolic, diastolic, guidelineKey),
+    (systolic: number, diastolic: number) => getBPCategory(systolic, diastolic, guidelineKey),
     [guidelineKey]
   );
 

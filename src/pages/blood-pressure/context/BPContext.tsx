@@ -1,21 +1,10 @@
-import { createContext, useContext } from 'react';
+import { createDataContext } from '@/lib/contextUtils';
 import { useReadings } from '../hooks/useReadings';
 
-const BPContext = createContext(null);
+const { Provider, useData } = createDataContext(useReadings, 'BloodPressure');
 
-export function BPProvider({ children }) {
-  const readingsState = useReadings();
-
-  return <BPContext.Provider value={readingsState}>{children}</BPContext.Provider>;
-}
-
-export function useBloodPressure() {
-  const context = useContext(BPContext);
-  if (!context) {
-    throw new Error('useBloodPressure must be used within a BPProvider');
-  }
-  return context;
-}
+export const BPProvider = Provider;
+export const useBloodPressure = useData;
 
 // Backwards compatibility alias
 export const useBP = useBloodPressure;

@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
-import { sanitizeString } from '../validation';
+import { validateActivity, sanitizeString } from '../validation';
+import { logError } from '../logger';
 import type {
   Activity,
   ActivityInput,
@@ -23,6 +24,11 @@ function rowToActivity(row: ActivityRow): Activity {
     durationMinutes: row.duration_minutes,
     intensity: row.intensity,
     notes: row.notes,
+    zone1Minutes: row.zone1_minutes,
+    zone2Minutes: row.zone2_minutes,
+    zone3Minutes: row.zone3_minutes,
+    zone4Minutes: row.zone4_minutes,
+    zone5Minutes: row.zone5_minutes,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -50,7 +56,7 @@ export async function getActivities(): Promise<{
     .order('date', { ascending: false });
 
   if (error) {
-    console.error('Error fetching activities:', error);
+    logError('activity.getActivities', error);
     return { data: null, error };
   }
 
@@ -64,6 +70,12 @@ export async function getActivities(): Promise<{
 export async function addActivity(
   input: ActivityInput
 ): Promise<{ data: Activity | null; error: Error | null }> {
+  // Validate input
+  const validation = validateActivity(input);
+  if (!validation.valid) {
+    return { data: null, error: new Error(validation.errors.join('; ')) };
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -82,12 +94,17 @@ export async function addActivity(
     duration_minutes: input.durationMinutes,
     intensity: input.intensity,
     notes: sanitizedNotes,
+    zone1_minutes: input.zone1Minutes ?? null,
+    zone2_minutes: input.zone2Minutes ?? null,
+    zone3_minutes: input.zone3Minutes ?? null,
+    zone4_minutes: input.zone4Minutes ?? null,
+    zone5_minutes: input.zone5Minutes ?? null,
   };
 
   const { data, error } = await supabase.from('activities').insert(row).select().single();
 
   if (error) {
-    console.error('Error adding activity:', error);
+    logError('activity.addActivity', error);
     return { data: null, error };
   }
 
@@ -101,6 +118,12 @@ export async function updateActivity(
   id: string,
   input: ActivityInput
 ): Promise<{ data: Activity | null; error: Error | null }> {
+  // Validate input
+  const validation = validateActivity(input);
+  if (!validation.valid) {
+    return { data: null, error: new Error(validation.errors.join('; ')) };
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -118,6 +141,11 @@ export async function updateActivity(
     duration_minutes: input.durationMinutes,
     intensity: input.intensity,
     notes: sanitizedNotes,
+    zone1_minutes: input.zone1Minutes ?? null,
+    zone2_minutes: input.zone2Minutes ?? null,
+    zone3_minutes: input.zone3Minutes ?? null,
+    zone4_minutes: input.zone4Minutes ?? null,
+    zone5_minutes: input.zone5Minutes ?? null,
   };
 
   const { data, error } = await supabase
@@ -129,7 +157,7 @@ export async function updateActivity(
     .single();
 
   if (error) {
-    console.error('Error updating activity:', error);
+    logError('activity.updateActivity', error);
     return { data: null, error };
   }
 
@@ -151,7 +179,7 @@ export async function deleteActivity(id: string): Promise<{ error: Error | null 
   const { error } = await supabase.from('activities').delete().eq('id', id).eq('user_id', user.id);
 
   if (error) {
-    console.error('Error deleting activity:', error);
+    logError('activity.deleteActivity', error);
   }
 
   return { error };

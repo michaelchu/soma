@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
 import { validateBloodTestReport, sanitizeString } from '../validation';
+import { logError } from '../logger';
 
 /**
  * Blood Tests data service
@@ -92,7 +93,7 @@ export async function getReports(): Promise<{
     .order('report_date', { ascending: false });
 
   if (error) {
-    console.error('Error fetching blood test reports:', error);
+    logError('bloodTests.getReports', error);
     return { data: null, error };
   }
 
@@ -175,7 +176,7 @@ export async function addReport(report: ReportInput): Promise<{
     .single();
 
   if (reportError) {
-    console.error('Error adding blood test report:', reportError);
+    logError('bloodTests.addReport', reportError);
     return { data: null, error: reportError };
   }
 
@@ -194,7 +195,7 @@ export async function addReport(report: ReportInput): Promise<{
     const { error: metricsError } = await supabase.from('blood_test_metrics').insert(metricsRows);
 
     if (metricsError) {
-      console.error('Error adding blood test metrics:', metricsError);
+      logError('bloodTests.addReport.metrics', metricsError);
       // Clean up the report if metrics failed
       await supabase.from('blood_test_reports').delete().eq('id', reportData.id);
       return { data: null, error: metricsError };
@@ -246,7 +247,7 @@ export async function updateReport(
     .single();
 
   if (error) {
-    console.error('Error updating blood test report:', error);
+    logError('bloodTests.updateReport', error);
     return { data: null, error };
   }
 
@@ -282,7 +283,7 @@ export async function deleteReport(id: string): Promise<{ error: Error | null }>
     .eq('user_id', user.id);
 
   if (error) {
-    console.error('Error deleting blood test report:', error);
+    logError('bloodTests.deleteReport', error);
   }
 
   return { error };
@@ -314,7 +315,7 @@ export async function updateMetric(
     .single();
 
   if (reportError || !report) {
-    console.error('Error verifying report ownership:', reportError);
+    logError('bloodTests.updateMetric.verifyOwnership', reportError);
     return { error: new Error('Report not found or access denied') };
   }
 
@@ -329,7 +330,7 @@ export async function updateMetric(
   });
 
   if (error) {
-    console.error('Error updating metric:', error);
+    logError('bloodTests.updateMetric', error);
   }
 
   return { error };
@@ -372,7 +373,7 @@ export async function bulkInsertReports(
       .single();
 
     if (reportError) {
-      console.error('Error inserting report:', reportError);
+      logError('bloodTests.bulkInsertReports.report', reportError);
       continue;
     }
 
@@ -391,7 +392,7 @@ export async function bulkInsertReports(
       const { error: metricsError } = await supabase.from('blood_test_metrics').insert(metricsRows);
 
       if (metricsError) {
-        console.error('Error inserting metrics for report:', metricsError);
+        logError('bloodTests.bulkInsertReports.metrics', metricsError);
       }
     }
 

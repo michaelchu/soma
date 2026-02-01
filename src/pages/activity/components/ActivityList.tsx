@@ -1,10 +1,13 @@
+import { Heart } from 'lucide-react';
 import type { Activity } from '@/types/activity';
 import { ActivityIcon } from './ActivityIcons';
 import {
   formatDuration,
   getActivityTypeLabel,
   getTimeOfDayLabel,
-  calculateActivityScore,
+  calculateEffortScore,
+  getEffortBadgeColor,
+  hasHrZoneData,
 } from '../utils/activityHelpers';
 
 interface ActivityListProps {
@@ -17,7 +20,7 @@ interface ActivityListProps {
 
 export function ActivityList({
   activities,
-  allActivities,
+  allActivities: _allActivities,
   currentMonth,
   currentYear,
   onActivityClick,
@@ -56,11 +59,12 @@ export function ActivityList({
       <h3 className="text-lg font-semibold">Activities</h3>
       <div className="space-y-2">
         {monthActivities.map((activity) => {
-          const score = calculateActivityScore(activity, allActivities);
+          const effortScore = calculateEffortScore(activity);
+          const hasHrData = hasHrZoneData(activity);
           return (
             <div
               key={activity.id}
-              className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 cursor-pointer hover:bg-muted transition-colors"
+              className="flex items-center gap-3 p-3 rounded-lg border border-border cursor-pointer hover:bg-muted/30 transition-colors"
               onClick={() => onActivityClick(activity)}
             >
               {/* Activity icon */}
@@ -74,8 +78,11 @@ export function ActivityList({
                   <span className="font-medium truncate">
                     {getActivityTypeLabel(activity.activityType)}
                   </span>
-                  <span className="text-sm font-semibold text-orange-500 flex-shrink-0">
-                    {score} pts
+                  <span
+                    className={`text-xs font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 ${getEffortBadgeColor(effortScore)}`}
+                  >
+                    {hasHrData && <Heart className="h-3 w-3" />}
+                    {effortScore}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">

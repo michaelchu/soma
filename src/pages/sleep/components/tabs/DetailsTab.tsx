@@ -33,7 +33,7 @@ function MetricCard({
   if (value === null || value === undefined || value === '') return null;
 
   return (
-    <div className="bg-muted/50 rounded-xl p-3 border border-border">
+    <div className="rounded-xl p-3 border border-border">
       <div className="flex items-baseline gap-0.5">
         <span className="text-xl font-bold text-foreground">{value}</span>
         {unit && <span className="text-sm text-muted-foreground">{unit}</span>}
@@ -61,7 +61,7 @@ function SleepStagesDisplay({ entry }: { entry: SleepEntry }) {
   ].filter((s) => s.value !== null);
 
   return (
-    <div className="bg-muted/50 rounded-xl p-4 border border-border">
+    <div className="rounded-xl p-4 border border-border">
       <h4 className="text-xs text-muted-foreground uppercase tracking-wide mb-3">Sleep Stages</h4>
 
       {/* Bar */}
@@ -219,22 +219,27 @@ export function DetailsTab({ entries, allEntries, dateRange }: DetailsTabProps) 
       )}
 
       {/* Scrollable Bar Chart */}
-      <div className="px-5 sm:px-6 pt-2 pb-4">
-        <div className="-mx-5 sm:-mx-6 px-5 sm:px-6 relative">
-          <ScoreBarChart
-            items={chartItems}
-            selectedIndex={selectedIndex}
-            onSelectIndex={setSelectedIndex}
-          />
-          {/* Fade overlays - works because page gradient fades to black */}
-          <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-black to-transparent pointer-events-none" />
-          <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-black to-transparent pointer-events-none" />
-        </div>
+      <div className="pt-2 pb-4 -mx-5 sm:-mx-6">
+        <ScoreBarChart
+          items={chartItems}
+          selectedIndex={selectedIndex}
+          onSelectIndex={setSelectedIndex}
+        />
       </div>
 
       {/* Selected Day Stats */}
       {selectedEntry && (
         <div className="space-y-4 px-5 sm:px-6 pb-8">
+          {/* Sleep Window */}
+          {sleepWindow && (
+            <div className="rounded-xl p-4 border border-border text-center">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                Sleep Window
+              </p>
+              <p className="text-lg font-semibold text-foreground">{sleepWindow}</p>
+            </div>
+          )}
+
           {/* Primary Stats Grid */}
           <div className="grid grid-cols-2 gap-3">
             <MetricCard
@@ -294,19 +299,9 @@ export function DetailsTab({ entries, allEntries, dateRange }: DetailsTabProps) 
             )}
           </div>
 
-          {/* Sleep Window */}
-          {sleepWindow && (
-            <div className="bg-muted/50 rounded-xl p-4 border border-border text-center">
-              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-                Sleep Window
-              </p>
-              <p className="text-lg font-semibold text-foreground">{sleepWindow}</p>
-            </div>
-          )}
-
           {/* Notes */}
           {selectedEntry.notes && (
-            <div className="bg-muted/50 rounded-xl p-4 border border-border">
+            <div className="rounded-xl p-4 border border-border">
               <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Notes</p>
               <p className="text-sm whitespace-pre-wrap text-foreground">{selectedEntry.notes}</p>
             </div>

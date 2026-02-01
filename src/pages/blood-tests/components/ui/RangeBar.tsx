@@ -26,7 +26,7 @@ interface RangeBarProps {
 export function RangeBar({ value, min, max, optimalMin, optimalMax }: RangeBarProps) {
   const position = getPositionInRange(value, min, max);
   const status = getStatus(value, min, max);
-  const optimalStyle = getOptimalZoneStyle(optimalMin, optimalMax, min, max);
+  const optimalStyle = getOptimalZoneStyle(optimalMin ?? null, optimalMax ?? null, min, max);
 
   return (
     <div className="mt-2">

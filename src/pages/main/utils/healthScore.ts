@@ -8,6 +8,7 @@
 import type { SleepEntry } from '@/lib/db/sleep';
 import type { BPReadingSummary } from '@/types/bloodPressure';
 import { avg, avgRounded, standardDeviation } from '@/lib/statsUtils';
+import { getDailySleepScore } from '@/pages/sleep/utils/sleepHelpers';
 
 // ============================================================================
 // BLOOD PRESSURE SCORE (50% of total)
@@ -347,13 +348,42 @@ export interface HealthScoreResult {
 
 /**
  * Calculate composite health score from BP and Sleep data
+ * @param bpReadings BP readings for the day
+ * @param sleepEntries Sleep entries for the day (typically 0 or 1)
+ * @param allSleepEntries All sleep entries for personalized scoring baseline
  */
 export function calculateHealthScore(
   bpReadings: BPReadingSummary[],
-  sleepEntries: SleepEntry[]
+  sleepEntries: SleepEntry[],
+  allSleepEntries?: SleepEntry[]
 ): HealthScoreResult {
   const bpScore = calculateBPScore(bpReadings);
-  const sleepScore = calculateSleepHealthScore(sleepEntries);
+
+  // Use personalized scoring if all entries provided, otherwise fall back to population-based
+  let sleepScore: SleepScoreResult | null = null;
+  if (sleepEntries.length > 0 && allSleepEntries && allSleepEntries.length >= 3) {
+    const personalizedScore = getDailySleepScore(sleepEntries[0].date, allSleepEntries);
+    if (personalizedScore && personalizedScore.overall !== null) {
+      // Convert personalized score to SleepScoreResult format for compatibility
+      sleepScore = {
+        score: personalizedScore.overall,
+        durationScore: personalizedScore.duration ?? 0,
+        restorativeScore: personalizedScore.sleepQuality ?? 0,
+        heartScore: personalizedScore.heartHealth ?? 0,
+        consistencyBonus: 0,
+        avgDurationMinutes: sleepEntries[0].durationMinutes,
+        avgRestorative:
+          sleepEntries[0].deepSleepPct !== null || sleepEntries[0].remSleepPct !== null
+            ? (sleepEntries[0].deepSleepPct || 0) + (sleepEntries[0].remSleepPct || 0)
+            : null,
+      };
+    }
+  }
+
+  // Fall back to population-based scoring if personalized not available
+  if (!sleepScore && sleepEntries.length > 0) {
+    sleepScore = calculateSleepHealthScore(sleepEntries);
+  }
 
   // Handle missing data - redistribute weights
   let overall: number;

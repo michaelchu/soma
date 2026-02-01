@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { Activity, Moon, Flame, FlaskConical, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { formatDate } from '@/lib/dateUtils';
 import { ScoreBarChart, type ScoreBarChartItem } from '@/components/shared/ScoreBarChart';
-import { useDashboard } from '../context/DashboardContext';
-import { calculateHealthScore, calculateSleepHealthScore } from '../utils/healthScore';
-import { calculateDailyActivityScore } from '@/pages/activity/utils/activityHelpers';
+import { useMainPage } from '../context/MainPageContext';
+import { calculateHealthScore } from '../utils/healthScore';
+import { getDailyEffortScore } from '@/pages/activity/utils/activityHelpers';
+import { calculateDailyBPAverage } from '@/pages/blood-pressure/utils/bpHelpers';
 import { getStatus } from '@/pages/blood-tests/utils/statusHelpers';
+import { getDailySleepScore } from '@/pages/sleep/utils/sleepHelpers';
 
 const CHART_DAYS = 30;
 
@@ -55,13 +57,13 @@ function MetricCard({
   );
 }
 
-interface DashboardScoreChartProps {
+interface MainPageScoreChartProps {
   children?: ReactNode;
 }
 
-export function DashboardScoreChart({ children }: DashboardScoreChartProps) {
+export function MainPageScoreChart({ children }: MainPageScoreChartProps) {
   const navigate = useNavigate();
-  const { bpReadings, sleepEntries, activities, bloodTestReports } = useDashboard();
+  const { bpReadings, sleepEntries, activities, bloodTestReports } = useMainPage();
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   // Generate all dates for the last 30 days
@@ -104,18 +106,6 @@ export function DashboardScoreChart({ children }: DashboardScoreChartProps) {
     return map;
   }, [sleepEntries]);
 
-  // Group activities by date
-  const activitiesByDate = useMemo(() => {
-    const map = new Map<string, typeof activities>();
-    for (const activity of activities) {
-      if (!map.has(activity.date)) {
-        map.set(activity.date, []);
-      }
-      map.get(activity.date)!.push(activity);
-    }
-    return map;
-  }, [activities]);
-
   // Get the most recent blood test report
   const latestBloodTestReport = useMemo(() => {
     if (!bloodTestReports || bloodTestReports.length === 0) return null;
@@ -156,10 +146,11 @@ export function DashboardScoreChart({ children }: DashboardScoreChartProps) {
         return { date, score: null };
       }
 
-      const healthScore = calculateHealthScore(dayBpReadings, daySleepEntries);
+      // Pass all sleep entries for personalized scoring baseline
+      const healthScore = calculateHealthScore(dayBpReadings, daySleepEntries, sleepEntries);
       return { date, score: healthScore.overall };
     });
-  }, [allDatesInRange, bpByDate, sleepByDate]);
+  }, [allDatesInRange, bpByDate, sleepByDate, sleepEntries]);
 
   // Get selected date's data
   const selectedDate = chartItems[selectedIndex]?.date;
@@ -168,40 +159,18 @@ export function DashboardScoreChart({ children }: DashboardScoreChartProps) {
     if (!selectedDate) return null;
 
     const dayBpReadings = bpByDate.get(selectedDate) || [];
-    const daySleepEntry = sleepByDate.get(selectedDate);
-    const dayActivities = activitiesByDate.get(selectedDate) || [];
 
-    // Calculate BP average for the day
-    let bpAvg: { systolic: number; diastolic: number } | null = null;
-    if (dayBpReadings.length > 0) {
-      const avgSystolic = Math.round(
-        dayBpReadings.reduce((sum, r) => sum + r.systolic, 0) / dayBpReadings.length
-      );
-      const avgDiastolic = Math.round(
-        dayBpReadings.reduce((sum, r) => sum + r.diastolic, 0) / dayBpReadings.length
-      );
-      bpAvg = { systolic: avgSystolic, diastolic: avgDiastolic };
-    }
-
-    // Calculate sleep score for the day
-    let sleepScore: number | null = null;
-    if (daySleepEntry) {
-      const sleepScoreResult = calculateSleepHealthScore([daySleepEntry]);
-      sleepScore = sleepScoreResult?.score ?? null;
-    }
-
-    // Calculate activity score for the day
-    let activityScore: number | null = null;
-    if (dayActivities.length > 0) {
-      activityScore = calculateDailyActivityScore(dayActivities, activities);
-    }
+    // Use shared helpers for consistent calculations across pages
+    const bpAvg = calculateDailyBPAverage(dayBpReadings);
+    const sleepScore = getDailySleepScore(selectedDate, sleepEntries)?.overall ?? null;
+    const effortScore = getDailyEffortScore(selectedDate, activities);
 
     return {
       bpAvg,
       sleepScore,
-      activityScore,
+      effortScore,
     };
-  }, [selectedDate, bpByDate, sleepByDate, activitiesByDate, activities]);
+  }, [selectedDate, bpByDate, sleepEntries, activities]);
 
   const hasData = bpReadings.length > 0 || sleepEntries.length > 0;
 
@@ -228,17 +197,12 @@ export function DashboardScoreChart({ children }: DashboardScoreChartProps) {
       )}
 
       {/* Scrollable Bar Chart */}
-      <div className="pt-2 pb-4">
-        <div className="-mx-5 sm:-mx-6 relative">
-          <ScoreBarChart
-            items={chartItems}
-            selectedIndex={selectedIndex}
-            onSelectIndex={setSelectedIndex}
-          />
-          {/* Fade overlays - works because page gradient fades to black */}
-          <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-black to-transparent pointer-events-none" />
-          <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-black to-transparent pointer-events-none" />
-        </div>
+      <div className="pt-2 pb-4 -mx-5 sm:-mx-6">
+        <ScoreBarChart
+          items={chartItems}
+          selectedIndex={selectedIndex}
+          onSelectIndex={setSelectedIndex}
+        />
       </div>
 
       {/* Children (e.g., Insights) rendered between chart and metrics */}
@@ -268,8 +232,8 @@ export function DashboardScoreChart({ children }: DashboardScoreChartProps) {
             onClick={() => navigate('/sleep')}
           />
           <MetricCard
-            label="Activity Score"
-            value={selectedDayData.activityScore}
+            label="Effort Score"
+            value={selectedDayData.effortScore}
             icon={<Flame size={18} />}
             iconColorClass="text-activity"
             accentColor="activity"

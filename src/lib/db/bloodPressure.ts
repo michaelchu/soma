@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
 import { validateBPSession, sanitizeString } from '../validation';
+import { logError } from '../logger';
 import type { Arm, BPReading, BPSession, BPSessionInput } from '@/types/bloodPressure';
 
 /**
@@ -42,6 +43,33 @@ const cuffToArm = (cuff: CuffLocation): Arm => {
 };
 
 /**
+ * Calculate average systolic, diastolic, and pulse from an array of readings
+ */
+function calculateSessionAverages(readings: BPReading[]): {
+  avgSystolic: number;
+  avgDiastolic: number;
+  avgPulse: number | null;
+} {
+  const avgSystolic = Math.round(
+    readings.reduce((sum, r) => sum + r.systolic, 0) / readings.length
+  );
+  const avgDiastolic = Math.round(
+    readings.reduce((sum, r) => sum + r.diastolic, 0) / readings.length
+  );
+
+  // Average pulse from readings that have it
+  const readingsWithPulse = readings.filter((r) => r.pulse);
+  const avgPulse =
+    readingsWithPulse.length > 0
+      ? Math.round(
+          readingsWithPulse.reduce((sum, r) => sum + (r.pulse || 0), 0) / readingsWithPulse.length
+        )
+      : null;
+
+  return { avgSystolic, avgDiastolic, avgPulse };
+}
+
+/**
  * Get all blood pressure readings for the current user, grouped by session
  */
 export async function getReadings(): Promise<{ data: BPSession[] | null; error: Error | null }> {
@@ -61,7 +89,7 @@ export async function getReadings(): Promise<{ data: BPSession[] | null; error: 
     .order('recorded_at', { ascending: false });
 
   if (error) {
-    console.error('Error fetching blood pressure readings:', error);
+    logError('bloodPressure.getReadings', error);
     return { data: null, error };
   }
 
@@ -91,21 +119,7 @@ export async function getReadings(): Promise<{ data: BPSession[] | null; error: 
     readings.sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime());
 
     // Calculate averages
-    const avgSystolic = Math.round(
-      readings.reduce((sum, r) => sum + r.systolic, 0) / readings.length
-    );
-    const avgDiastolic = Math.round(
-      readings.reduce((sum, r) => sum + r.diastolic, 0) / readings.length
-    );
-
-    // Average pulse from readings that have it
-    const readingsWithPulse = readings.filter((r) => r.pulse);
-    const avgPulse =
-      readingsWithPulse.length > 0
-        ? Math.round(
-            readingsWithPulse.reduce((sum, r) => sum + (r.pulse || 0), 0) / readingsWithPulse.length
-          )
-        : null;
+    const { avgSystolic, avgDiastolic, avgPulse } = calculateSessionAverages(readings);
 
     // Use the first reading's datetime as the session datetime
     const sessionDatetime = readings[0].datetime;
@@ -175,7 +189,7 @@ export async function addSession(
   const { data, error } = await supabase.from('blood_pressure_readings').insert(rows).select();
 
   if (error) {
-    console.error('Error adding blood pressure session:', error);
+    logError('bloodPressure.addSession', error);
     return { data: null, error };
   }
 
@@ -191,21 +205,7 @@ export async function addSession(
     sessionId: row.session_id,
   }));
 
-  const avgSystolic = Math.round(
-    readings.reduce((sum, r) => sum + r.systolic, 0) / readings.length
-  );
-  const avgDiastolic = Math.round(
-    readings.reduce((sum, r) => sum + r.diastolic, 0) / readings.length
-  );
-
-  // Calculate average pulse from readings that have it
-  const readingsWithPulse = readings.filter((r) => r.pulse);
-  const avgPulse =
-    readingsWithPulse.length > 0
-      ? Math.round(
-          readingsWithPulse.reduce((sum, r) => sum + (r.pulse || 0), 0) / readingsWithPulse.length
-        )
-      : null;
+  const { avgSystolic, avgDiastolic, avgPulse } = calculateSessionAverages(readings);
 
   return {
     data: {
@@ -256,7 +256,7 @@ export async function updateSession(
     .eq('user_id', user.id);
 
   if (fetchError) {
-    console.error('Error fetching existing readings for backup:', fetchError);
+    logError('bloodPressure.updateSession.fetchBackup', fetchError);
     return { data: null, error: fetchError };
   }
 
@@ -268,7 +268,7 @@ export async function updateSession(
     .eq('user_id', user.id);
 
   if (deleteError) {
-    console.error('Error deleting old session readings:', deleteError);
+    logError('bloodPressure.updateSession.delete', deleteError);
     return { data: null, error: deleteError };
   }
 
@@ -287,7 +287,7 @@ export async function updateSession(
   const { data, error } = await supabase.from('blood_pressure_readings').insert(rows).select();
 
   if (error) {
-    console.error('Error updating blood pressure session:', error);
+    logError('bloodPressure.updateSession', error);
 
     // Attempt rollback: re-insert the old readings
     if (existingReadings && existingReadings.length > 0) {
@@ -299,7 +299,7 @@ export async function updateSession(
         .insert(rollbackRows);
 
       if (rollbackError) {
-        console.error('Rollback failed - data may be lost:', rollbackError);
+        logError('bloodPressure.updateSession.rollback', rollbackError);
         // Return a more descriptive error that includes rollback failure
         return {
           data: null,
@@ -325,21 +325,7 @@ export async function updateSession(
     sessionId: row.session_id,
   }));
 
-  const avgSystolic = Math.round(
-    readings.reduce((sum, r) => sum + r.systolic, 0) / readings.length
-  );
-  const avgDiastolic = Math.round(
-    readings.reduce((sum, r) => sum + r.diastolic, 0) / readings.length
-  );
-
-  // Calculate average pulse from readings that have it
-  const readingsWithPulse = readings.filter((r) => r.pulse);
-  const avgPulse =
-    readingsWithPulse.length > 0
-      ? Math.round(
-          readingsWithPulse.reduce((sum, r) => sum + (r.pulse || 0), 0) / readingsWithPulse.length
-        )
-      : null;
+  const { avgSystolic, avgDiastolic, avgPulse } = calculateSessionAverages(readings);
 
   return {
     data: {
@@ -376,7 +362,7 @@ export async function deleteSession(sessionId: string): Promise<{ error: Error |
     .eq('user_id', user.id);
 
   if (error) {
-    console.error('Error deleting blood pressure session:', error);
+    logError('bloodPressure.deleteSession', error);
   }
 
   return { error };

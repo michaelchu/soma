@@ -7,40 +7,34 @@ import { RANGE_BAR_CONSTANTS } from '@/lib/constants';
 
 /**
  * Determine if a metric value is low, normal, or high
- * @param {number} value - The metric value
- * @param {number|null} min - Minimum reference range value
- * @param {number|null} max - Maximum reference range value
- * @returns {string} "low", "normal", or "high"
  */
-export function getStatus(value, min, max) {
-  if (min !== null && value < min) return 'low';
-  if (max !== null && value > max) return 'high';
+export function getStatus(
+  value: number,
+  min: number | null | undefined,
+  max: number | null | undefined
+): 'low' | 'normal' | 'high' {
+  if (min != null && value < min) return 'low';
+  if (max != null && value > max) return 'high';
   return 'normal';
 }
 
 /**
  * Get the visual max for ranges with only a lower bound
- * @param {number} min - Minimum reference range value
- * @returns {number} Visual max for positioning
  */
-export function getVisualMax(min) {
+export function getVisualMax(min: number): number {
   return min * 2;
 }
 
 /**
  * Calculate position of value within range for visualization (0-100%)
- * @param {number} value - The metric value
- * @param {number|null} min - Minimum reference range value
- * @param {number|null} max - Maximum reference range value
- * @returns {number} Position percentage (0-100)
  */
-export function getPositionInRange(value, min, max) {
+export function getPositionInRange(value: number, min: number | null, max: number | null): number {
   const { LOW_ZONE_END, NORMAL_ZONE_END, NORMAL_ZONE_WIDTH, OVERFLOW_FACTOR } = RANGE_BAR_CONSTANTS;
 
   if (min === null && max === null) return 50;
 
   // Only upper bound (e.g., LDL ≤3.5) - lower is better
-  if (min === null) {
+  if (min === null && max !== null) {
     if (value <= 0) return LOW_ZONE_END;
     if (value >= max) {
       const overflow = (value - max) / (max * OVERFLOW_FACTOR);
@@ -50,7 +44,7 @@ export function getPositionInRange(value, min, max) {
   }
 
   // Only lower bound (e.g., HDL ≥1) - higher is better
-  if (max === null) {
+  if (max === null && min !== null) {
     if (value < min) {
       const underflow = (min - value) / (min * OVERFLOW_FACTOR);
       return Math.max(0, LOW_ZONE_END - underflow * LOW_ZONE_END);
@@ -60,7 +54,8 @@ export function getPositionInRange(value, min, max) {
     return LOW_ZONE_END + ((normalizedValue - min) / (visualMax - min)) * NORMAL_ZONE_WIDTH;
   }
 
-  // Both bounds defined
+  // Both bounds defined (at this point, neither can be null)
+  if (min === null || max === null) return 50;
   const range = max - min;
   if (value < min) {
     return 0;
@@ -73,13 +68,13 @@ export function getPositionInRange(value, min, max) {
 
 /**
  * Calculate optimal zone style for range bar visualization
- * @param {number|null} optimalMin - Optimal minimum value
- * @param {number|null} optimalMax - Optimal maximum value
- * @param {number|null} min - Reference range minimum
- * @param {number|null} max - Reference range maximum
- * @returns {object|null} CSS style object with left and width, or null if no optimal range
  */
-export function getOptimalZoneStyle(optimalMin, optimalMax, min, max) {
+export function getOptimalZoneStyle(
+  optimalMin: number | null,
+  optimalMax: number | null,
+  min: number | null,
+  max: number | null
+): { left: string; width: string } | null {
   if (optimalMin === null || optimalMax === null) return null;
 
   const { LOW_ZONE_END, NORMAL_ZONE_WIDTH } = RANGE_BAR_CONSTANTS;

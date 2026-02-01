@@ -2,66 +2,27 @@ import { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { NumericInput, DecimalInput } from '@/components/ui/masked-input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Save, Loader2 } from 'lucide-react';
-import { formatTimeString } from '@/lib/dateUtils';
+import {
+  formatTimeString,
+  formatDuration,
+  getLocalDateNow,
+  calculateDurationFromTimes,
+} from '@/lib/dateUtils';
 import { useSleep } from '../../context/SleepContext';
-import { showError, showSuccess } from '@/lib/toast';
+import { showError, showSuccess, extractErrorMessage } from '@/lib/toast';
 import type { SleepEntry } from '@/lib/db/sleep';
-
-function getLocalDateNow(): string {
-  const now = new Date();
-  const offset = now.getTimezoneOffset();
-  const localDate = new Date(now.getTime() - offset * 60 * 1000);
-  return localDate.toISOString().slice(0, 10);
-}
-
-/**
- * Calculate duration in minutes from sleep start and end times
- * Handles overnight sleep (end time before start time)
- */
-function calculateDuration(start: string, end: string): number {
-  if (!start || !end) return 0;
-  const [startH, startM] = start.split(':').map(Number);
-  const [endH, endM] = end.split(':').map(Number);
-
-  let startMinutes = startH * 60 + startM;
-  let endMinutes = endH * 60 + endM;
-
-  // If end is before start, it's overnight sleep
-  if (endMinutes < startMinutes) {
-    endMinutes += 24 * 60;
-  }
-
-  return endMinutes - startMinutes;
-}
 
 /**
  * Calculate HR drop time in minutes from sleep start to lowest HR time
- * Handles overnight sleep
+ * Uses shared calculateDurationFromTimes for overnight handling
  */
 function calculateHrDrop(sleepStart: string, lowestHrTime: string): number | null {
   if (!sleepStart || !lowestHrTime) return null;
-  const [startH, startM] = sleepStart.split(':').map(Number);
-  const [lowH, lowM] = lowestHrTime.split(':').map(Number);
-
-  let startMinutes = startH * 60 + startM;
-  let lowMinutes = lowH * 60 + lowM;
-
-  // If lowest HR time is before sleep start, it's next day
-  if (lowMinutes < startMinutes) {
-    lowMinutes += 24 * 60;
-  }
-
-  return lowMinutes - startMinutes;
-}
-
-function formatDuration(minutes: number): string {
-  if (minutes <= 0) return '';
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return `${h}h ${m}m`;
+  return calculateDurationFromTimes(sleepStart, lowestHrTime);
 }
 
 function SleepEntryFormContent({
@@ -118,7 +79,7 @@ function SleepEntryFormContent({
 
   // Calculate duration and HR drop from times
   const calculatedDuration = useMemo(
-    () => calculateDuration(sleepStart, sleepEnd),
+    () => calculateDurationFromTimes(sleepStart, sleepEnd),
     [sleepStart, sleepEnd]
   );
   const calculatedHrDrop = useMemo(
@@ -171,7 +132,7 @@ function SleepEntryFormContent({
     setSaving(false);
 
     if (saveError) {
-      showError(saveError.message || 'Failed to save sleep entry');
+      showError(extractErrorMessage(saveError) || 'Failed to save sleep entry');
       return;
     }
 
@@ -237,7 +198,7 @@ function SleepEntryFormContent({
             {calculatedDuration > 0 && (
               <p className="text-sm text-muted-foreground">
                 {formatTimeString(sleepStart)} → {formatTimeString(sleepEnd)} (
-                {formatDuration(calculatedDuration)})
+                {formatDuration(calculatedDuration) || `${calculatedDuration}m`})
               </p>
             )}
           </div>
@@ -246,23 +207,21 @@ function SleepEntryFormContent({
           <div className="space-y-2">
             <Label>Total Sleep</Label>
             <div className="flex items-center gap-2">
-              <Input
-                type="number"
+              <NumericInput
                 placeholder="Hours"
                 value={totalSleepHours}
                 onChange={(e) => setTotalSleepHours(e.target.value)}
-                min={0}
-                max={24}
+                maxDigits={2}
+                maxValue={24}
                 className="flex-1"
               />
               <span className="text-muted-foreground">h</span>
-              <Input
-                type="number"
+              <NumericInput
                 placeholder="Min"
                 value={totalSleepMins}
                 onChange={(e) => setTotalSleepMins(e.target.value)}
-                min={0}
-                max={59}
+                maxDigits={2}
+                maxValue={59}
                 className="flex-1"
               />
               <span className="text-muted-foreground">m</span>
@@ -280,40 +239,36 @@ function SleepEntryFormContent({
           <div className="space-y-2">
             <Label>Percentages</Label>
             <div className="grid grid-cols-4 gap-2">
-              <Input
-                type="number"
+              <NumericInput
                 placeholder="Awake"
                 value={awakePct}
                 onChange={(e) => setAwakePct(e.target.value)}
-                min={0}
-                max={100}
+                maxDigits={3}
+                maxValue={100}
                 className="text-center"
               />
-              <Input
-                type="number"
+              <NumericInput
                 placeholder="REM"
                 value={remSleepPct}
                 onChange={(e) => setRemSleepPct(e.target.value)}
-                min={0}
-                max={100}
+                maxDigits={3}
+                maxValue={100}
                 className="text-center"
               />
-              <Input
-                type="number"
+              <NumericInput
                 placeholder="Light"
                 value={lightSleepPct}
                 onChange={(e) => setLightSleepPct(e.target.value)}
-                min={0}
-                max={100}
+                maxDigits={3}
+                maxValue={100}
                 className="text-center"
               />
-              <Input
-                type="number"
+              <NumericInput
                 placeholder="Deep"
                 value={deepSleepPct}
                 onChange={(e) => setDeepSleepPct(e.target.value)}
-                min={0}
-                max={100}
+                maxDigits={3}
+                maxValue={100}
                 className="text-center"
               />
             </div>
@@ -323,21 +278,19 @@ function SleepEntryFormContent({
           <div className="space-y-2">
             <Label>Sleep Cycles</Label>
             <div className="grid grid-cols-2 gap-3">
-              <Input
-                type="number"
+              <NumericInput
                 placeholder="Full"
                 value={sleepCyclesFull}
                 onChange={(e) => setSleepCyclesFull(e.target.value)}
-                min={0}
-                max={20}
+                maxDigits={2}
+                maxValue={20}
               />
-              <Input
-                type="number"
+              <NumericInput
                 placeholder="Partial"
                 value={sleepCyclesPartial}
                 onChange={(e) => setSleepCyclesPartial(e.target.value)}
-                min={0}
-                max={20}
+                maxDigits={2}
+                maxValue={20}
               />
             </div>
           </div>
@@ -351,14 +304,13 @@ function SleepEntryFormContent({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="restingHr">Resting HR (bpm)</Label>
-              <Input
+              <NumericInput
                 id="restingHr"
-                type="number"
                 placeholder="e.g., 52"
                 value={restingHr}
                 onChange={(e) => setRestingHr(e.target.value)}
-                min={20}
-                max={200}
+                maxDigits={3}
+                maxValue={200}
               />
             </div>
             <div className="space-y-2">
@@ -381,23 +333,21 @@ function SleepEntryFormContent({
           <div className="space-y-2">
             <Label>HRV Range (ms)</Label>
             <div className="flex items-center gap-2">
-              <Input
-                type="number"
+              <NumericInput
                 placeholder="Low"
                 value={hrvLow}
                 onChange={(e) => setHrvLow(e.target.value)}
-                min={1}
-                max={500}
+                maxDigits={3}
+                maxValue={500}
                 className="flex-1"
               />
               <span className="text-muted-foreground">-</span>
-              <Input
-                type="number"
+              <NumericInput
                 placeholder="High"
                 value={hrvHigh}
                 onChange={(e) => setHrvHigh(e.target.value)}
-                min={1}
-                max={500}
+                maxDigits={3}
+                maxValue={500}
                 className="flex-1"
               />
             </div>
@@ -411,27 +361,24 @@ function SleepEntryFormContent({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="skinTempAvg">Skin Temp Avg (°C)</Label>
-              <Input
+              <DecimalInput
                 id="skinTempAvg"
-                type="number"
-                step="0.1"
                 placeholder="e.g., 34.5"
                 value={skinTempAvg}
                 onChange={(e) => setSkinTempAvg(e.target.value)}
-                min={20}
-                max={45}
+                maxValue={45}
+                minValue={20}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="movementCount">Movements</Label>
-              <Input
+              <NumericInput
                 id="movementCount"
-                type="number"
                 placeholder="e.g., 15"
                 value={movementCount}
                 onChange={(e) => setMovementCount(e.target.value)}
-                min={0}
-                max={500}
+                maxDigits={3}
+                maxValue={500}
               />
             </div>
           </div>

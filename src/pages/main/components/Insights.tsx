@@ -1,7 +1,7 @@
-import { useDashboard } from '../context/DashboardContext';
+import { useMainPage } from '../context/MainPageContext';
 
 export function Insights() {
-  const { healthScore, bpReadings, sleepEntries } = useDashboard();
+  const { healthScore, bpReadings, sleepEntries } = useMainPage();
 
   if (!healthScore) return null;
 

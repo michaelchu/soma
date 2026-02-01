@@ -1,18 +1,7 @@
-import { createContext, useContext } from 'react';
+import { createDataContext } from '@/lib/contextUtils';
 import { useSleepEntries } from '../hooks/useSleepEntries';
 
-const SleepContext = createContext(null);
+const { Provider, useData } = createDataContext(useSleepEntries, 'Sleep');
 
-export function SleepProvider({ children }) {
-  const sleepState = useSleepEntries();
-
-  return <SleepContext.Provider value={sleepState}>{children}</SleepContext.Provider>;
-}
-
-export function useSleep() {
-  const context = useContext(SleepContext);
-  if (!context) {
-    throw new Error('useSleep must be used within a SleepProvider');
-  }
-  return context;
-}
+export const SleepProvider = Provider;
+export const useSleep = useData;

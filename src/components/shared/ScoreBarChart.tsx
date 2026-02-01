@@ -104,7 +104,13 @@ export function ScoreBarChart({
   scoreRange,
 }: ScoreBarChartProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const onSelectIndexRef = useRef(onSelectIndex);
   const barTotalWidth = barWidth + barGap;
+
+  // Keep ref in sync to avoid stale closures
+  useEffect(() => {
+    onSelectIndexRef.current = onSelectIndex;
+  }, [onSelectIndex]);
 
   // Calculate min/max scores for bar height scaling
   const { minScore, maxScore } = useMemo(() => {
@@ -173,9 +179,8 @@ export function ScoreBarChart({
       lastIndex * barTotalWidth - containerWidth / 2 + paddingLeft + barWidth / 2;
 
     container.scrollLeft = Math.max(0, targetScroll);
-    onSelectIndex(lastIndex);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items.length]);
+    onSelectIndexRef.current(lastIndex);
+  }, [items.length, barWidth, barTotalWidth]);
 
   // Add scroll listener
   useEffect(() => {

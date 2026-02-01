@@ -28,7 +28,7 @@ function SleepContent() {
 
   // Get active tab from URL, default to 'readings'
   const tabParam = searchParams.get('tab');
-  const activeTab = VALID_TABS.includes(tabParam) ? tabParam : 'readings';
+  const activeTab = tabParam && VALID_TABS.includes(tabParam) ? tabParam : 'readings';
 
   const setActiveTab = (tab: string) => {
     if (tab === 'readings') {

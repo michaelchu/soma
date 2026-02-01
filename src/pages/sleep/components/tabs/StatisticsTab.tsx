@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Moon, Minus } from 'lucide-react';
+import { Moon } from 'lucide-react';
 import { formatDate, getDateRange } from '@/lib/dateUtils';
 import {
   formatDuration,
@@ -7,6 +7,7 @@ import {
   getPreviousPeriodEntries,
   type DetailedSleepStats,
 } from '../../utils/sleepHelpers';
+import { ChangeIndicator, type ChangeConfig } from '@/components/shared/ChangeIndicator';
 import type { SleepEntry } from '@/lib/db/sleep';
 
 interface StatisticsTabProps {
@@ -15,93 +16,10 @@ interface StatisticsTabProps {
   dateRange: string;
 }
 
-// Determine color for change indicator
-function getChangeColor(
-  current: number | null,
-  previous: number | null,
-  type: 'higherIsBetter' | 'lowerIsBetter'
-): 'improving' | 'worsening' | 'neutral' {
-  if (current === null || previous === null) return 'neutral';
-
-  const diff = current - previous;
-  if (Math.abs(diff) < 1) return 'neutral'; // No significant change
-
-  if (type === 'higherIsBetter') {
-    return diff > 0 ? 'improving' : 'worsening';
-  } else {
-    return diff < 0 ? 'improving' : 'worsening';
-  }
-}
-
-function ChangeIndicator({
-  current,
-  previous,
-  type,
-  disabled = false,
-  formatValue,
-}: {
-  current: number | null;
-  previous: number | null;
-  type: 'higherIsBetter' | 'lowerIsBetter';
-  disabled?: boolean;
-  formatValue?: (val: number) => string;
-}) {
-  if (disabled || current === null || previous === null) {
-    return <span className="text-muted-foreground flex justify-center">—</span>;
-  }
-
-  const diff = current - previous;
-  const truncatedDiff = Math.round(diff);
-
-  // Truncate to 1 decimal place (floor for positive, ceil for negative)
-  const truncateToOneDecimal = (val: number) => {
-    const factor = val >= 0 ? Math.floor : Math.ceil;
-    return factor(val * 10) / 10;
-  };
-
-  const pctChange = previous !== 0 ? truncateToOneDecimal((diff / previous) * 100) : 0;
-
-  if (truncatedDiff === 0) {
-    return (
-      <span className="flex items-center justify-center gap-1 text-muted-foreground">
-        <Minus className="h-3 w-3" />
-        <span>0</span>
-      </span>
-    );
-  }
-
-  const changeType = getChangeColor(current, previous, type);
-
-  const colorClass =
-    changeType === 'improving'
-      ? 'text-green-600 dark:text-green-400'
-      : changeType === 'worsening'
-        ? 'text-red-600 dark:text-red-400'
-        : 'text-muted-foreground';
-
-  const sign = truncatedDiff > 0 ? '+' : '';
-  const displayDiff = formatValue ? formatValue(Math.abs(truncatedDiff)) : truncatedDiff;
-  const displaySign = truncatedDiff > 0 ? '+' : truncatedDiff < 0 ? '-' : '';
-  const pctSign = pctChange > 0 ? '+' : '';
-
-  return (
-    <span className={`inline-flex flex-wrap items-center justify-center gap-0.5 ${colorClass}`}>
-      <span className="font-medium">
-        {formatValue ? displaySign : sign}
-        {displayDiff}
-      </span>
-      <span className="text-xs opacity-75">
-        ({pctSign}
-        {pctChange}%)
-      </span>
-    </span>
-  );
-}
-
 interface StatRowConfig {
   label: string;
   key: keyof DetailedSleepStats;
-  type: 'higherIsBetter' | 'lowerIsBetter';
+  config: ChangeConfig;
   formatValue?: (val: number) => string;
   formatDisplay?: (val: number) => string;
 }
@@ -119,27 +37,27 @@ function StatsTable({
     {
       label: 'Deep Sleep',
       key: 'deepSleepPct',
-      type: 'higherIsBetter',
+      config: { type: 'higherIsBetter' },
     },
     {
       label: 'Restorative',
       key: 'restorative',
-      type: 'higherIsBetter',
+      config: { type: 'higherIsBetter' },
     },
     {
       label: 'Resting HR',
       key: 'restingHr',
-      type: 'lowerIsBetter',
+      config: { type: 'lowerIsBetter' },
     },
     {
       label: 'REM Sleep',
       key: 'remSleepPct',
-      type: 'higherIsBetter',
+      config: { type: 'higherIsBetter' },
     },
     {
       label: 'HR Drop',
       key: 'hrDrop',
-      type: 'lowerIsBetter',
+      config: { type: 'lowerIsBetter' },
     },
   ];
 
@@ -192,9 +110,11 @@ function StatsTable({
                 <ChangeIndicator
                   current={current.avg}
                   previous={previous?.avg ?? null}
-                  type={row.type}
+                  config={row.config}
                   disabled={dateRange === 'all'}
                   formatValue={row.formatValue}
+                  useIntegerRounding
+                  showZeroIcon
                 />
               </td>
             </tr>

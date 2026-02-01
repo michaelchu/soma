@@ -33,7 +33,19 @@ export interface BPSessionInput {
   notes?: string | null;
 }
 
-export type BPCategoryKey = 'normal' | 'elevated' | 'hypertension1' | 'hypertension2' | 'crisis';
+export type BPCategoryKey =
+  | 'normal'
+  | 'elevated'
+  | 'hypertension1'
+  | 'hypertension2'
+  | 'crisis'
+  | 'optimal'
+  | 'highNormal'
+  | 'hypertension3'
+  | 'prehypertension'
+  | 'hypertension'
+  | 'hypertensionCanada'
+  | 'hypertensionTreat';
 
 export interface BPCategory {
   key: BPCategoryKey;

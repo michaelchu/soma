@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { FileText, Copy, Check, Download } from 'lucide-react';
 import { showError } from '@/lib/toast';
 import {
@@ -31,6 +31,16 @@ export function ExportModal({
 }: ExportModalProps) {
   const [copied, setCopied] = useState(false);
   const [format, setFormat] = useState('markdown');
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const content = format === 'markdown' ? generateMarkdown() : generateCSV();
 
@@ -38,7 +48,7 @@ export function ExportModal({
     try {
       await navigator.clipboard.writeText(content);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
     } catch {
       showError('Failed to copy to clipboard');
     }

@@ -3,93 +3,51 @@ import { calculateFullStats, getPreviousPeriodReadings } from '../../utils/bpHel
 import { useSettings } from '@/lib/SettingsContext';
 import { BP_GUIDELINES, DEFAULT_GUIDELINE } from '../../constants/bpGuidelines';
 import { getDateRange } from '@/lib/dateUtils';
+import { ChangeIndicator, type ChangeConfig } from '@/components/shared/ChangeIndicator';
+import type { TimeOfDay } from '@/types/bloodPressure';
 
-// Determine color for change indicator based on metric type and buffer zones
-function getChangeColor(current, previous, config) {
-  const { type, optimalMax, midpoint, bufferMin, bufferMax } = config;
-
-  if (type === 'lowerIsBetter') {
-    // For systolic/diastolic: if both are below optimal threshold, show grey
-    if (current <= optimalMax && previous <= optimalMax) {
-      return 'neutral';
-    }
-    // Otherwise, lower is better
-    return current < previous ? 'improving' : current > previous ? 'worsening' : 'neutral';
-  }
-
-  if (type === 'midpoint') {
-    // For PP/MAP/Pulse: compare distance from midpoint
-    const currentInBuffer = current >= bufferMin && current <= bufferMax;
-    const previousInBuffer = previous >= bufferMin && previous <= bufferMax;
-
-    // If both are in the buffer zone, show grey
-    if (currentInBuffer && previousInBuffer) {
-      return 'neutral';
-    }
-
-    // Compare distance from midpoint - closer is better
-    const currentDist = Math.abs(current - midpoint);
-    const previousDist = Math.abs(previous - midpoint);
-
-    if (currentDist < previousDist) return 'improving';
-    if (currentDist > previousDist) return 'worsening';
-    return 'neutral';
-  }
-
-  return 'neutral';
+interface BPReading {
+  datetime: string;
+  systolic: number;
+  diastolic: number;
+  pulse?: number | null;
 }
 
-function ChangeIndicator({ current, previous, config, disabled = false }) {
-  if (disabled || current === null || previous === null) {
-    return <span className="text-muted-foreground">—</span>;
-  }
-
-  const diff = current - previous;
-
-  // Truncate to 1 decimal place (floor for positive, ceil for negative)
-  const truncateToOneDecimal = (val: number) => {
-    const factor = val >= 0 ? Math.floor : Math.ceil;
-    return factor(val * 10) / 10;
-  };
-
-  const truncatedDiff = truncateToOneDecimal(diff);
-  const pctChange = previous !== 0 ? truncateToOneDecimal((diff / previous) * 100) : 0;
-
-  // Check if diff truncates to 0.0 for display purposes - show dash like no data
-  if (truncatedDiff === 0) {
-    return <span className="text-muted-foreground">—</span>;
-  }
-
-  const changeType = getChangeColor(current, previous, config);
-
-  const colorClass =
-    changeType === 'improving'
-      ? 'text-green-600 dark:text-green-400'
-      : changeType === 'worsening'
-        ? 'text-red-600 dark:text-red-400'
-        : 'text-muted-foreground';
-
-  const sign = truncatedDiff > 0 ? '+' : '';
-  const displayDiff = truncatedDiff.toFixed(1);
-
-  return (
-    <span
-      className={`inline-flex items-center justify-center gap-0.5 whitespace-nowrap ${colorClass}`}
-    >
-      <span className="font-medium">
-        {sign}
-        {displayDiff}
-      </span>
-      <span className="text-xs opacity-75">
-        ({sign}
-        {pctChange}%)
-      </span>
-    </span>
-  );
+interface StatValues {
+  min: number | null;
+  max: number | null;
+  avg: number | null;
 }
 
-function StatsTable({ currentStats, previousStats, dateRange, normalThresholds }) {
-  const rows = [
+interface FullStats {
+  systolic: StatValues;
+  diastolic: StatValues;
+  pulse: StatValues;
+  pp: StatValues;
+  map: StatValues;
+  count: number;
+}
+
+interface NormalThresholds {
+  systolic: number;
+  diastolic: number;
+}
+
+interface StatsTableProps {
+  currentStats: FullStats | null;
+  previousStats: FullStats | null;
+  dateRange: string;
+  normalThresholds: NormalThresholds;
+}
+
+function StatsTable({ currentStats, previousStats, dateRange, normalThresholds }: StatsTableProps) {
+  const rows: Array<{
+    label: string;
+    key: string;
+    unit: string;
+    tooltip?: string;
+    config: ChangeConfig;
+  }> = [
     {
       label: 'Systolic',
       key: 'systolic',
@@ -152,8 +110,12 @@ function StatsTable({ currentStats, previousStats, dateRange, normalThresholds }
         </thead>
         <tbody>
           {rows.map((row) => {
-            const current = currentStats?.[row.key];
-            const previous = previousStats?.[row.key];
+            const current = currentStats?.[row.key as keyof Omit<FullStats, 'count'>] as
+              | StatValues
+              | undefined;
+            const previous = previousStats?.[row.key as keyof Omit<FullStats, 'count'>] as
+              | StatValues
+              | undefined;
 
             // Skip pulse row if no pulse data
             if (row.key === 'pulse' && current?.avg === null) {
@@ -178,8 +140,8 @@ function StatsTable({ currentStats, previousStats, dateRange, normalThresholds }
                 </td>
                 <td className="py-3 pl-1 text-right">
                   <ChangeIndicator
-                    current={current?.avg}
-                    previous={previous?.avg}
+                    current={current?.avg ?? null}
+                    previous={previous?.avg ?? null}
                     config={row.config}
                     disabled={dateRange === 'all'}
                   />
@@ -193,7 +155,14 @@ function StatsTable({ currentStats, previousStats, dateRange, normalThresholds }
   );
 }
 
-export function StatisticsTab({ readings, allReadings, dateRange, timeOfDay }) {
+interface StatisticsTabProps {
+  readings: BPReading[];
+  allReadings: BPReading[];
+  dateRange: string;
+  timeOfDay: TimeOfDay | 'all';
+}
+
+export function StatisticsTab({ readings, allReadings, dateRange, timeOfDay }: StatisticsTabProps) {
   const { settings } = useSettings();
 
   // Get the normal thresholds from the selected guideline
@@ -257,11 +226,12 @@ export function StatisticsTab({ readings, allReadings, dateRange, timeOfDay }) {
           </p>
         </div>
 
-        {hasPreviousData && (
+        {hasPreviousData && previousStats && (
           <div className="sm:text-right">
             <p className="text-sm text-muted-foreground mb-1">Previous Period</p>
             <p className="text-xl font-semibold text-muted-foreground">
-              {Math.round(previousStats.systolic.avg)}/{Math.round(previousStats.diastolic.avg)}
+              {previousStats.systolic.avg != null ? Math.round(previousStats.systolic.avg) : '—'}/
+              {previousStats.diastolic.avg != null ? Math.round(previousStats.diastolic.avg) : '—'}
               <span className="text-sm font-normal ml-1">mmHg</span>
             </p>
           </div>

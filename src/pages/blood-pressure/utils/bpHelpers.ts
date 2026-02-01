@@ -28,7 +28,7 @@ export function getBPCategory(
 
   // Check categories in reverse order (most severe first)
   for (let i = categories.length - 1; i >= 0; i--) {
-    const category = categories[i];
+    const category = categories[i] as BPCategoryKey;
     const threshold = thresholds[category];
 
     if (!threshold) continue;
@@ -60,7 +60,7 @@ export function getBPCategory(
   }
 
   // Fallback to first category (should be normal/optimal)
-  return categories[0];
+  return categories[0] as BPCategoryKey;
 }
 
 /**
@@ -84,6 +84,24 @@ export function getReferenceLines(guidelineKey: string = DEFAULT_GUIDELINE) {
 export function getCategoryClasses(category: BPCategoryKey | null): string {
   const info = getCategoryInfo(category);
   return `${info.bgClass} ${info.textClass} ${info.borderClass}`;
+}
+
+/**
+ * Calculate daily BP average from readings
+ */
+export function calculateDailyBPAverage(
+  readings: BPReading[] | null | undefined
+): { systolic: number; diastolic: number } | null {
+  if (!readings || readings.length === 0) return null;
+
+  const avgSystolic = Math.round(
+    readings.reduce((sum, r) => sum + r.systolic, 0) / readings.length
+  );
+  const avgDiastolic = Math.round(
+    readings.reduce((sum, r) => sum + r.diastolic, 0) / readings.length
+  );
+
+  return { systolic: avgSystolic, diastolic: avgDiastolic };
 }
 
 /**
@@ -169,13 +187,14 @@ export function getPreviousPeriodReadings(
   previousEnd.setHours(0, 0, 0, 0);
 
   let filtered = allReadings.filter((r) => {
+    if (!r.datetime) return false;
     const date = new Date(r.datetime);
     return date >= previousStart && date < previousEnd;
   });
 
   // Apply time of day filter
   if (timeOfDay !== 'all') {
-    filtered = filtered.filter((r) => isInTimeOfDay(r.datetime, timeOfDay));
+    filtered = filtered.filter((r) => r.datetime && isInTimeOfDay(r.datetime, timeOfDay));
   }
 
   return filtered;

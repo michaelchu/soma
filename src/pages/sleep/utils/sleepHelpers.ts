@@ -1,5 +1,9 @@
 import type { SleepEntry } from '../../../lib/db/sleep';
 import { avgRounded, calcStatsRounded } from '@/lib/statsUtils';
+import { formatDuration } from '@/lib/dateUtils';
+
+// Re-export formatDuration for backwards compatibility
+export { formatDuration };
 
 /**
  * Sleep stage colors for consistent styling across components
@@ -10,17 +14,6 @@ export const STAGE_COLORS = {
   light: 'bg-blue-300',
   awake: 'bg-lime-400',
 };
-
-/**
- * Format duration in minutes to hours and minutes string
- */
-export function formatDuration(minutes: number): string {
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  if (hours === 0) return `${mins}m`;
-  if (mins === 0) return `${hours}h`;
-  return `${hours}h ${mins}m`;
-}
 
 /**
  * Parse hours and minutes string to total minutes
@@ -504,6 +497,21 @@ export function calculateSleepScore(
     componentsAvailable: scores.length,
     componentsTotal: 4,
   };
+}
+
+/**
+ * Get sleep score for a specific date
+ * Convenience function that calculates baseline and returns score for the given date
+ */
+export function getDailySleepScore(
+  date: string,
+  allEntries: SleepEntry[]
+): SleepScoreBreakdown | null {
+  const entry = allEntries.find((e) => e.date === date);
+  if (!entry) return null;
+
+  const baseline = calculatePersonalBaseline(allEntries);
+  return calculateSleepScore(entry, baseline);
 }
 
 /**

@@ -1,5 +1,7 @@
 import { supabase } from '../supabase';
-import { sanitizeString } from '../validation';
+import { sanitizeString, validateSleepEntry, type SleepEntryInput } from '../validation';
+import { logError } from '../logger';
+import { calculateDurationFromTimes } from '../dateUtils';
 
 /**
  * Sleep data service
@@ -56,46 +58,8 @@ export interface SleepEntry {
   notes: string | null;
 }
 
-export interface SleepEntryInput {
-  date: string;
-  timezone?: string | null;
-  totalSleepMinutes?: number | null; // Actual sleep time (externally calculated)
-  sleepStart?: string | null;
-  sleepEnd?: string | null;
-  hrvLow?: number | null;
-  hrvHigh?: number | null;
-  restingHr?: number | null;
-  lowestHrTime?: string | null;
-  hrDropMinutes?: number | null;
-  deepSleepPct?: number | null;
-  remSleepPct?: number | null;
-  lightSleepPct?: number | null;
-  awakePct?: number | null;
-  skinTempAvg?: number | null;
-  sleepCyclesFull?: number | null;
-  sleepCyclesPartial?: number | null;
-  movementCount?: number | null;
-  notes?: string | null;
-}
-
-/**
- * Calculate duration in minutes from sleep start and end times
- * Handles overnight sleep (end time before start time)
- */
-function calculateDurationFromTimes(start: string, end: string): number {
-  const [startH, startM] = start.split(':').map(Number);
-  const [endH, endM] = end.split(':').map(Number);
-
-  let startMinutes = startH * 60 + startM;
-  let endMinutes = endH * 60 + endM;
-
-  // If end is before start, it's overnight sleep
-  if (endMinutes < startMinutes) {
-    endMinutes += 24 * 60;
-  }
-
-  return endMinutes - startMinutes;
-}
+// Re-export SleepEntryInput from validation for convenience
+export type { SleepEntryInput } from '../validation';
 
 function rowToEntry(row: SleepEntryRow): SleepEntry {
   // Calculate time in bed from sleep times
@@ -151,7 +115,7 @@ export async function getSleepEntries(): Promise<{
     .order('date', { ascending: false });
 
   if (error) {
-    console.error('Error fetching sleep entries:', error);
+    logError('sleep.getSleepEntries', error);
     return { data: null, error };
   }
 
@@ -171,6 +135,12 @@ export async function addSleepEntry(
 
   if (!user) {
     return { data: null, error: new Error('Not authenticated') };
+  }
+
+  // Validate input
+  const validation = validateSleepEntry(entry);
+  if (!validation.valid) {
+    return { data: null, error: new Error(validation.errors.join(', ')) };
   }
 
   const sanitizedNotes = entry.notes ? sanitizeString(entry.notes) : null;
@@ -201,7 +171,7 @@ export async function addSleepEntry(
   const { data, error } = await supabase.from('sleep_entries').insert(row).select().single();
 
   if (error) {
-    console.error('Error adding sleep entry:', error);
+    logError('sleep.addSleepEntry', error);
     return { data: null, error };
   }
 
@@ -221,6 +191,12 @@ export async function updateSleepEntry(
 
   if (!user) {
     return { data: null, error: new Error('Not authenticated') };
+  }
+
+  // Validate input
+  const validation = validateSleepEntry(entry);
+  if (!validation.valid) {
+    return { data: null, error: new Error(validation.errors.join(', ')) };
   }
 
   const sanitizedNotes = entry.notes ? sanitizeString(entry.notes) : null;
@@ -256,7 +232,7 @@ export async function updateSleepEntry(
     .single();
 
   if (error) {
-    console.error('Error updating sleep entry:', error);
+    logError('sleep.updateSleepEntry', error);
     return { data: null, error };
   }
 
@@ -282,7 +258,7 @@ export async function deleteSleepEntry(id: string): Promise<{ error: Error | nul
     .eq('user_id', user.id);
 
   if (error) {
-    console.error('Error deleting sleep entry:', error);
+    logError('sleep.deleteSleepEntry', error);
   }
 
   return { error };

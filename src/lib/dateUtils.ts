@@ -27,6 +27,36 @@ export function getLocalDatetimeNow(): string {
 }
 
 /**
+ * Get the current date formatted for date input (YYYY-MM-DD)
+ */
+export function getLocalDateNow(): string {
+  const now = new Date();
+  const offset = now.getTimezoneOffset();
+  const localDate = new Date(now.getTime() - offset * 60 * 1000);
+  return localDate.toISOString().slice(0, 10);
+}
+
+/**
+ * Calculate duration in minutes from start and end times (HH:MM format)
+ * Handles overnight periods (end time before start time)
+ */
+export function calculateDurationFromTimes(start: string, end: string): number {
+  if (!start || !end) return 0;
+  const [startH, startM] = start.split(':').map(Number);
+  const [endH, endM] = end.split(':').map(Number);
+
+  let startMinutes = startH * 60 + startM;
+  let endMinutes = endH * 60 + endM;
+
+  // If end is before start, it's overnight
+  if (endMinutes < startMinutes) {
+    endMinutes += 24 * 60;
+  }
+
+  return endMinutes - startMinutes;
+}
+
+/**
  * Format a Date object for datetime-local input
  */
 export function formatDateForInput(date: Date): string {
@@ -389,4 +419,38 @@ export function formatTimeString(timeStr: string | null): string | null {
   const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
 
   return `${hour12}:${minute} ${period}`;
+}
+
+/**
+ * Format duration in minutes to readable string
+ * @param minutes Duration in minutes
+ * @returns Formatted string (e.g., "45m", "1h", "1h 15m")
+ */
+export function formatDuration(minutes: number): string {
+  if (minutes < 60) {
+    return `${minutes}m`;
+  }
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  if (mins === 0) {
+    return `${hours}h`;
+  }
+  return `${hours}h ${mins}m`;
+}
+
+/**
+ * Format duration with full "min" label for short durations
+ * @param minutes Duration in minutes
+ * @returns Formatted string (e.g., "45 min", "1h", "1h 15m")
+ */
+export function formatDurationLong(minutes: number): string {
+  if (minutes < 60) {
+    return `${minutes} min`;
+  }
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  if (mins === 0) {
+    return `${hours}h`;
+  }
+  return `${hours}h ${mins}m`;
 }
