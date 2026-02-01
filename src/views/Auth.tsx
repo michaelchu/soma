@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useRef, useEffect, type FormEvent } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,39 @@ export default function Auth() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const hasAutoSubmitted = useRef(false);
+
+  // Auto-submit after autofill completes
+  useEffect(() => {
+    if (hasAutoSubmitted.current || loading) return;
+
+    const checkAutofill = () => {
+      if (hasAutoSubmitted.current) return;
+
+      const emailInput = document.getElementById('email') as HTMLInputElement;
+      const passwordInput = document.getElementById('password') as HTMLInputElement;
+
+      const emailValue = emailInput?.value || email;
+      const passwordValue = passwordInput?.value || password;
+
+      if (
+        emailValue &&
+        passwordValue &&
+        EMAIL_REGEX.test(emailValue) &&
+        passwordValue.length >= MIN_PASSWORD_LENGTH
+      ) {
+        hasAutoSubmitted.current = true;
+        setEmail(emailValue);
+        setPassword(passwordValue);
+        formRef.current?.requestSubmit();
+      }
+    };
+
+    // Check after a short delay to allow autofill to complete
+    const timer = setTimeout(checkAutofill, 100);
+    return () => clearTimeout(timer);
+  }, [email, password, loading]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -71,7 +104,7 @@ export default function Auth() {
             <CardDescription>Enter your credentials to continue</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
