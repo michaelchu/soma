@@ -163,7 +163,8 @@ export function calculateFullStats(readings: BPReading[] | null | undefined) {
 
 /**
  * Get readings for the previous equivalent period
- * e.g., if current is "last 7 days", previous is "7-14 days ago"
+ * e.g., if current is "rolling 1 month", previous is "the month before that"
+ * Supports: '1w' (7 days), '1m' (1 month), '3m' (3 months), or number of days
  */
 export function getPreviousPeriodReadings(
   allReadings: BPReading[] | null | undefined,
@@ -172,19 +173,53 @@ export function getPreviousPeriodReadings(
 ): BPReading[] {
   if (!allReadings || dateRange === 'all') return [];
 
-  const days = parseInt(dateRange, 10);
   const now = new Date();
+  let previousStart: Date;
+  let previousEnd: Date;
 
-  // Previous period: the N days immediately before the current period
-  // Current period is today - (days-1), so previous period ends at today - days
-  // Use start of day (midnight) for consistent date boundaries
-  const previousStart = new Date();
-  previousStart.setDate(now.getDate() - (days * 2 - 1));
-  previousStart.setHours(0, 0, 0, 0);
+  if (dateRange === '1w') {
+    // Current period: last 7 days (today - 6 days to today)
+    // Previous period: 7 days before that (today - 13 days to today - 7 days)
+    previousEnd = new Date();
+    previousEnd.setDate(now.getDate() - 6);
+    previousEnd.setHours(0, 0, 0, 0);
 
-  const previousEnd = new Date();
-  previousEnd.setDate(now.getDate() - (days - 1));
-  previousEnd.setHours(0, 0, 0, 0);
+    previousStart = new Date();
+    previousStart.setDate(now.getDate() - 13);
+    previousStart.setHours(0, 0, 0, 0);
+  } else if (dateRange === '1m') {
+    // Current period: last 1 month (same date last month to today)
+    // Previous period: the month before that
+    previousEnd = new Date();
+    previousEnd.setMonth(now.getMonth() - 1);
+    previousEnd.setHours(0, 0, 0, 0);
+
+    previousStart = new Date();
+    previousStart.setMonth(now.getMonth() - 2);
+    previousStart.setHours(0, 0, 0, 0);
+  } else if (dateRange === '3m') {
+    // Current period: last 3 months
+    // Previous period: 3 months before that
+    previousEnd = new Date();
+    previousEnd.setMonth(now.getMonth() - 3);
+    previousEnd.setHours(0, 0, 0, 0);
+
+    previousStart = new Date();
+    previousStart.setMonth(now.getMonth() - 6);
+    previousStart.setHours(0, 0, 0, 0);
+  } else {
+    // Fallback: try parsing as number of days
+    const days = parseInt(dateRange, 10);
+    if (isNaN(days)) return [];
+
+    previousEnd = new Date();
+    previousEnd.setDate(now.getDate() - (days - 1));
+    previousEnd.setHours(0, 0, 0, 0);
+
+    previousStart = new Date();
+    previousStart.setDate(now.getDate() - (days * 2 - 1));
+    previousStart.setHours(0, 0, 0, 0);
+  }
 
   let filtered = allReadings.filter((r) => {
     if (!r.datetime) return false;
