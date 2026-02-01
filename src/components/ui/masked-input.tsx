@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { InputMask, type InputMaskProps, type Track } from '@react-input/mask';
+import { InputMask, type InputMaskProps } from '@react-input/mask';
 
 import { cn } from '@/lib/utils';
 
@@ -29,46 +29,54 @@ const MaskedInput = React.forwardRef<HTMLInputElement, MaskedInputProps>(
 );
 MaskedInput.displayName = 'MaskedInput';
 
-// Pre-configured time input for mm:ss format (up to 999:59)
-// Tracks input to cap seconds at 59
-interface TimeInputProps extends Omit<MaskedInputProps, 'mask' | 'replacement' | 'track'> {
-  /** Whether to show the mask placeholder (e.g., "___:__") */
-  showMask?: boolean;
+// Time input for mm:ss format with variable-length minutes (1-999 minutes)
+// Auto-inserts colon when 3+ digits typed, caps seconds at 59
+interface TimeInputProps extends Omit<React.ComponentProps<'input'>, 'type' | 'onChange'> {
+  value?: string;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-const timeTrack: Track = ({ inputType, data, selectionStart, value }) => {
-  if (inputType !== 'insert' || !data) return data;
+/**
+ * Formats time input: inserts colon only when 3+ digits are entered
+ * "4" → "4", "43" → "43", "431" → "4:31", "5403" → "54:03"
+ * Caps seconds at 59, max format is mmm:ss (5 digits total)
+ */
+const formatTimeValue = (val: string): string => {
+  // Strip everything except digits, limit to 5 digits (mmm + ss)
+  const digits = val.replace(/\D/g, '').slice(0, 5);
 
-  // Get the current value with the new input applied
-  const newValue = value.slice(0, selectionStart) + data + value.slice(selectionStart);
-
-  // Check if we're entering seconds (after the colon)
-  const colonIndex = newValue.indexOf(':');
-  if (colonIndex !== -1 && selectionStart >= colonIndex) {
-    // Extract what would be the seconds portion
-    const afterColon = newValue.slice(colonIndex + 1).replace(/\D/g, '');
-    if (afterColon.length >= 2) {
-      const seconds = parseInt(afterColon.slice(0, 2), 10);
-      if (seconds > 59) {
-        // Cap at 59 - replace the data with capped value
-        return data === afterColon[1] ? '9' : data;
-      }
-    }
+  // Only insert colon when we have 3+ digits (last 2 are seconds)
+  if (digits.length >= 3) {
+    const mins = digits.slice(0, -2);
+    let secs = parseInt(digits.slice(-2), 10);
+    // Cap seconds at 59
+    if (secs > 59) secs = 59;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   }
 
-  return data;
+  return digits;
 };
 
 const TimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(
-  ({ showMask = false, ...props }, ref) => {
+  ({ className, value, onChange, ...props }, ref) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const formatted = formatTimeValue(e.target.value);
+      // Create a synthetic event with the formatted value
+      const syntheticEvent = {
+        ...e,
+        target: { ...e.target, value: formatted },
+      } as React.ChangeEvent<HTMLInputElement>;
+      onChange?.(syntheticEvent);
+    };
+
     return (
-      <MaskedInput
+      <input
         ref={ref}
-        mask="___:__"
-        replacement={{ _: /\d/ }}
-        showMask={showMask}
-        track={timeTrack}
+        type="text"
         inputMode="numeric"
+        className={cn(inputClassName, className)}
+        value={value}
+        onChange={handleChange}
         {...props}
       />
     );
