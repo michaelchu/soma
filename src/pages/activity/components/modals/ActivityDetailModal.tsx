@@ -17,6 +17,13 @@ import {
 import type { Activity } from '@/types/activity';
 import { HR_ZONE_OPTIONS } from '@/types/activity';
 
+// Format minutes as mm:ss
+function formatMinutesAsTime(minutes: number): string {
+  const mins = Math.floor(minutes);
+  const secs = Math.round((minutes - mins) * 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
 interface ActivityDetailModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -149,7 +156,9 @@ function HRZonesDetail({ activity }: { activity: Activity }) {
                   <span className="text-xs text-muted-foreground">{zone.bpmRange} bpm</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium tabular-nums">{zone.value}</span>
+                  <span className="text-sm font-medium tabular-nums">
+                    {formatMinutesAsTime(zone.value)}
+                  </span>
                   <span className="text-xs text-muted-foreground w-8 text-right">{pct}%</span>
                 </div>
               </div>
@@ -165,7 +174,7 @@ function HRZonesDetail({ activity }: { activity: Activity }) {
             High Intensity (Zone 4 + 5)
           </span>
           <span className="text-sm font-semibold text-orange-600 dark:text-orange-400">
-            {highIntensityTime} ({highIntensityPct}%)
+            {formatMinutesAsTime(highIntensityTime)} ({highIntensityPct}%)
           </span>
         </div>
       )}
@@ -282,11 +291,11 @@ export function ActivityDetailModal({
 
         {/* Footer */}
         <div className="px-5 py-4 flex-shrink-0 border-t flex gap-3">
-          <Button onClick={handleEdit} className="flex-1">
+          <Button variant="outline" onClick={handleEdit} className="flex-1">
             <Pencil className="h-4 w-4 mr-2" />
             Edit
           </Button>
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
+          <Button onClick={() => onOpenChange(false)} className="flex-1">
             Close
           </Button>
         </div>
