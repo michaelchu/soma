@@ -84,9 +84,41 @@ function ActivityFormContent({
 
   const [saving, setSaving] = useState(false);
 
-  // Helper to parse zone minutes (empty string = null)
+  // Auto-format zone time input: "5403" → "54:03", "431" → "4:31"
+  const formatZoneInput = (val: string): string => {
+    // Remove non-digits except colon
+    const cleaned = val.replace(/[^\d:]/g, '');
+
+    // If already has colon, just clean it
+    if (cleaned.includes(':')) {
+      return cleaned;
+    }
+
+    // Auto-insert colon when 3+ digits (last 2 are seconds)
+    if (cleaned.length >= 3) {
+      const mins = cleaned.slice(0, -2);
+      const secs = cleaned.slice(-2);
+      return `${mins}:${secs}`;
+    }
+
+    return cleaned;
+  };
+
+  // Helper to parse zone time - accepts "54", "54:03", or "4:31" formats
+  // Returns rounded minutes (54:03 → 54, 4:31 → 5)
   const parseZoneMinutes = (val: string): number | null => {
     if (!val.trim()) return null;
+
+    // Check for mm:ss format (e.g., "54:03" or "4:31")
+    const timeMatch = val.match(/^(\d+):(\d{1,2})$/);
+    if (timeMatch) {
+      const mins = parseInt(timeMatch[1], 10);
+      const secs = parseInt(timeMatch[2], 10);
+      // Round to nearest minute
+      return Math.round(mins + secs / 60);
+    }
+
+    // Otherwise treat as plain minutes
     const num = parseInt(val, 10);
     return isNaN(num) ? null : num;
   };
@@ -285,7 +317,7 @@ function ActivityFormContent({
             </CollapsibleTrigger>
             <CollapsibleContent className="space-y-3 pt-2">
               <p className="text-xs text-muted-foreground">
-                Enter time spent in each HR zone from your watch (in minutes)
+                Enter time from your watch (e.g., 54:03 or just 54)
               </p>
               <div className="grid grid-cols-2 gap-3">
                 {HR_ZONE_OPTIONS.map((zone) => {
@@ -311,12 +343,11 @@ function ActivityFormContent({
                       </Label>
                       <Input
                         id={`zone${zone.zone}`}
-                        type="number"
-                        placeholder="min"
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="mm:ss"
                         value={zoneValues[zone.zone]}
-                        onChange={(e) => zoneSetters[zone.zone](e.target.value)}
-                        min={0}
-                        max={480}
+                        onChange={(e) => zoneSetters[zone.zone](formatZoneInput(e.target.value))}
                         className="h-8"
                       />
                     </div>
