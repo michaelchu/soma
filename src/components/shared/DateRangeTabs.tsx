@@ -1,7 +1,7 @@
 const DATE_RANGES = [
-  { value: '1w', label: '1w' },
-  { value: '1m', label: '1m' },
-  { value: '3m', label: '3m' },
+  { value: '1w', label: 'W' },
+  { value: '1m', label: 'M' },
+  { value: '3m', label: 'Q' },
   { value: 'all', label: 'All' },
 ];
 

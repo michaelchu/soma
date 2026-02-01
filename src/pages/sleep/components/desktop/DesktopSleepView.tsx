@@ -469,7 +469,7 @@ export function DesktopSleepView({ entries, allEntries, dateRange }: DesktopSlee
         <div className="space-y-4">
           {/* Sleep Score + Primary Stats Grid */}
           <div className="grid grid-cols-5 gap-3">
-            {sleepScore?.overall !== null && (
+            {sleepScore !== null && sleepScore.overall !== null && (
               <MetricCard label="Score" value={sleepScore.overall} />
             )}
             <MetricCard
