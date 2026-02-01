@@ -9,6 +9,7 @@ import { PageLoading, PageError } from '@/components/shared/PageStates';
 import { ActivityProvider, useActivity } from './activity/context/ActivityContext';
 import { ActivityCalendar } from './activity/components/ActivityCalendar';
 import { ActivityForm } from './activity/components/modals/ActivityForm';
+import { ActivityDetailModal } from './activity/components/modals/ActivityDetailModal';
 import { ExportModal } from './activity/components/modals/ExportModal';
 import type { Activity } from '@/types/activity';
 
@@ -17,6 +18,7 @@ function ActivityContent() {
   const { activities, loading, error } = useActivity();
   const [showForm, setShowForm] = useState(false);
   const [showExport, setShowExport] = useState(false);
+  const [viewingActivity, setViewingActivity] = useState<Activity | null>(null);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
 
   if (loading) {
@@ -80,7 +82,7 @@ function ActivityContent() {
             </CardContent>
           </Card>
         ) : (
-          <ActivityCalendar activities={activities} onEditActivity={setEditingActivity} />
+          <ActivityCalendar activities={activities} onViewActivity={setViewingActivity} />
         )}
       </main>
 
@@ -89,6 +91,17 @@ function ActivityContent() {
 
       {/* Add Activity Modal */}
       <ActivityForm open={showForm} onOpenChange={setShowForm} />
+
+      {/* Activity Detail Modal */}
+      <ActivityDetailModal
+        open={!!viewingActivity}
+        onOpenChange={(open) => !open && setViewingActivity(null)}
+        activity={viewingActivity}
+        onEdit={(activity) => {
+          setViewingActivity(null);
+          setEditingActivity(activity);
+        }}
+      />
 
       {/* Edit Activity Modal */}
       <ActivityForm
