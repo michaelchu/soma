@@ -88,7 +88,8 @@ function estimateEffortFromIntensity(
   intensity: number,
   activityType: ActivityType
 ): number {
-  const distribution = INTENSITY_TO_ZONE_DISTRIBUTION[intensity] || INTENSITY_TO_ZONE_DISTRIBUTION[3];
+  const distribution =
+    INTENSITY_TO_ZONE_DISTRIBUTION[intensity] || INTENSITY_TO_ZONE_DISTRIBUTION[3];
   const activityMultiplier = ACTIVITY_TYPE_MULTIPLIERS[activityType] || 1.0;
 
   // Distribute duration across zones based on intensity

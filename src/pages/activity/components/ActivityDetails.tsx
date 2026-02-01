@@ -210,9 +210,7 @@ export function ActivityDetails({
                   <span className={`font-semibold ${isSelected ? '' : 'text-muted-foreground'}`}>
                     {formatDate(date, { includeWeekday: true })}
                   </span>
-                  <span className={`text-sm ml-3 ${dayEffortLevel.color}`}>
-                    {dayEffort} effort
-                  </span>
+                  <span className={`text-sm ml-3 ${dayEffortLevel.color}`}>{dayEffort} effort</span>
                 </div>
               </div>
 

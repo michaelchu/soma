@@ -11,11 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Slider } from '@/components/ui/slider';
 import { Save, Loader2, Trash2, ChevronDown, Heart } from 'lucide-react';
 import { useActivity } from '../../context/ActivityContext';
@@ -301,10 +297,7 @@ function ActivityFormContent({
           {/* HR Zones (optional, collapsible) */}
           <Collapsible open={hrZonesOpen} onOpenChange={setHrZonesOpen}>
             <CollapsibleTrigger asChild>
-              <Button
-                variant="ghost"
-                className="w-full justify-between px-0 hover:bg-transparent"
-              >
+              <Button variant="ghost" className="w-full justify-between px-0 hover:bg-transparent">
                 <span className="flex items-center gap-2 text-sm font-medium">
                   <Heart className="h-4 w-4" />
                   Heart Rate Zones
