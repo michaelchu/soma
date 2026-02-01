@@ -146,9 +146,7 @@ function HRZonesDetail({ activity }: { activity: Activity }) {
               <div className="flex-1 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">{zone.label}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {zone.description} ({zone.bpmRange} bpm)
-                  </span>
+                  <span className="text-xs text-muted-foreground">{zone.bpmRange} bpm</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium tabular-nums">{zone.value}</span>
@@ -284,12 +282,12 @@ export function ActivityDetailModal({
 
         {/* Footer */}
         <div className="px-5 py-4 flex-shrink-0 border-t flex gap-3">
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
-            Close
-          </Button>
           <Button onClick={handleEdit} className="flex-1">
             <Pencil className="h-4 w-4 mr-2" />
             Edit
+          </Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
+            Close
           </Button>
         </div>
       </DialogContent>
