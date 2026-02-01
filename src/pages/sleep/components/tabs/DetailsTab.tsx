@@ -44,14 +44,14 @@ function MetricCard({
   );
 }
 
-function SleepStagesDisplay({ entry }: { entry: SleepEntry }) {
+function SleepStagesDisplay({ entry, score }: { entry: SleepEntry; score?: number | null }) {
   const hasStages =
     entry.deepSleepPct !== null ||
     entry.remSleepPct !== null ||
     entry.lightSleepPct !== null ||
     entry.awakePct !== null;
 
-  if (!hasStages) return null;
+  if (!hasStages && !score) return null;
 
   const stages = [
     { key: 'deep', value: entry.deepSleepPct, color: STAGE_COLORS.deep, label: 'Deep' },
@@ -62,24 +62,46 @@ function SleepStagesDisplay({ entry }: { entry: SleepEntry }) {
 
   return (
     <div className="rounded-xl p-4 border border-border">
-      <h4 className="text-xs text-muted-foreground uppercase tracking-wide mb-3">Sleep Stages</h4>
+      <div className="flex">
+        {/* Score on left */}
+        {score != null && (
+          <>
+            <div className="flex flex-col items-center justify-center pr-4">
+              <span className="text-3xl font-bold text-foreground">{score}</span>
+              <span className="text-xs text-muted-foreground uppercase tracking-wide">Score</span>
+            </div>
+            <div className="w-px bg-border mr-4" />
+          </>
+        )}
 
-      {/* Bar */}
-      <div className="flex h-3 rounded-full overflow-hidden bg-muted mb-3">
-        {stages.map((stage) => (
-          <div key={stage.key} className={stage.color} style={{ width: `${stage.value}%` }} />
-        ))}
-      </div>
+        {/* Sleep stages on right */}
+        <div className="flex-1">
+          {hasStages && (
+            <>
+              <h4 className="text-xs text-muted-foreground uppercase tracking-wide mb-3">
+                Sleep Stages
+              </h4>
 
-      {/* Legend */}
-      <div className="grid grid-cols-2 gap-2">
-        {stages.map((stage) => (
-          <div key={stage.key} className="flex items-center gap-2">
-            <span className={`w-2.5 h-2.5 rounded-full ${stage.color}`} />
-            <span className="text-xs text-muted-foreground flex-1">{stage.label}</span>
-            <span className="text-xs font-semibold text-foreground">{stage.value}%</span>
-          </div>
-        ))}
+              {/* Bar */}
+              <div className="flex h-3 rounded-full overflow-hidden bg-muted mb-3">
+                {stages.map((stage) => (
+                  <div key={stage.key} className={stage.color} style={{ width: `${stage.value}%` }} />
+                ))}
+              </div>
+
+              {/* Legend */}
+              <div className="grid grid-cols-2 gap-2">
+                {stages.map((stage) => (
+                  <div key={stage.key} className="flex items-center gap-2">
+                    <span className={`w-2.5 h-2.5 rounded-full ${stage.color}`} />
+                    <span className="text-xs text-muted-foreground flex-1">{stage.label}</span>
+                    <span className="text-xs font-semibold text-foreground">{stage.value}%</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -228,12 +250,23 @@ export function DetailsTab({ entries, allEntries, dateRange }: DetailsTabProps) 
       {/* Selected Day Stats */}
       {selectedEntry && (
         <div className="space-y-4 px-5 sm:px-6 pb-8">
+          {/* Sleep Stages with Score */}
+          <SleepStagesDisplay entry={selectedEntry} score={sleepScore?.overall} />
+
+          {/* Sleep Window - full width */}
+          {sleepWindow && (
+            <div className="rounded-xl p-3 border border-border">
+              <div className="flex items-baseline gap-0.5">
+                <span className="text-xl font-bold text-foreground">{sleepWindow}</span>
+              </div>
+              <span className="text-xs text-muted-foreground uppercase tracking-wide">
+                Sleep Window
+              </span>
+            </div>
+          )}
+
           {/* Primary Stats Grid */}
           <div className="grid grid-cols-2 gap-3">
-            {sleepScore !== null && sleepScore.overall !== null && (
-              <MetricCard label="Score" value={sleepScore.overall} />
-            )}
-            <MetricCard label="Sleep Window" value={sleepWindow} />
             <MetricCard
               icon={Moon}
               label="Total Sleep"
@@ -256,9 +289,6 @@ export function DetailsTab({ entries, allEntries, dateRange }: DetailsTabProps) 
               />
             )}
           </div>
-
-          {/* Sleep Stages */}
-          <SleepStagesDisplay entry={selectedEntry} />
 
           {/* Secondary Stats */}
           <div className="grid grid-cols-2 gap-3">
