@@ -58,11 +58,17 @@ function ReadingFormContent({ session, onOpenChange }: ReadingFormContentProps) 
 
   // Refs for auto-focus
   const rowRefs = useRef<Map<number, BPRowInputRef>>(new Map());
+  const shouldFocusNewRow = useRef(false);
 
-  // Auto-scroll to bottom when new row is added
+  // Auto-scroll to bottom and focus new row when added
   useEffect(() => {
     if (scrollContainerRef.current && bpRows.length > 1) {
       scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+    }
+    if (shouldFocusNewRow.current) {
+      shouldFocusNewRow.current = false;
+      // Focus the last row's systolic input
+      rowRefs.current.get(bpRows.length - 1)?.focusSystolic();
     }
   }, [bpRows.length]);
 
@@ -71,6 +77,7 @@ function ReadingFormContent({ session, onOpenChange }: ReadingFormContentProps) 
   };
 
   const addBpRow = () => {
+    shouldFocusNewRow.current = true;
     setBpRows((rows) => [...rows, createEmptyBpRow()]);
   };
 
