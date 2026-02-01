@@ -1,15 +1,15 @@
 import type { ElementType } from 'react';
 import { useState, useMemo } from 'react';
 import { Moon, Heart, Activity, Brain, Thermometer, Move, Clock, BedDouble } from 'lucide-react';
-import { formatDate, formatTimeString } from '@/lib/dateUtils';
+import { formatTimeString } from '@/lib/dateUtils';
 import {
   formatHrvRange,
   getRestorativeSleepPct,
-  calculateSleepScore,
   calculatePersonalBaseline,
+  calculateSleepScore,
   STAGE_COLORS,
 } from '../../utils/sleepHelpers';
-import { ScoreBarChart, type ScoreBarChartItem } from '@/components/shared/ScoreBarChart';
+import { StackedBarChart } from '@/components/shared/StackedBarChart';
 import type { SleepEntry } from '@/lib/db/sleep';
 
 interface DetailsTabProps {
@@ -44,14 +44,14 @@ function MetricCard({
   );
 }
 
-function SleepStagesDisplay({ entry }: { entry: SleepEntry }) {
+function SleepStagesDisplay({ entry, score }: { entry: SleepEntry; score?: number | null }) {
   const hasStages =
     entry.deepSleepPct !== null ||
     entry.remSleepPct !== null ||
     entry.lightSleepPct !== null ||
     entry.awakePct !== null;
 
-  if (!hasStages) return null;
+  if (!hasStages && !score) return null;
 
   const stages = [
     { key: 'deep', value: entry.deepSleepPct, color: STAGE_COLORS.deep, label: 'Deep' },
@@ -62,24 +62,50 @@ function SleepStagesDisplay({ entry }: { entry: SleepEntry }) {
 
   return (
     <div className="rounded-xl p-4 border border-border">
-      <h4 className="text-xs text-muted-foreground uppercase tracking-wide mb-3">Sleep Stages</h4>
+      <div className="flex">
+        {/* Score on left */}
+        {score != null && (
+          <>
+            <div className="flex flex-col items-center justify-center pr-4">
+              <span className="text-3xl font-bold text-foreground">{score}</span>
+              <span className="text-xs text-muted-foreground uppercase tracking-wide">Score</span>
+            </div>
+            <div className="w-px bg-border mr-4" />
+          </>
+        )}
 
-      {/* Bar */}
-      <div className="flex h-3 rounded-full overflow-hidden bg-muted mb-3">
-        {stages.map((stage) => (
-          <div key={stage.key} className={stage.color} style={{ width: `${stage.value}%` }} />
-        ))}
-      </div>
+        {/* Sleep stages on right */}
+        <div className="flex-1">
+          {hasStages && (
+            <>
+              <h4 className="text-xs text-muted-foreground uppercase tracking-wide mb-3">
+                Sleep Stages
+              </h4>
 
-      {/* Legend */}
-      <div className="grid grid-cols-2 gap-2">
-        {stages.map((stage) => (
-          <div key={stage.key} className="flex items-center gap-2">
-            <span className={`w-2.5 h-2.5 rounded-full ${stage.color}`} />
-            <span className="text-xs text-muted-foreground flex-1">{stage.label}</span>
-            <span className="text-xs font-semibold text-foreground">{stage.value}%</span>
-          </div>
-        ))}
+              {/* Bar */}
+              <div className="flex h-3 rounded-full overflow-hidden bg-muted mb-3">
+                {stages.map((stage) => (
+                  <div
+                    key={stage.key}
+                    className={stage.color}
+                    style={{ width: `${stage.value}%` }}
+                  />
+                ))}
+              </div>
+
+              {/* Legend */}
+              <div className="grid grid-cols-2 gap-2">
+                {stages.map((stage) => (
+                  <div key={stage.key} className="flex items-center gap-2">
+                    <span className={`w-2.5 h-2.5 rounded-full ${stage.color}`} />
+                    <span className="text-xs text-muted-foreground flex-1">{stage.label}</span>
+                    <span className="text-xs font-semibold text-foreground">{stage.value}%</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -92,9 +118,6 @@ export function DetailsTab({ entries, allEntries, dateRange }: DetailsTabProps) 
   const sortedEntries = useMemo(() => {
     return [...entries].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [entries]);
-
-  // Calculate baseline for scoring
-  const baseline = useMemo(() => calculatePersonalBaseline(allEntries), [allEntries]);
 
   // Create a map of entries by date for quick lookup
   const entriesByDate = useMemo(() => {
@@ -149,21 +172,12 @@ export function DetailsTab({ entries, allEntries, dateRange }: DetailsTabProps) 
     return dates;
   }, [sortedEntries, dateRange]);
 
-  // Build chart items for the ScoreBarChart
-  const chartItems = useMemo((): ScoreBarChartItem[] => {
-    return allDatesInRange.map((date) => {
-      const entry = entriesByDate.get(date);
-      if (entry) {
-        const score = calculateSleepScore(entry, baseline);
-        return { date, score: score.overall };
-      }
-      return { date, score: null };
-    });
-  }, [allDatesInRange, entriesByDate, baseline]);
+  // Calculate baseline for scoring
+  const baseline = useMemo(() => calculatePersonalBaseline(allEntries), [allEntries]);
 
   // Get the selected entry based on selectedIndex
   const selectedEntry = (() => {
-    const selectedDate = chartItems[selectedIndex]?.date;
+    const selectedDate = allDatesInRange[selectedIndex];
     if (!selectedDate) return sortedEntries[sortedEntries.length - 1];
 
     const entry = entriesByDate.get(selectedDate);
@@ -171,19 +185,22 @@ export function DetailsTab({ entries, allEntries, dateRange }: DetailsTabProps) 
 
     // For placeholder, find nearest entry (prefer earlier date)
     for (let i = selectedIndex; i >= 0; i--) {
-      const date = chartItems[i]?.date;
+      const date = allDatesInRange[i];
       if (date && entriesByDate.has(date)) {
         return entriesByDate.get(date);
       }
     }
-    for (let i = selectedIndex; i < chartItems.length; i++) {
-      const date = chartItems[i]?.date;
+    for (let i = selectedIndex; i < allDatesInRange.length; i++) {
+      const date = allDatesInRange[i];
       if (date && entriesByDate.has(date)) {
         return entriesByDate.get(date);
       }
     }
     return undefined;
   })();
+
+  // Calculate sleep score for selected entry
+  const sleepScore = selectedEntry ? calculateSleepScore(selectedEntry, baseline) : null;
 
   if (entries.length === 0) {
     return (
@@ -210,34 +227,37 @@ export function DetailsTab({ entries, allEntries, dateRange }: DetailsTabProps) 
 
   return (
     <div className="-mx-5 sm:-mx-6 min-h-[calc(100vh-120px)] overflow-hidden">
-      {/* Selected Date Header */}
-      {selectedEntry && (
-        <div className="text-center pt-6 pb-2 px-5 sm:px-6">
-          <p className="text-lg font-semibold text-foreground">
-            {formatDate(selectedEntry.date, { includeWeekday: true })}
-          </p>
-        </div>
-      )}
-
-      {/* Scrollable Bar Chart */}
-      <div className="pt-2 pb-4 -mx-5 sm:-mx-6">
-        <ScoreBarChart
-          items={chartItems}
+      {/* Scrollable Stacked Bar Chart */}
+      <div className="pt-2 pb-4">
+        <StackedBarChart
+          entriesByDate={entriesByDate}
+          allDatesInRange={allDatesInRange}
           selectedIndex={selectedIndex}
           onSelectIndex={setSelectedIndex}
+          barWidth={28}
+          barGap={3}
+          maxBarHeight={120}
+          minBarHeight={50}
+          showLegend={false}
+          compact
         />
       </div>
 
       {/* Selected Day Stats */}
       {selectedEntry && (
         <div className="space-y-4 px-5 sm:px-6 pb-8">
-          {/* Sleep Window */}
+          {/* Sleep Stages with Score */}
+          <SleepStagesDisplay entry={selectedEntry} score={sleepScore?.overall} />
+
+          {/* Sleep Window - full width */}
           {sleepWindow && (
-            <div className="rounded-xl p-4 border border-border text-center">
-              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+            <div className="rounded-xl p-3 border border-border">
+              <div className="flex items-baseline gap-0.5">
+                <span className="text-xl font-bold text-foreground">{sleepWindow}</span>
+              </div>
+              <span className="text-xs text-muted-foreground uppercase tracking-wide">
                 Sleep Window
-              </p>
-              <p className="text-lg font-semibold text-foreground">{sleepWindow}</p>
+              </span>
             </div>
           )}
 
@@ -266,9 +286,6 @@ export function DetailsTab({ entries, allEntries, dateRange }: DetailsTabProps) 
             )}
           </div>
 
-          {/* Sleep Stages */}
-          <SleepStagesDisplay entry={selectedEntry} />
-
           {/* Secondary Stats */}
           <div className="grid grid-cols-2 gap-3">
             {(selectedEntry.hrvLow !== null || selectedEntry.hrvHigh !== null) && (
@@ -284,7 +301,6 @@ export function DetailsTab({ entries, allEntries, dateRange }: DetailsTabProps) 
                 label="HR Drop"
                 value={selectedEntry.hrDropMinutes}
                 unit="min"
-                subValue="to lowest HR"
               />
             )}
             {selectedEntry.skinTempAvg !== null && (

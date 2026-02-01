@@ -1,8 +1,7 @@
-import { List, BarChart3, CalendarDays } from 'lucide-react';
+import { BarChart3, CalendarDays } from 'lucide-react';
 import { TabNav, type TabDefinition } from '@/components/shared/TabNav';
 
 const tabs: TabDefinition[] = [
-  { id: 'readings', label: 'Entries', icon: List },
   { id: 'details', label: 'Details', icon: CalendarDays },
   { id: 'statistics', label: 'Statistics', icon: BarChart3 },
 ];
