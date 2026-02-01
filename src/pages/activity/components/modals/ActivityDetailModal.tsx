@@ -151,7 +151,7 @@ function HRZonesDetail({ activity }: { activity: Activity }) {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium tabular-nums">{zone.value} min</span>
+                  <span className="text-sm font-medium tabular-nums">{zone.value}</span>
                   <span className="text-xs text-muted-foreground w-8 text-right">{pct}%</span>
                 </div>
               </div>
@@ -167,7 +167,7 @@ function HRZonesDetail({ activity }: { activity: Activity }) {
             High Intensity (Zone 4 + 5)
           </span>
           <span className="text-sm font-semibold text-orange-600 dark:text-orange-400">
-            {highIntensityTime} min ({highIntensityPct}%)
+            {highIntensityTime} ({highIntensityPct}%)
           </span>
         </div>
       )}
