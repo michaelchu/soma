@@ -37,20 +37,27 @@ interface TimeInputProps extends Omit<React.ComponentProps<'input'>, 'type' | 'o
 }
 
 /**
- * Formats time input: inserts colon only when 3+ digits are entered
- * "4" → "4", "43" → "43", "431" → "4:31", "5403" → "54:03"
- * Caps seconds at 59, max format is mmm:ss (5 digits total)
+ * Formats time input with smart colon insertion
+ * Only auto-inserts colon when seconds are valid (≤59), otherwise waits for more input
+ * "4" → "4", "43" → "43", "431" → "4:31", "185" → "185", "1854" → "18:54"
+ * Caps seconds at 59, max format is mmm:ss (999:59)
  */
 const formatTimeValue = (val: string): string => {
   // Strip everything except digits, limit to 5 digits (mmm + ss)
   const digits = val.replace(/\D/g, '').slice(0, 5);
 
-  // Only insert colon when we have 3+ digits (last 2 are seconds)
+  // Only auto-insert colon when we have 3+ digits
   if (digits.length >= 3) {
     const mins = digits.slice(0, -2);
-    let secs = parseInt(digits.slice(-2), 10);
-    // Cap seconds at 59
-    if (secs > 59) secs = 59;
+    const secsRaw = parseInt(digits.slice(-2), 10);
+
+    // If seconds > 59, don't format yet - user is still typing (e.g., "185" for "18:54")
+    // Exception: at 5 digits we must format, so cap at 59
+    if (secsRaw > 59 && digits.length < 5) {
+      return digits;
+    }
+
+    const secs = Math.min(secsRaw, 59);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   }
 
