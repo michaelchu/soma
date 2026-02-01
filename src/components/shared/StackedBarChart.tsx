@@ -49,7 +49,6 @@ function StackedBar({
 }) {
   const date = new Date(bar.date + 'T00:00:00');
   const dayNumber = date.getDate();
-  const dayName = date.toLocaleDateString('en-US', { weekday: 'short' }).charAt(0);
 
   if (!bar.entry || bar.duration === null) {
     // Placeholder bar for dates with no data
@@ -62,7 +61,7 @@ function StackedBar({
           <div className="w-full h-[2px] rounded-full bg-muted-foreground/20" />
         </div>
         <span className={`${compact ? 'text-[10px]' : 'text-xs'} mt-1 text-muted-foreground/50`}>
-          {compact ? dayName : dayNumber}
+          {dayNumber}
         </span>
       </div>
     );
@@ -101,7 +100,7 @@ function StackedBar({
           isSelected ? 'text-foreground font-semibold' : 'text-muted-foreground'
         }`}
       >
-        {compact ? dayName : dayNumber}
+        {dayNumber}
       </span>
     </div>
   );

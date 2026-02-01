@@ -1,7 +1,7 @@
 import type { ElementType } from 'react';
 import { useState, useMemo } from 'react';
 import { Moon, Heart, Activity, Brain, Thermometer, Move, Clock, BedDouble } from 'lucide-react';
-import { formatDate, formatTimeString } from '@/lib/dateUtils';
+import { formatTimeString } from '@/lib/dateUtils';
 import {
   formatHrvRange,
   getRestorativeSleepPct,
@@ -223,15 +223,6 @@ export function DetailsTab({ entries, allEntries, dateRange }: DetailsTabProps) 
 
   return (
     <div className="-mx-5 sm:-mx-6 min-h-[calc(100vh-120px)] overflow-hidden">
-      {/* Selected Date Header */}
-      {selectedEntry && (
-        <div className="text-center pt-6 pb-2 px-5 sm:px-6">
-          <p className="text-lg font-semibold text-foreground">
-            {formatDate(selectedEntry.date, { includeWeekday: true })}
-          </p>
-        </div>
-      )}
-
       {/* Scrollable Stacked Bar Chart */}
       <div className="pt-2 pb-4">
         <StackedBarChart
