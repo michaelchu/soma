@@ -82,22 +82,17 @@ function ActivityFormContent({
 
   // Auto-format zone time input: "5403" → "54:03", "431" → "4:31"
   const formatZoneInput = (val: string): string => {
-    // Remove non-digits except colon
-    const cleaned = val.replace(/[^\d:]/g, '');
-
-    // If already has colon, just clean it
-    if (cleaned.includes(':')) {
-      return cleaned;
-    }
+    // Strip everything except digits
+    const digits = val.replace(/\D/g, '');
 
     // Auto-insert colon when 3+ digits (last 2 are seconds)
-    if (cleaned.length >= 3) {
-      const mins = cleaned.slice(0, -2);
-      const secs = cleaned.slice(-2);
+    if (digits.length >= 3) {
+      const mins = digits.slice(0, -2);
+      const secs = digits.slice(-2);
       return `${mins}:${secs}`;
     }
 
-    return cleaned;
+    return digits;
   };
 
   // Helper to parse zone time - accepts "54", "54:03", or "4:31" formats
