@@ -29,6 +29,8 @@ export const ACTIVITY_VALIDATION = {
   DURATION_MAX: 480,
   INTENSITY_MIN: 1,
   INTENSITY_MAX: 5,
+  ZONE_MINUTES_MIN: 0,
+  ZONE_MINUTES_MAX: 480,
   NOTES_MAX_LENGTH: 500,
   VALID_ACTIVITY_TYPES: ['walking', 'badminton', 'pickleball', 'other'] as ActivityType[],
   VALID_TIME_OF_DAY: ['morning', 'afternoon', 'evening', 'late_evening'] as ActivityTimeOfDay[],
@@ -164,6 +166,9 @@ const requiredTimeOfDay = z
   .preprocess((val) => (val === '' ? undefined : val), timeOfDaySchema)
   .refine((val) => val !== undefined, { message: 'Time of day is required' });
 
+const optionalZoneMinutes = () =>
+  optionalNumber(ACTIVITY_VALIDATION.ZONE_MINUTES_MIN, ACTIVITY_VALIDATION.ZONE_MINUTES_MAX);
+
 export const activitySchema = z.object({
   date: requiredDateString('Date'),
   timeOfDay: requiredTimeOfDay,
@@ -177,6 +182,12 @@ export const activitySchema = z.object({
     .min(ACTIVITY_VALIDATION.INTENSITY_MIN)
     .max(ACTIVITY_VALIDATION.INTENSITY_MAX),
   notes: notesField(ACTIVITY_VALIDATION.NOTES_MAX_LENGTH),
+  // Optional HR zone data (when available from watch)
+  zone1Minutes: optionalZoneMinutes(),
+  zone2Minutes: optionalZoneMinutes(),
+  zone3Minutes: optionalZoneMinutes(),
+  zone4Minutes: optionalZoneMinutes(),
+  zone5Minutes: optionalZoneMinutes(),
 });
 
 // ============================================================================

@@ -24,6 +24,11 @@ function rowToActivity(row: ActivityRow): Activity {
     durationMinutes: row.duration_minutes,
     intensity: row.intensity,
     notes: row.notes,
+    zone1Minutes: row.zone1_minutes,
+    zone2Minutes: row.zone2_minutes,
+    zone3Minutes: row.zone3_minutes,
+    zone4Minutes: row.zone4_minutes,
+    zone5Minutes: row.zone5_minutes,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -89,6 +94,11 @@ export async function addActivity(
     duration_minutes: input.durationMinutes,
     intensity: input.intensity,
     notes: sanitizedNotes,
+    zone1_minutes: input.zone1Minutes ?? null,
+    zone2_minutes: input.zone2Minutes ?? null,
+    zone3_minutes: input.zone3Minutes ?? null,
+    zone4_minutes: input.zone4Minutes ?? null,
+    zone5_minutes: input.zone5Minutes ?? null,
   };
 
   const { data, error } = await supabase.from('activities').insert(row).select().single();
@@ -131,6 +141,11 @@ export async function updateActivity(
     duration_minutes: input.durationMinutes,
     intensity: input.intensity,
     notes: sanitizedNotes,
+    zone1_minutes: input.zone1Minutes ?? null,
+    zone2_minutes: input.zone2Minutes ?? null,
+    zone3_minutes: input.zone3Minutes ?? null,
+    zone4_minutes: input.zone4Minutes ?? null,
+    zone5_minutes: input.zone5Minutes ?? null,
   };
 
   const { data, error } = await supabase

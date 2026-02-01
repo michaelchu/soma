@@ -1,15 +1,19 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { StickyNote } from 'lucide-react';
+import { StickyNote, Heart } from 'lucide-react';
 import { formatDate } from '@/lib/dateUtils';
 import {
-  calculateDailyActivityScore,
   formatDuration,
   getIntensityLabel,
   getIntensityColor,
   getActivityTypeLabel,
   getActivityTypeIcon,
+  calculateEffortScore,
+  calculateDailyEffortScore,
+  getEffortLevel,
+  hasHrZoneData,
 } from '../utils/activityHelpers';
 import type { Activity } from '@/types/activity';
+import { HR_ZONE_OPTIONS } from '@/types/activity';
 
 interface ActivityDetailsProps {
   activities: Activity[];
@@ -66,6 +70,19 @@ function ActivityItem({ activity, onLongPress }: { activity: Activity; onLongPre
     cancelPress();
   }, [cancelPress]);
 
+  const effortScore = calculateEffortScore(activity);
+  const effortLevel = getEffortLevel(effortScore);
+  const hasHrData = hasHrZoneData(activity);
+
+  // Get zone values for display
+  const zoneValues = [
+    activity.zone1Minutes,
+    activity.zone2Minutes,
+    activity.zone3Minutes,
+    activity.zone4Minutes,
+    activity.zone5Minutes,
+  ];
+
   return (
     <div
       className={`select-none transition-opacity p-2 rounded-lg hover:bg-muted/50 ${isPressing ? 'opacity-60' : ''}`}
@@ -86,10 +103,35 @@ function ActivityItem({ activity, onLongPress }: { activity: Activity; onLongPre
             {formatDuration(activity.durationMinutes)}
           </span>
         </div>
-        <span className={`text-xs ${getIntensityColor(activity.intensity)}`}>
-          {getIntensityLabel(activity.intensity)}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className={`text-xs ${getIntensityColor(activity.intensity)}`}>
+            {getIntensityLabel(activity.intensity)}
+          </span>
+          <span className={`text-xs font-semibold flex items-center gap-1 ${effortLevel.color}`}>
+            {hasHrData && <Heart className="h-3 w-3" />}
+            {effortScore}
+          </span>
+        </div>
       </div>
+
+      {/* HR Zone breakdown (if available) */}
+      {hasHrData && (
+        <div className="mt-2 ml-6 flex gap-1">
+          {HR_ZONE_OPTIONS.map((zone, idx) => {
+            const minutes = zoneValues[idx];
+            if (!minutes) return null;
+            return (
+              <div
+                key={zone.zone}
+                className="text-xs px-1.5 py-0.5 rounded bg-muted"
+                title={`${zone.label}: ${zone.description}`}
+              >
+                Z{zone.zone}: {minutes}m
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Notes */}
       {activity.notes && (
@@ -104,7 +146,7 @@ function ActivityItem({ activity, onLongPress }: { activity: Activity; onLongPre
 
 export function ActivityDetails({
   activities,
-  allActivities,
+  allActivities: _allActivities,
   onEditActivity,
   selectedDate,
 }: ActivityDetailsProps) {
@@ -145,7 +187,8 @@ export function ActivityDetails({
       <div className="relative">
         {dates.map((date, dateIndex) => {
           const dayActivities = groupedActivities.get(date) || [];
-          const dayScore = calculateDailyActivityScore(dayActivities, allActivities);
+          const dayEffort = calculateDailyEffortScore(dayActivities);
+          const dayEffortLevel = getEffortLevel(dayEffort);
           const isSelected = date === selectedDate;
 
           return (
@@ -167,7 +210,9 @@ export function ActivityDetails({
                   <span className={`font-semibold ${isSelected ? '' : 'text-muted-foreground'}`}>
                     {formatDate(date, { includeWeekday: true })}
                   </span>
-                  <span className="text-sm text-muted-foreground ml-3">{dayScore} pts</span>
+                  <span className={`text-sm ml-3 ${dayEffortLevel.color}`}>
+                    {dayEffort} effort
+                  </span>
                 </div>
               </div>
 

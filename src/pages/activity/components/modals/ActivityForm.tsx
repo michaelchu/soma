@@ -11,8 +11,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { Slider } from '@/components/ui/slider';
-import { Save, Loader2, Trash2 } from 'lucide-react';
+import { Save, Loader2, Trash2, ChevronDown, Heart } from 'lucide-react';
 import { useActivity } from '../../context/ActivityContext';
 import { showError, showSuccess, showWithUndo, extractErrorMessage } from '@/lib/toast';
 import { getLocalDateNow } from '@/lib/dateUtils';
@@ -20,6 +25,7 @@ import { getIntensityLabel } from '../../utils/activityHelpers';
 import {
   ACTIVITY_TYPES,
   TIME_OF_DAY_OPTIONS,
+  HR_ZONE_OPTIONS,
   type Activity,
   type ActivityType,
   type ActivityTimeOfDay,
@@ -49,7 +55,41 @@ function ActivityFormContent({
   const [intensity, setIntensity] = useState(() => activity?.intensity || 3);
   const [notes, setNotes] = useState(() => activity?.notes || '');
 
+  // HR zone state (optional)
+  const [zone1Minutes, setZone1Minutes] = useState(() =>
+    activity?.zone1Minutes != null ? String(activity.zone1Minutes) : ''
+  );
+  const [zone2Minutes, setZone2Minutes] = useState(() =>
+    activity?.zone2Minutes != null ? String(activity.zone2Minutes) : ''
+  );
+  const [zone3Minutes, setZone3Minutes] = useState(() =>
+    activity?.zone3Minutes != null ? String(activity.zone3Minutes) : ''
+  );
+  const [zone4Minutes, setZone4Minutes] = useState(() =>
+    activity?.zone4Minutes != null ? String(activity.zone4Minutes) : ''
+  );
+  const [zone5Minutes, setZone5Minutes] = useState(() =>
+    activity?.zone5Minutes != null ? String(activity.zone5Minutes) : ''
+  );
+  const [hrZonesOpen, setHrZonesOpen] = useState(() => {
+    // Open by default if any zone has data
+    return !!(
+      activity?.zone1Minutes ||
+      activity?.zone2Minutes ||
+      activity?.zone3Minutes ||
+      activity?.zone4Minutes ||
+      activity?.zone5Minutes
+    );
+  });
+
   const [saving, setSaving] = useState(false);
+
+  // Helper to parse zone minutes (empty string = null)
+  const parseZoneMinutes = (val: string): number | null => {
+    if (!val.trim()) return null;
+    const num = parseInt(val, 10);
+    return isNaN(num) ? null : num;
+  };
 
   const isValid =
     date && timeOfDay && activityType && durationMinutes && parseInt(durationMinutes) > 0;
@@ -64,6 +104,11 @@ function ActivityFormContent({
       durationMinutes: parseInt(durationMinutes),
       intensity,
       notes: notes || null,
+      zone1Minutes: parseZoneMinutes(zone1Minutes),
+      zone2Minutes: parseZoneMinutes(zone2Minutes),
+      zone3Minutes: parseZoneMinutes(zone3Minutes),
+      zone4Minutes: parseZoneMinutes(zone4Minutes),
+      zone5Minutes: parseZoneMinutes(zone5Minutes),
     };
 
     let saveError;
@@ -93,6 +138,12 @@ function ActivityFormContent({
     setDurationMinutes('');
     setIntensity(3);
     setNotes('');
+    setZone1Minutes('');
+    setZone2Minutes('');
+    setZone3Minutes('');
+    setZone4Minutes('');
+    setZone5Minutes('');
+    setHrZonesOpen(false);
   };
 
   const handleDelete = async () => {
@@ -114,6 +165,11 @@ function ActivityFormContent({
         durationMinutes: activity.durationMinutes,
         intensity: activity.intensity,
         notes: activity.notes,
+        zone1Minutes: activity.zone1Minutes,
+        zone2Minutes: activity.zone2Minutes,
+        zone3Minutes: activity.zone3Minutes,
+        zone4Minutes: activity.zone4Minutes,
+        zone5Minutes: activity.zone5Minutes,
       });
       if (undoError) {
         showError('Failed to restore activity');
@@ -209,6 +265,66 @@ function ActivityFormContent({
               <span>All out</span>
             </div>
           </div>
+
+          {/* HR Zones (optional, collapsible) */}
+          <Collapsible open={hrZonesOpen} onOpenChange={setHrZonesOpen}>
+            <CollapsibleTrigger asChild>
+              <Button
+                variant="ghost"
+                className="w-full justify-between px-0 hover:bg-transparent"
+              >
+                <span className="flex items-center gap-2 text-sm font-medium">
+                  <Heart className="h-4 w-4" />
+                  Heart Rate Zones
+                  <span className="text-muted-foreground font-normal">(optional)</span>
+                </span>
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform ${hrZonesOpen ? 'rotate-180' : ''}`}
+                />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-3 pt-2">
+              <p className="text-xs text-muted-foreground">
+                Enter time spent in each HR zone from your watch (in minutes)
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                {HR_ZONE_OPTIONS.map((zone) => {
+                  const zoneSetters = {
+                    1: setZone1Minutes,
+                    2: setZone2Minutes,
+                    3: setZone3Minutes,
+                    4: setZone4Minutes,
+                    5: setZone5Minutes,
+                  };
+                  const zoneValues = {
+                    1: zone1Minutes,
+                    2: zone2Minutes,
+                    3: zone3Minutes,
+                    4: zone4Minutes,
+                    5: zone5Minutes,
+                  };
+                  return (
+                    <div key={zone.zone} className="space-y-1">
+                      <Label htmlFor={`zone${zone.zone}`} className="text-xs">
+                        {zone.label}{' '}
+                        <span className="text-muted-foreground">({zone.description})</span>
+                      </Label>
+                      <Input
+                        id={`zone${zone.zone}`}
+                        type="number"
+                        placeholder="min"
+                        value={zoneValues[zone.zone]}
+                        onChange={(e) => zoneSetters[zone.zone](e.target.value)}
+                        min={0}
+                        max={480}
+                        className="h-8"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
 
           <hr className="border-t" />
 
