@@ -326,8 +326,8 @@ export function ActivityCalendar({ activities, onViewActivity }: ActivityCalenda
       {/* Divider */}
       <hr className="border-border" />
 
-      {/* Training Load Chart */}
-      <TrainingLoadChart activities={activities} />
+      {/* Training Load Chart - only show when viewing current month */}
+      {isViewingCurrentMonth && <TrainingLoadChart activities={activities} />}
 
       {/* Activity list for the month */}
       <ActivityList
