@@ -2,7 +2,14 @@ import React, { useMemo, useState } from 'react';
 import { TrendingUp } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { Activity } from '@/types/activity';
-import { calculateTrainingLoad, getTrainingLoadLevel } from '../../utils/activityHelpers';
+import {
+  calculateTrainingLoad,
+  getTrainingLoadLevel,
+  formatDuration,
+  getActivityTypeLabel,
+  getTimeOfDayLabel,
+} from '../../utils/activityHelpers';
+import { ActivityIcon } from '../ActivityIcons';
 
 interface TrainingLoadModalProps {
   open: boolean;
@@ -84,6 +91,12 @@ export function TrainingLoadModal({ open, onOpenChange, activities }: TrainingLo
   const selectedData =
     selectedIndex !== null ? chartData[selectedIndex] : chartData[chartData.length - 1];
   const selectedLevel = getTrainingLoadLevel(selectedData?.score || 0);
+
+  // Get activities for the selected date
+  const selectedDateActivities = useMemo(() => {
+    if (!selectedData) return [];
+    return activities.filter((a) => a.date === selectedData.date);
+  }, [activities, selectedData]);
 
   // Build SVG path for the line
   const linePath = useMemo(() => {
@@ -179,11 +192,9 @@ export function TrainingLoadModal({ open, onOpenChange, activities }: TrainingLo
         {/* Selected Value Display */}
         <div className="px-4 pb-2 text-center">
           <div className="text-sm text-muted-foreground">{selectedData?.fullDate}</div>
-          <div className="flex items-baseline justify-center gap-2">
-            <span className="text-3xl font-bold">{selectedData?.score || 0}</span>
-            <span className={`text-sm font-medium ${selectedLevel.color}`}>
-              {selectedLevel.label}
-            </span>
+          <div className="text-3xl font-bold">{selectedData?.score || 0}</div>
+          <div className={`text-sm font-medium -mt-1 ${selectedLevel.color}`}>
+            {selectedLevel.label}
           </div>
         </div>
 
@@ -286,16 +297,42 @@ export function TrainingLoadModal({ open, onOpenChange, activities }: TrainingLo
           </div>
         </div>
 
-        {/* Level Legend */}
+        {/* Activities for selected date */}
         <div className="p-4 border-t border-white/10">
-          <div className="text-xs text-muted-foreground mb-2">Training Load Levels</div>
-          <div className="flex flex-wrap gap-3 text-xs">
-            <span className="text-gray-400">0-14 Detraining</span>
-            <span className="text-blue-400">15-39 Maintaining</span>
-            <span className="text-green-400">40-79 Building</span>
-            <span className="text-orange-400">80-119 Peak</span>
-            <span className="text-red-400">120+ Overreaching</span>
-          </div>
+          {selectedDateActivities.length > 0 ? (
+            <div className="space-y-2">
+              <div className="text-xs text-muted-foreground">
+                Activities on {selectedData?.fullDate}
+              </div>
+              {selectedDateActivities.map((activity) => (
+                <div
+                  key={activity.id}
+                  className="flex items-center gap-3 p-2 rounded-lg bg-white/5"
+                >
+                  <div className="h-8 w-8 rounded-full bg-foreground flex items-center justify-center">
+                    <ActivityIcon
+                      type={activity.activityType}
+                      size={18}
+                      className="text-background"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium">
+                      {getActivityTypeLabel(activity.activityType)}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {formatDuration(activity.durationMinutes)} ·{' '}
+                      {getTimeOfDayLabel(activity.timeOfDay)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground text-center py-2">
+              No activities on {selectedData?.fullDate}
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
