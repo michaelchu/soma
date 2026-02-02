@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { TrendingUp } from 'lucide-react';
 import type { Activity } from '@/types/activity';
-import { calculateTrainingLoad, getTrainingLoadLevel } from '../utils/activityHelpers';
+import { calculateTrainingLoad } from '../utils/activityHelpers';
 import { TrainingLoadModal } from './modals/TrainingLoadModal';
 
 interface TrainingLoadChartProps {
@@ -57,7 +57,6 @@ export function TrainingLoadChart({ activities }: TrainingLoadChartProps) {
 
   // Get today's training load for display
   const todayData = chartData[chartData.length - 1];
-  const todayLevel = getTrainingLoadLevel(todayData.score);
 
   // Calculate change percentage over the period
   const startData = chartData[0];
