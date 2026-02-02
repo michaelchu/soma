@@ -23,19 +23,22 @@ describe('bpHelpers', () => {
       expect(getBPCategory(110, 70)).toBe('normal');
     });
 
-    it('returns "elevated" for elevated blood pressure', () => {
-      expect(getBPCategory(125, 75)).toBe('elevated');
-      expect(getBPCategory(128, 78)).toBe('elevated');
+    it('returns "normal" for readings below 130/80 (HTN Canada 2025)', () => {
+      // HTN Canada 2025 guideline classifies <130/80 as normal
+      expect(getBPCategory(125, 75)).toBe('normal');
+      expect(getBPCategory(128, 78)).toBe('normal');
     });
 
-    it('returns category for high blood pressure', () => {
+    it('returns "hypertensionTreat" for readings ≥140/90 (HTN Canada 2025)', () => {
+      // HTN Canada 2025 guideline: ≥140/90 requires treatment
       const result = getBPCategory(140, 90);
-      expect(['stage1', 'hypertension_stage1', 'hypertension1', 'hypertension2']).toContain(result);
+      expect(result).toBe('hypertensionTreat');
     });
 
-    it('returns more severe category for very high blood pressure', () => {
+    it('returns "hypertensionTreat" for very high blood pressure (HTN Canada 2025)', () => {
+      // HTN Canada 2025 guideline: ≥140/90 requires treatment (no separate crisis category)
       const result = getBPCategory(180, 120);
-      expect(['crisis', 'hypertensive_crisis', 'stage2', 'hypertension_stage2']).toContain(result);
+      expect(result).toBe('hypertensionTreat');
     });
   });
 

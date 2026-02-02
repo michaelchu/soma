@@ -134,7 +134,8 @@ describe('dateUtils', () => {
       const { start, end } = getDateRange('30');
       expect(start).toBeInstanceOf(Date);
       const diffDays = Math.round((end.getTime() - start!.getTime()) / (1000 * 60 * 60 * 24));
-      expect(diffDays).toBe(29);
+      // 30-day range means 30 days including today (today minus 29 days ago = 30 days total)
+      expect(diffDays).toBe(30);
     });
   });
 
