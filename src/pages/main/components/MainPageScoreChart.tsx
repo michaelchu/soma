@@ -5,7 +5,10 @@ import { formatDate } from '@/lib/dateUtils';
 import { ScoreBarChart, type ScoreBarChartItem } from '@/components/shared/ScoreBarChart';
 import { useMainPage } from '../context/MainPageContext';
 import { calculateHealthScore } from '../utils/healthScore';
-import { getDailyEffortScore } from '@/pages/activity/utils/activityHelpers';
+import {
+  calculateTrainingLoad,
+  getTrainingLoadLevel,
+} from '@/pages/activity/utils/activityHelpers';
 import { calculateDailyBPAverage } from '@/pages/blood-pressure/utils/bpHelpers';
 import { getStatus } from '@/pages/blood-tests/utils/statusHelpers';
 import { getDailySleepScore } from '@/pages/sleep/utils/sleepHelpers';
@@ -163,12 +166,16 @@ export function MainPageScoreChart({ children }: MainPageScoreChartProps) {
     // Use shared helpers for consistent calculations across pages
     const bpAvg = calculateDailyBPAverage(dayBpReadings);
     const sleepScore = getDailySleepScore(selectedDate, sleepEntries)?.overall ?? null;
-    const effortScore = getDailyEffortScore(selectedDate, activities);
+
+    // Calculate training load (continuous effort score with decay)
+    const trainingLoad = calculateTrainingLoad(selectedDate, activities);
+    const trainingLoadLevel = getTrainingLoadLevel(trainingLoad.score);
 
     return {
       bpAvg,
       sleepScore,
-      effortScore,
+      trainingLoad,
+      trainingLoadLevel,
     };
   }, [selectedDate, bpByDate, sleepEntries, activities]);
 
@@ -231,14 +238,29 @@ export function MainPageScoreChart({ children }: MainPageScoreChartProps) {
             accentColor="sleep"
             onClick={() => navigate('/sleep')}
           />
-          <MetricCard
-            label="Effort Score"
-            value={selectedDayData.effortScore}
-            icon={<Flame size={18} />}
-            iconColorClass="text-activity"
-            accentColor="activity"
+          <button
             onClick={() => navigate('/activity')}
-          />
+            className="rounded-xl p-3 border border-white/10 text-left w-full hover:border-white/20 transition-colors active:scale-[0.98] bg-gradient-to-br from-activity/20 via-activity/5 to-transparent"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xl font-bold text-foreground">
+                {selectedDayData.trainingLoad.score > 0 ? selectedDayData.trainingLoad.score : '—'}
+              </span>
+              <div className="text-activity">
+                <Flame size={18} />
+              </div>
+            </div>
+            {selectedDayData.trainingLoad.score > 0 && (
+              <span
+                className={`text-xs font-medium -mt-1 block ${selectedDayData.trainingLoadLevel.color}`}
+              >
+                {selectedDayData.trainingLoadLevel.label}
+              </span>
+            )}
+            <span className="text-xs text-muted-foreground uppercase tracking-wide block">
+              Training Load
+            </span>
+          </button>
           {bloodTestCounts ? (
             <button
               onClick={() => navigate('/blood-tests')}
@@ -247,13 +269,13 @@ export function MainPageScoreChart({ children }: MainPageScoreChartProps) {
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
                   <span className="flex items-center gap-1 text-green-400">
-                    <CheckCircle2 size={14} />
-                    <span className="text-sm font-semibold">{bloodTestCounts.normalCount}</span>
+                    <CheckCircle2 size={16} />
+                    <span className="text-xl font-bold">{bloodTestCounts.normalCount}</span>
                   </span>
                   {bloodTestCounts.abnormalCount > 0 && (
                     <span className="flex items-center gap-1 text-amber-400">
-                      <AlertTriangle size={14} />
-                      <span className="text-sm font-semibold">{bloodTestCounts.abnormalCount}</span>
+                      <AlertTriangle size={16} />
+                      <span className="text-xl font-bold">{bloodTestCounts.abnormalCount}</span>
                     </span>
                   )}
                 </div>

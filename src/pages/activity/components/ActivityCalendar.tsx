@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import type { Activity, ActivityType } from '@/types/activity';
 import { ActivityIcon } from './ActivityIcons';
 import { ActivityList } from './ActivityList';
+import { TrainingLoadChart } from './TrainingLoadChart';
 import {
   calculateStreak,
   buildMonthWeekData,
@@ -324,6 +325,9 @@ export function ActivityCalendar({ activities, onViewActivity }: ActivityCalenda
 
       {/* Divider */}
       <hr className="border-border" />
+
+      {/* Training Load Chart - only show when viewing current month */}
+      {isViewingCurrentMonth && <TrainingLoadChart activities={activities} />}
 
       {/* Activity list for the month */}
       <ActivityList

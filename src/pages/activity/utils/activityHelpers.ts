@@ -173,6 +173,144 @@ export function getDailyEffortScore(date: string, allActivities: Activity[]): nu
   return calculateDailyEffortScore(dayActivities);
 }
 
+// ============================================================================
+// Training Load (Continuous Relative Effort with Exponential Decay)
+// ============================================================================
+
+/**
+ * Daily decay rate for training load.
+ * 0.93 means ~7% decay per day without exercise.
+ * This gives a half-life of approximately 10 days.
+ */
+const TRAINING_LOAD_DECAY_RATE = 0.93;
+
+/**
+ * Training load result with score and metadata
+ */
+export interface TrainingLoadResult {
+  score: number;
+  level: TrainingLoadLevel;
+  trend: 'rising' | 'stable' | 'declining';
+  daysSinceActivity: number;
+}
+
+export type TrainingLoadLevel = 'detraining' | 'maintaining' | 'building' | 'peak' | 'overreaching';
+
+/**
+ * Get training load level based on score
+ */
+export function getTrainingLoadLevel(score: number): {
+  level: TrainingLoadLevel;
+  label: string;
+  color: string;
+} {
+  if (score < 15) return { level: 'detraining', label: 'Detraining', color: 'text-gray-400' };
+  if (score < 40) return { level: 'maintaining', label: 'Maintaining', color: 'text-blue-400' };
+  if (score < 80) return { level: 'building', label: 'Building', color: 'text-green-400' };
+  if (score < 120) return { level: 'peak', label: 'Peak', color: 'text-orange-400' };
+  return { level: 'overreaching', label: 'Overreaching', color: 'text-red-400' };
+}
+
+/**
+ * Calculate training load for a specific date using exponential decay model.
+ *
+ * Formula: TrainingLoad(day) = TrainingLoad(day-1) × decay_rate + effort(day)
+ *
+ * This gives a continuous score that:
+ * - Increases when you exercise
+ * - Decays daily when you don't (encouraging consistency)
+ * - Reflects cumulative training effect over time
+ *
+ * @param targetDate The date to calculate training load for
+ * @param allActivities All activities (should include historical data)
+ * @returns Training load result with score and metadata
+ */
+export function calculateTrainingLoad(
+  targetDate: string,
+  allActivities: Activity[]
+): TrainingLoadResult {
+  // Sort activities by date ascending
+  const sortedActivities = [...allActivities].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+
+  if (sortedActivities.length === 0) {
+    return {
+      score: 0,
+      level: 'detraining',
+      trend: 'stable',
+      daysSinceActivity: -1,
+    };
+  }
+
+  // Find the earliest activity date to start calculation
+  const earliestDate = new Date(sortedActivities[0].date + 'T00:00:00');
+  const target = new Date(targetDate + 'T00:00:00');
+
+  // Group activities by date for efficient lookup
+  const effortByDate = new Map<string, number>();
+  for (const activity of sortedActivities) {
+    const existing = effortByDate.get(activity.date) || 0;
+    effortByDate.set(activity.date, existing + calculateEffortScore(activity));
+  }
+
+  // Calculate training load day by day from earliest activity to target date
+  let trainingLoad = 0;
+  let previousLoad = 0;
+  let daysSinceActivity = 0;
+  let foundActivity = false;
+
+  const current = new Date(earliestDate);
+  while (current <= target) {
+    const dateStr = current.toISOString().split('T')[0];
+    const dayEffort = effortByDate.get(dateStr) || 0;
+
+    previousLoad = trainingLoad;
+    trainingLoad = trainingLoad * TRAINING_LOAD_DECAY_RATE + dayEffort;
+
+    if (dayEffort > 0) {
+      daysSinceActivity = 0;
+      foundActivity = true;
+    } else if (foundActivity) {
+      daysSinceActivity++;
+    }
+
+    current.setDate(current.getDate() + 1);
+  }
+
+  // Determine trend based on recent change
+  let trend: 'rising' | 'stable' | 'declining';
+  const changePercent = previousLoad > 0 ? (trainingLoad - previousLoad) / previousLoad : 0;
+
+  if (changePercent > 0.05) {
+    trend = 'rising';
+  } else if (changePercent < -0.03) {
+    trend = 'declining';
+  } else {
+    trend = 'stable';
+  }
+
+  const { level } = getTrainingLoadLevel(trainingLoad);
+
+  return {
+    score: Math.round(trainingLoad),
+    level,
+    trend,
+    daysSinceActivity: foundActivity ? daysSinceActivity : -1,
+  };
+}
+
+/**
+ * Get training load for a specific date (convenience function)
+ * Returns just the score or null if no activity history
+ */
+export function getTrainingLoadScore(targetDate: string, allActivities: Activity[]): number | null {
+  if (allActivities.length === 0) return null;
+
+  const result = calculateTrainingLoad(targetDate, allActivities);
+  return result.score;
+}
+
 /**
  * Calculate consistency multiplier based on workouts in the past 7 days
  * @param activities All activities
