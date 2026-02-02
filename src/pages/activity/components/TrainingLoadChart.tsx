@@ -137,17 +137,6 @@ export function TrainingLoadChart({ activities }: TrainingLoadChartProps) {
               strokeLinejoin="round"
               vectorEffect="non-scaling-stroke"
             />
-
-            {/* End point dot */}
-            {chartData.length > 0 && (
-              <circle
-                cx="100"
-                cy={((maxScore - todayData.score) / (maxScore - minScore || 1)) * CHART_HEIGHT}
-                r="3"
-                fill="rgb(249 115 22)"
-                vectorEffect="non-scaling-stroke"
-              />
-            )}
           </svg>
         </div>
 
