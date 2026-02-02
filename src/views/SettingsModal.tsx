@@ -7,6 +7,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
+import { secureGetItem, secureSetItem } from '@/lib/secureStorage';
 
 const FONT_OPTIONS = [
   {
@@ -61,20 +62,17 @@ const MIN_FONT_SIZE = 12;
 const MAX_FONT_SIZE = 20;
 
 export function getStoredFont(): FontId {
-  const stored = localStorage.getItem(FONT_STORAGE_KEY);
+  const stored = secureGetItem<FontId>(FONT_STORAGE_KEY);
   if (stored && FONT_OPTIONS.some((f) => f.id === stored)) {
-    return stored as FontId;
+    return stored;
   }
   return 'exo';
 }
 
 export function getStoredFontSize(): number {
-  const stored = localStorage.getItem(FONT_SIZE_STORAGE_KEY);
-  if (stored) {
-    const size = parseInt(stored, 10);
-    if (!isNaN(size) && size >= MIN_FONT_SIZE && size <= MAX_FONT_SIZE) {
-      return size;
-    }
+  const stored = secureGetItem<number>(FONT_SIZE_STORAGE_KEY);
+  if (stored && !isNaN(stored) && stored >= MIN_FONT_SIZE && stored <= MAX_FONT_SIZE) {
+    return stored;
   }
   return DEFAULT_FONT_SIZE;
 }
@@ -84,13 +82,13 @@ export function applyFont(fontId: FontId) {
   if (font) {
     document.documentElement.style.setProperty('--font-sans', font.family);
     document.body.style.fontFamily = font.family;
-    localStorage.setItem(FONT_STORAGE_KEY, fontId);
+    secureSetItem(FONT_STORAGE_KEY, fontId);
   }
 }
 
 export function applyFontSize(size: number) {
   document.documentElement.style.fontSize = `${size}px`;
-  localStorage.setItem(FONT_SIZE_STORAGE_KEY, size.toString());
+  secureSetItem(FONT_SIZE_STORAGE_KEY, size);
 }
 
 export function SettingsModal({

@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 6;
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 60000; // 1 minute for first lockout
 
 export default function Auth() {
   const { signIn } = useAuth();
@@ -14,6 +16,8 @@ export default function Auth() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const hasAutoSubmitted = useRef(false);
 
@@ -52,6 +56,21 @@ export default function Auth() {
     e.preventDefault();
     setError('');
 
+    // Check if user is locked out
+    if (lockoutUntil && Date.now() < lockoutUntil) {
+      const remainingSeconds = Math.ceil((lockoutUntil - Date.now()) / 1000);
+      setError(
+        `Too many failed attempts. Please wait ${remainingSeconds} second${remainingSeconds !== 1 ? 's' : ''} before trying again.`
+      );
+      return;
+    }
+
+    // Clear lockout if expired
+    if (lockoutUntil && Date.now() >= lockoutUntil) {
+      setLockoutUntil(null);
+      setFailedAttempts(0);
+    }
+
     // Client-side validation
     if (!email.trim()) {
       setError('Please enter your email address');
@@ -77,11 +96,30 @@ export default function Auth() {
 
     try {
       await signIn(email, password);
+      // Reset failed attempts on success
+      setFailedAttempts(0);
+      setLockoutUntil(null);
     } catch (err) {
       // Use generic error message to prevent information disclosure
       console.error('Auth error:', err);
       setError('Invalid email or password');
       setPassword(''); // Clear password on failed attempt for security
+
+      // Increment failed attempts and apply exponential backoff
+      const newAttempts = failedAttempts + 1;
+      setFailedAttempts(newAttempts);
+
+      if (newAttempts >= MAX_FAILED_ATTEMPTS) {
+        // Exponential backoff: 1min, 2min, 4min, 8min, etc.
+        const backoffMultiplier = Math.pow(2, Math.min(newAttempts - MAX_FAILED_ATTEMPTS, 5));
+        const lockoutDuration = LOCKOUT_DURATION_MS * backoffMultiplier;
+        setLockoutUntil(Date.now() + lockoutDuration);
+
+        const lockoutMinutes = Math.ceil(lockoutDuration / 60000);
+        setError(
+          `Too many failed attempts. Account locked for ${lockoutMinutes} minute${lockoutMinutes !== 1 ? 's' : ''}.`
+        );
+      }
     }
 
     setLoading(false);

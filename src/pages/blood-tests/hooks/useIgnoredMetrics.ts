@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { secureGetItem, secureSetItem } from '@/lib/secureStorage';
 
 const STORAGE_KEY = 'soma-ignored-blood-metrics';
 const DEBOUNCE_MS = 500;
@@ -12,17 +13,9 @@ function isStringArray(data: unknown): data is string[] {
 
 export function useIgnoredMetrics() {
   const [ignoredMetrics, setIgnoredMetrics] = useState<Set<string>>(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        if (isStringArray(parsed)) {
-          return new Set(parsed);
-        }
-        return new Set<string>();
-      } catch {
-        return new Set<string>();
-      }
+    const stored = secureGetItem<string[]>(STORAGE_KEY);
+    if (stored && isStringArray(stored)) {
+      return new Set(stored);
     }
     return new Set<string>();
   });
@@ -38,7 +31,7 @@ export function useIgnoredMetrics() {
 
     // Schedule new save
     saveTimeoutRef.current = setTimeout(() => {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify([...ignoredMetrics]));
+      secureSetItem(STORAGE_KEY, [...ignoredMetrics]);
     }, DEBOUNCE_MS);
 
     // Cleanup on unmount
