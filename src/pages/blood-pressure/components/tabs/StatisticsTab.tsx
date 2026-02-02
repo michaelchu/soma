@@ -105,7 +105,7 @@ function StatsTable({ currentStats, previousStats, dateRange, normalThresholds }
             <th className="text-center py-2 px-1 font-medium text-muted-foreground w-[48px]">
               Avg
             </th>
-            <th className="text-right py-2 pl-1 font-medium text-muted-foreground">vs Prev.</th>
+            <th className="text-center py-2 pl-1 font-medium text-muted-foreground">vs Prev.</th>
           </tr>
         </thead>
         <tbody>
@@ -138,7 +138,7 @@ function StatsTable({ currentStats, previousStats, dateRange, normalThresholds }
                 <td className="py-3 px-1 text-center font-mono font-semibold">
                   {current?.avg != null ? Math.round(current.avg) : '—'}
                 </td>
-                <td className="py-3 pl-1 text-right">
+                <td className="py-3 pl-1 text-center">
                   <ChangeIndicator
                     current={current?.avg ?? null}
                     previous={previous?.avg ?? null}
