@@ -3,7 +3,6 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 
 export default defineConfig({
-  // @ts-expect-error - react() returns Plugin[], but vitest expects PluginOption
   plugins: [react()],
   test: {
     globals: true,

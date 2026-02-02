@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { secureGetItem, secureSetItem } from './secureStorage';
 
 interface Settings {
   bpGuideline: string;
@@ -44,23 +45,15 @@ interface SettingsProviderProps {
 
 export function SettingsProvider({ children }: SettingsProviderProps) {
   const [settings, setSettings] = useState<Settings>(() => {
-    const stored = localStorage.getItem('soma-settings');
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        if (isValidSettings(parsed)) {
-          return { ...DEFAULT_SETTINGS, ...parsed };
-        }
-        return DEFAULT_SETTINGS;
-      } catch {
-        return DEFAULT_SETTINGS;
-      }
+    const stored = secureGetItem<Partial<Settings>>('soma-settings');
+    if (stored && isValidSettings(stored)) {
+      return { ...DEFAULT_SETTINGS, ...stored };
     }
     return DEFAULT_SETTINGS;
   });
 
   useEffect(() => {
-    localStorage.setItem('soma-settings', JSON.stringify(settings));
+    secureSetItem('soma-settings', settings);
   }, [settings]);
 
   const updateSetting = <K extends keyof Settings>(key: K, value: Settings[K]) => {
