@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { TrendingUp } from 'lucide-react';
 import type { Activity } from '@/types/activity';
-import { calculateTrainingLoad, getTrainingLoadLevel } from '../utils/activityHelpers';
+import { calculateTrainingLoad } from '../utils/activityHelpers';
 import { TrainingLoadModal } from './modals/TrainingLoadModal';
 
 interface TrainingLoadChartProps {
@@ -57,7 +57,6 @@ export function TrainingLoadChart({ activities }: TrainingLoadChartProps) {
 
   // Get today's training load for display
   const todayData = chartData[chartData.length - 1];
-  const todayLevel = getTrainingLoadLevel(todayData.score);
 
   // Calculate change percentage over the period
   const startData = chartData[0];
@@ -106,14 +105,11 @@ export function TrainingLoadChart({ activities }: TrainingLoadChartProps) {
       >
         {/* Header */}
         <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-activity" />
-            <span className="text-sm font-medium text-muted-foreground">Training Load</span>
-          </div>
+          <TrendingUp className="h-4 w-4 text-activity" />
           <div className="text-right">
-            <div className="text-lg font-bold">{todayData.score}</div>
-            <div className="flex items-center justify-end gap-1.5 -mt-1">
-              <span className={`text-xs font-medium ${todayLevel.color}`}>{todayLevel.label}</span>
+            <div className="text-2xl font-bold">{todayData.score}</div>
+            <div className="flex items-center justify-end gap-1.5">
+              <span className="text-xs text-muted-foreground">Training Load</span>
               {changePercent !== null && (
                 <span
                   className={`text-xs font-medium ${
