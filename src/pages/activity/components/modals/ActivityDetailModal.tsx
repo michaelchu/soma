@@ -8,12 +8,12 @@ import {
   getIntensityLabel,
   getIntensityColor,
   getActivityTypeLabel,
-  getActivityTypeIcon,
   getTimeOfDayLabel,
   calculateEffortScore,
   getEffortLevel,
   hasHrZoneData,
 } from '../../utils/activityHelpers';
+import { ActivityIcon } from '../ActivityIcons';
 import type { Activity } from '@/types/activity';
 import { HR_ZONE_OPTIONS } from '@/types/activity';
 
@@ -206,7 +206,7 @@ export function ActivityDetailModal({
         <DialogHeader className="flex-shrink-0 px-5 py-4 border-b">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-foreground flex items-center justify-center">
-              <span className="text-xl">{getActivityTypeIcon(activity.activityType)}</span>
+              <ActivityIcon type={activity.activityType} size={24} />
             </div>
             <div>
               <DialogTitle className="text-lg">
