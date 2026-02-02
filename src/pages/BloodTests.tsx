@@ -372,9 +372,7 @@ export default function BloodTests() {
                 onCheckedChange={() => toggleReportSelection(report.id)}
               >
                 <div className="flex items-center justify-between w-full">
-                  <span>
-                    {formatDate(report.date, { includeYear: true })}
-                  </span>
+                  <span>{formatDate(report.date, { includeYear: true })}</span>
                   {abnormalCount > 0 && (
                     <span className="text-xs text-amber-500 ml-2">{abnormalCount} ⚠</span>
                   )}
