@@ -251,7 +251,9 @@ export function MainPageScoreChart({ children }: MainPageScoreChartProps) {
               </div>
             </div>
             {selectedDayData.trainingLoad.score > 0 && (
-              <span className={`text-xs font-medium ${selectedDayData.trainingLoadLevel.color}`}>
+              <span
+                className={`text-xs font-medium -mt-1 block ${selectedDayData.trainingLoadLevel.color}`}
+              >
                 {selectedDayData.trainingLoadLevel.label}
               </span>
             )}
