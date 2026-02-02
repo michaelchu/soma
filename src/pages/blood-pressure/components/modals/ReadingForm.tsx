@@ -259,7 +259,7 @@ function ReadingFormContent({ session, onOpenChange }: ReadingFormContentProps) 
               className="flex-1"
             />
             <Select value={timeOfDay} onValueChange={(value) => setTimeOfDay(value as BPTimeOfDay)}>
-              <SelectTrigger className="w-[160px]">
+              <SelectTrigger className="flex-1">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
