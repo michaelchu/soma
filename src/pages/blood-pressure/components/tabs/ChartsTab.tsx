@@ -6,7 +6,8 @@ import { BPScatterChart } from '../charts/BPScatterChart';
 import { cn } from '@/lib/utils';
 
 interface BPReading {
-  datetime: string;
+  date: string;
+  timeOfDay: 'morning' | 'afternoon' | 'evening';
   systolic: number;
   diastolic: number;
   pulse?: number | null;

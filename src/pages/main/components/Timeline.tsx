@@ -1,12 +1,13 @@
 import { useNavigate } from 'react-router-dom';
 import { Activity, Moon, Flame } from 'lucide-react';
 import { useMainPage } from '../context/MainPageContext';
-import { formatDate, formatTimeString } from '@/lib/dateUtils';
+import { formatDate, formatTimeString, getTimeOfDayLabel } from '@/lib/dateUtils';
 import {
   getActivityTypeLabel,
   formatDuration as formatActivityDuration,
 } from '@/pages/activity/utils/activityHelpers';
 import type { Activity as ActivityType } from '@/types/activity';
+import type { BPTimeOfDay } from '@/types/bloodPressure';
 
 const TIMELINE_DAYS = 30;
 
@@ -100,9 +101,7 @@ export function Timeline() {
                           </span>
                         </div>
                         <span className="text-xs text-muted-foreground">
-                          {new Date(
-                            (entry.data as { datetime: string }).datetime
-                          ).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                          {getTimeOfDayLabel((entry.data as { timeOfDay: BPTimeOfDay }).timeOfDay)}
                         </span>
                       </div>
                     ) : entry.type === 'sleep' ? (

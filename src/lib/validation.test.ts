@@ -114,7 +114,8 @@ describe('validation', () => {
 
   describe('validateBPSession', () => {
     const validReading = { systolic: 120, diastolic: 80 };
-    const validDatetime = '2024-03-15T10:30:00';
+    const validDate = '2024-03-15';
+    const validTimeOfDay = 'morning';
 
     it('returns invalid for null/undefined session', () => {
       expect(validateBPSession(null).errors).toContain('Session is required');
@@ -122,39 +123,51 @@ describe('validation', () => {
     });
 
     it('validates valid sessions', () => {
-      expect(validateBPSession({ datetime: validDatetime, readings: [validReading] }).valid).toBe(
-        true
-      );
+      expect(
+        validateBPSession({ date: validDate, timeOfDay: validTimeOfDay, readings: [validReading] })
+          .valid
+      ).toBe(true);
       expect(
         validateBPSession({
-          datetime: validDatetime,
+          date: validDate,
+          timeOfDay: 'afternoon',
           readings: [validReading, { systolic: 118, diastolic: 78 }],
         }).valid
       ).toBe(true);
     });
 
-    it('validates datetime', () => {
-      expect(validateBPSession({ datetime: '', readings: [validReading] }).valid).toBe(false);
+    it('validates date', () => {
       expect(
-        validateBPSession({ datetime: 'not-a-date', readings: [validReading] }).errors
-      ).toContain('Invalid datetime format');
+        validateBPSession({ date: '', timeOfDay: validTimeOfDay, readings: [validReading] }).valid
+      ).toBe(false);
+      expect(
+        validateBPSession({ date: '', timeOfDay: validTimeOfDay, readings: [validReading] }).errors
+      ).toContain('Date is required');
+    });
+
+    it('validates timeOfDay', () => {
+      expect(
+        validateBPSession({ date: validDate, timeOfDay: 'invalid', readings: [validReading] }).valid
+      ).toBe(false);
     });
 
     it('validates readings array', () => {
       const undefinedResult = validateBPSession({
-        datetime: validDatetime,
+        date: validDate,
+        timeOfDay: validTimeOfDay,
         readings: undefined as unknown as Array<{ systolic: number; diastolic: number }>,
       });
       expect(undefinedResult.valid).toBe(false);
 
-      expect(validateBPSession({ datetime: validDatetime, readings: [] }).errors).toContain(
-        'At least one reading is required'
-      );
+      expect(
+        validateBPSession({ date: validDate, timeOfDay: validTimeOfDay, readings: [] }).errors
+      ).toContain('At least one reading is required');
     });
 
     it('validates each reading in the array', () => {
       const result = validateBPSession({
-        datetime: validDatetime,
+        date: validDate,
+        timeOfDay: validTimeOfDay,
         readings: [validReading, { systolic: 50, diastolic: 80 }],
       });
       expect(result.valid).toBe(false);

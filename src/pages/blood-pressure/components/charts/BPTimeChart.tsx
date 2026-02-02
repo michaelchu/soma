@@ -9,9 +9,11 @@ import {
 } from 'recharts';
 import { formatDate } from '@/lib/dateUtils';
 import { useBloodPressureSettings } from '../../hooks/useBloodPressureSettings';
+import type { BPTimeOfDay } from '@/types/bloodPressure';
 
 interface Reading {
-  datetime: string;
+  date: string;
+  timeOfDay: BPTimeOfDay;
   systolic: number;
   diastolic: number;
   pulse?: number | null;
@@ -19,8 +21,9 @@ interface Reading {
 }
 
 interface ChartDataPoint {
+  dateLabel: string;
   date: string;
-  datetime: string;
+  timeOfDay: BPTimeOfDay;
   systolic: number;
   diastolic: number;
   pulse?: number | null;
@@ -162,20 +165,21 @@ export function BPTimeChart({
     );
   }
 
-  // Sort by datetime ascending for chart
+  // Sort by date ascending for chart
   const sortedReadings = [...readings].sort(
-    (a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime()
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
   );
 
   // Transform data for chart
   const chartData: ChartDataPoint[] = sortedReadings.map((r) => {
-    const date = formatDate(r.datetime);
+    const dateLabel = formatDate(r.date);
     const category = getCategory(r.systolic, r.diastolic);
     const pp = r.systolic - r.diastolic;
     const map = r.diastolic + pp / 3;
     return {
-      date,
-      datetime: r.datetime,
+      dateLabel,
+      date: r.date,
+      timeOfDay: r.timeOfDay,
       systolic: r.systolic,
       diastolic: r.diastolic,
       pulse: r.pulse,
@@ -233,7 +237,7 @@ export function BPTimeChart({
             strokeDasharray="3 3"
           />
           <XAxis
-            dataKey="date"
+            dataKey="dateLabel"
             tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
             stroke="hsl(var(--muted-foreground))"
             axisLine={false}

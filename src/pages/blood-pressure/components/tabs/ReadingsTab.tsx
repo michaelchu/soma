@@ -12,14 +12,16 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { SwipeableRow } from '@/components/shared/SwipeableRow';
 import { BPStatusBadge } from '../ui/BPStatusBadge';
-import { formatDateTime } from '../../utils/bpHelpers';
+import { formatBPDateTime } from '../../utils/bpHelpers';
 import { useBloodPressureSettings } from '../../hooks/useBloodPressureSettings';
+import type { BPTimeOfDay } from '@/types/bloodPressure';
 import { useBloodPressure } from '../../context/BPContext';
 import { ReadingForm } from '../modals/ReadingForm';
 
 interface BPSession {
   sessionId: string;
-  datetime: string;
+  date: string;
+  timeOfDay: BPTimeOfDay;
   systolic: number;
   diastolic: number;
   pulse: number | null;
@@ -43,7 +45,9 @@ interface NotesModalProps {
 function NotesModal({ open, onOpenChange, session }: NotesModalProps) {
   if (!session) return null;
 
-  const { date, time } = formatDateTime(session.datetime, { hideCurrentYear: true });
+  const { date, time } = formatBPDateTime(session.date, session.timeOfDay, {
+    hideCurrentYear: true,
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -83,7 +87,8 @@ export function ReadingsTab({ readings }: ReadingsTabProps) {
     showWithUndo('Reading deleted', async () => {
       if (deletedItem) {
         const { error: undoError } = await addSession({
-          datetime: deletedItem.datetime,
+          date: deletedItem.date,
+          timeOfDay: deletedItem.timeOfDay,
           readings: deletedItem.readings.map((r) => ({
             systolic: r.systolic,
             diastolic: r.diastolic,
@@ -125,7 +130,9 @@ export function ReadingsTab({ readings }: ReadingsTabProps) {
       {/* Mobile: List layout */}
       <div className="md:hidden -mx-5 sm:-mx-6">
         {readings.map((session, index) => {
-          const { date, time } = formatDateTime(session.datetime, { hideCurrentYear: true });
+          const { date, time } = formatBPDateTime(session.date, session.timeOfDay, {
+            hideCurrentYear: true,
+          });
           const category = getCategory(session.systolic, session.diastolic);
           const categoryInfo = getCategoryInfo(category);
           const isExpanded = expandedSessionId === session.sessionId;
@@ -273,7 +280,7 @@ export function ReadingsTab({ readings }: ReadingsTabProps) {
           </TableHeader>
           <TableBody>
             {readings.map((session) => {
-              const { date, time } = formatDateTime(session.datetime);
+              const { date, time } = formatBPDateTime(session.date, session.timeOfDay);
               const category = getCategory(session.systolic, session.diastolic);
               const isExpanded = expandedSessionId === session.sessionId;
               const hasMultipleReadings = session.readingCount > 1;

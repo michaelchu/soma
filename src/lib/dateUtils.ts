@@ -37,6 +37,31 @@ export function getLocalDateNow(): string {
 }
 
 /**
+ * Get the current time of day category based on the current hour
+ * Morning: 6am-12pm, Afternoon: 12pm-6pm, Evening: 6pm-6am
+ */
+export function getCurrentTimeOfDay(): 'morning' | 'afternoon' | 'evening' {
+  const hour = new Date().getHours();
+  if (hour >= 6 && hour < 12) return 'morning';
+  if (hour >= 12 && hour < 18) return 'afternoon';
+  return 'evening';
+}
+
+/**
+ * Get display label for a time of day category
+ */
+export function getTimeOfDayLabel(timeOfDay: 'morning' | 'afternoon' | 'evening'): string {
+  switch (timeOfDay) {
+    case 'morning':
+      return 'Morning';
+    case 'afternoon':
+      return 'Afternoon';
+    case 'evening':
+      return 'Evening';
+  }
+}
+
+/**
  * Calculate duration in minutes from start and end times (HH:MM format)
  * Handles overnight periods (end time before start time)
  */

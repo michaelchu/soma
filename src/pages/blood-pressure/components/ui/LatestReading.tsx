@@ -1,10 +1,12 @@
 import { Activity, Clock } from 'lucide-react';
 import { BPStatusBadge } from './BPStatusBadge';
-import { formatDateTime, getTrend } from '../../utils/bpHelpers';
+import { formatBPDateTime, getTrend } from '../../utils/bpHelpers';
 import { useBloodPressureSettings } from '../../hooks/useBloodPressureSettings';
+import type { BPTimeOfDay } from '@/types/bloodPressure';
 
 interface BPReading {
-  datetime: string;
+  date: string;
+  timeOfDay: BPTimeOfDay;
   systolic: number;
   diastolic: number;
   pulse?: number | null;
@@ -24,7 +26,7 @@ export function LatestReading({ readings }: LatestReadingProps) {
 
   const latest = readings[0]; // readings are sorted descending
   const category = getCategory(latest.systolic, latest.diastolic);
-  const { date, time } = formatDateTime(latest.datetime);
+  const { date, time } = formatBPDateTime(latest.date, latest.timeOfDay);
   const trend = getTrend(readings);
 
   return (

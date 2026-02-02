@@ -1,6 +1,7 @@
 import { ExportModal as SharedExportModal } from '@/components/shared/ExportModal';
 import { calculateStats } from '../../utils/bpHelpers';
 import { useBloodPressureSettings } from '../../hooks/useBloodPressureSettings';
+import { getTimeOfDayLabel } from '@/lib/dateUtils';
 import {
   createMarkdownTable,
   createCSVContent,
@@ -23,7 +24,8 @@ interface BPCategoryInfo {
 }
 
 interface BPReading {
-  datetime: string;
+  date: string;
+  timeOfDay: 'morning' | 'afternoon' | 'evening';
   systolic: number;
   diastolic: number;
   pulse: number | null;
@@ -55,9 +57,7 @@ function generateMarkdown(
     return '# Blood Pressure Summary\n\nNo readings available.';
   }
 
-  const dateRange = getDateRangeString(readings, 'datetime', (d) =>
-    new Date(d).toLocaleDateString()
-  );
+  const dateRange = getDateRangeString(readings, 'date', (d) => new Date(d).toLocaleDateString());
 
   if (dateRange === 'No valid dates') {
     return '# Blood Pressure Summary\n\nNo valid readings available.';
@@ -112,12 +112,12 @@ function generateMarkdown(
   // Recent readings (last 5)
   md += '## Recent Readings (Last 5)\n\n';
   const recentRows = readings.slice(0, 5).map((r) => {
-    const date = new Date(r.datetime);
+    const date = new Date(r.date + 'T00:00:00');
     const cat = getCategory(r.systolic, r.diastolic);
     const info = getCategoryInfo(cat);
     return [
       date.toLocaleDateString(),
-      date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      getTimeOfDayLabel(r.timeOfDay),
       r.systolic,
       r.diastolic,
       r.pulse || '-',
@@ -125,7 +125,7 @@ function generateMarkdown(
     ];
   });
   md += createMarkdownTable(
-    ['Date', 'Time', 'Systolic', 'Diastolic', 'Pulse', 'Category'],
+    ['Date', 'Time of Day', 'Systolic', 'Diastolic', 'Pulse', 'Category'],
     recentRows
   );
   md += '\n\n';
@@ -140,15 +140,15 @@ function generateCSV(
   getCategory: GetCategoryFn,
   getCategoryInfo: GetCategoryInfoFn
 ): string {
-  const headers = ['Date', 'Time', 'Systolic', 'Diastolic', 'Pulse', 'Category', 'Notes'];
+  const headers = ['Date', 'Time of Day', 'Systolic', 'Diastolic', 'Pulse', 'Category', 'Notes'];
 
   const rows = readings.map((reading) => {
-    const date = new Date(reading.datetime);
+    const date = new Date(reading.date + 'T00:00:00');
     const cat = getCategory(reading.systolic, reading.diastolic);
     const info = getCategoryInfo(cat);
     return [
       date.toLocaleDateString(),
-      date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      getTimeOfDayLabel(reading.timeOfDay),
       reading.systolic,
       reading.diastolic,
       reading.pulse || '',

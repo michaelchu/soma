@@ -12,7 +12,8 @@ import type { TimeOfDay } from '@/types/bloodPressure';
 
 interface BPSession {
   sessionId: string;
-  datetime: string;
+  date: string;
+  timeOfDay: 'morning' | 'afternoon' | 'evening';
   systolic: number;
   diastolic: number;
   pulse: number | null;

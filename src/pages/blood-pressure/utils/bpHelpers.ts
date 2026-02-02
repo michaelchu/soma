@@ -1,10 +1,11 @@
 import { BP_GUIDELINES, BP_CATEGORY_INFO, DEFAULT_GUIDELINE } from '../constants/bpGuidelines';
-import { isInTimeOfDay, getPreviousDateRange } from '@/lib/dateUtils';
+import { getPreviousDateRange, getTimeOfDayLabel } from '@/lib/dateUtils';
 import { avgRounded, calcStats } from '@/lib/statsUtils';
-import type { BPCategoryKey, TimeOfDay } from '@/types/bloodPressure';
+import type { BPCategoryKey, TimeOfDay, BPTimeOfDay } from '@/types/bloodPressure';
 
 interface BPReading {
-  datetime?: string;
+  date?: string;
+  timeOfDay?: BPTimeOfDay;
   systolic: number;
   diastolic: number;
   pulse?: number | null;
@@ -177,29 +178,33 @@ export function getPreviousPeriodReadings(
   if (!previousStart || !previousEnd) return [];
 
   let filtered = allReadings.filter((r) => {
-    if (!r.datetime) return false;
-    const date = new Date(r.datetime);
+    if (!r.date) return false;
+    const date = new Date(r.date);
     return date >= previousStart && date < previousEnd;
   });
 
   // Apply time of day filter
   if (timeOfDay !== 'all') {
-    filtered = filtered.filter((r) => r.datetime && isInTimeOfDay(r.datetime, timeOfDay));
+    filtered = filtered.filter((r) => r.timeOfDay === timeOfDay);
   }
 
   return filtered;
 }
 
-interface FormatDateTimeOptions {
+interface FormatBPDateOptions {
   hideCurrentYear?: boolean;
   hideWeekday?: boolean;
 }
 
 /**
- * Format datetime for display
+ * Format BP date and time of day for display
  */
-export function formatDateTime(datetime: string, options: FormatDateTimeOptions = {}) {
-  const date = new Date(datetime);
+export function formatBPDateTime(
+  dateStr: string,
+  timeOfDay: BPTimeOfDay,
+  options: FormatBPDateOptions = {}
+) {
+  const date = new Date(dateStr + 'T00:00:00'); // Parse as local date
   const { hideCurrentYear = false, hideWeekday = false } = options;
   const isCurrentYear = hideCurrentYear && date.getFullYear() === new Date().getFullYear();
 
@@ -210,19 +215,17 @@ export function formatDateTime(datetime: string, options: FormatDateTimeOptions 
       day: 'numeric',
       ...(isCurrentYear ? {} : { year: 'numeric' }),
     }),
-    time: date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-    full: date.toLocaleDateString('en-US', {
+    time: getTimeOfDayLabel(timeOfDay),
+    full: `${date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    }),
+    })} ${getTimeOfDayLabel(timeOfDay)}`,
   };
 }
 
 interface Reading {
-  datetime: string;
+  date: string;
   systolic: number;
   diastolic: number;
 }
@@ -234,7 +237,7 @@ export function getTrend(readings: Reading[]) {
   if (readings.length < 2) return null;
 
   const sorted = [...readings].sort(
-    (a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime()
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
   );
   const latest = sorted[sorted.length - 1];
   const previous = sorted[sorted.length - 2];

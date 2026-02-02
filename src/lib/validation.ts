@@ -113,7 +113,8 @@ export const bpReadingSchema = z
   });
 
 export const bpSessionSchema = z.object({
-  datetime: requiredDateString('Datetime'),
+  date: z.string({ message: 'Date is required' }).min(1, 'Date is required'),
+  timeOfDay: z.enum(['morning', 'afternoon', 'evening'], { message: 'Time of day is required' }),
   readings: z
     .array(bpReadingSchema, { message: 'Readings array is required' })
     .min(1, 'At least one reading is required'),
