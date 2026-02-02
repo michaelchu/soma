@@ -1,4 +1,4 @@
-export type BPGuidelineKey = 'aha2017' | 'esc2018' | 'jnc7';
+export type BPGuidelineKey = 'htnCanada2025' | 'simple';
 
 export interface Settings {
   bpGuideline: BPGuidelineKey;

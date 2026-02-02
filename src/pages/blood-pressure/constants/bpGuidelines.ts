@@ -1,7 +1,7 @@
 // Blood Pressure Classification Guidelines
 // Different medical organizations use different thresholds
 
-export type BPGuidelineKey = 'aha2017' | 'esc2018' | 'jnc7' | 'htnCanada2025' | 'simple';
+export type BPGuidelineKey = 'htnCanada2025' | 'simple';
 
 export type BPCategoryKey =
   | 'normal'
@@ -41,89 +41,6 @@ interface BPGuideline {
 }
 
 export const BP_GUIDELINES: Record<string, BPGuideline> = {
-  aha2017: {
-    key: 'aha2017',
-    name: 'AHA/ACC 2017',
-    description: 'American Heart Association / American College of Cardiology',
-    categories: ['normal', 'elevated', 'hypertension1', 'hypertension2', 'crisis'],
-    thresholds: {
-      normal: { systolic: { max: 119 }, diastolic: { max: 79 } },
-      elevated: { systolic: { min: 120, max: 129 }, diastolic: { max: 79 } },
-      hypertension1: { systolic: { min: 130, max: 139 }, diastolic: { min: 80, max: 89 } },
-      hypertension2: { systolic: { min: 140, max: 179 }, diastolic: { min: 90, max: 119 } },
-      crisis: { systolic: { min: 180 }, diastolic: { min: 120 } },
-    },
-    referenceLines: {
-      systolic: [
-        { value: 120, label: '120', color: '#f59e0b' },
-        { value: 130, label: '130', color: '#f97316' },
-        { value: 140, label: '140', color: '#ef4444' },
-      ],
-      diastolic: [
-        { value: 80, label: '80', color: '#f59e0b' },
-        { value: 90, label: '90', color: '#ef4444' },
-      ],
-    },
-  },
-  esc2018: {
-    key: 'esc2018',
-    name: 'ESC/ESH 2018',
-    description: 'European Society of Cardiology / European Society of Hypertension',
-    categories: [
-      'optimal',
-      'normal',
-      'highNormal',
-      'hypertension1',
-      'hypertension2',
-      'hypertension3',
-    ],
-    thresholds: {
-      optimal: { systolic: { max: 119 }, diastolic: { max: 79 } },
-      normal: { systolic: { min: 120, max: 129 }, diastolic: { min: 80, max: 84 } },
-      highNormal: { systolic: { min: 130, max: 139 }, diastolic: { min: 85, max: 89 } },
-      hypertension1: { systolic: { min: 140, max: 159 }, diastolic: { min: 90, max: 99 } },
-      hypertension2: { systolic: { min: 160, max: 179 }, diastolic: { min: 100, max: 109 } },
-      hypertension3: { systolic: { min: 180 }, diastolic: { min: 110 } },
-    },
-    referenceLines: {
-      systolic: [
-        { value: 120, label: '120', color: '#22c55e' },
-        { value: 130, label: '130', color: '#f59e0b' },
-        { value: 140, label: '140', color: '#f97316' },
-        { value: 160, label: '160', color: '#ef4444' },
-      ],
-      diastolic: [
-        { value: 80, label: '80', color: '#22c55e' },
-        { value: 85, label: '85', color: '#f59e0b' },
-        { value: 90, label: '90', color: '#f97316' },
-        { value: 100, label: '100', color: '#ef4444' },
-      ],
-    },
-  },
-  jnc7: {
-    key: 'jnc7',
-    name: 'JNC 7',
-    description: 'Joint National Committee 7 (Traditional, pre-2017)',
-    categories: ['normal', 'prehypertension', 'hypertension1', 'hypertension2'],
-    thresholds: {
-      normal: { systolic: { max: 119 }, diastolic: { max: 79 } },
-      prehypertension: { systolic: { min: 120, max: 139 }, diastolic: { min: 80, max: 89 } },
-      hypertension1: { systolic: { min: 140, max: 159 }, diastolic: { min: 90, max: 99 } },
-      hypertension2: { systolic: { min: 160 }, diastolic: { min: 100 } },
-    },
-    referenceLines: {
-      systolic: [
-        { value: 120, label: '120', color: '#f59e0b' },
-        { value: 140, label: '140', color: '#f97316' },
-        { value: 160, label: '160', color: '#ef4444' },
-      ],
-      diastolic: [
-        { value: 80, label: '80', color: '#f59e0b' },
-        { value: 90, label: '90', color: '#f97316' },
-        { value: 100, label: '100', color: '#ef4444' },
-      ],
-    },
-  },
   htnCanada2025: {
     key: 'htnCanada2025',
     name: 'HTN Canada 2025',
@@ -298,4 +215,4 @@ export const BP_CATEGORY_INFO: Record<string, BPCategoryInfo> = {
   },
 };
 
-export const DEFAULT_GUIDELINE = 'aha2017';
+export const DEFAULT_GUIDELINE = 'htnCanada2025';
