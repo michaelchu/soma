@@ -243,27 +243,23 @@ export function MainPageScoreChart({ children }: MainPageScoreChartProps) {
             className="rounded-xl p-3 border border-white/10 text-left w-full hover:border-white/20 transition-colors active:scale-[0.98] bg-gradient-to-br from-activity/20 via-activity/5 to-transparent"
           >
             <div className="flex items-center justify-between mb-1">
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-xl font-bold text-foreground">
-                  {selectedDayData.trainingLoad.score > 0
-                    ? selectedDayData.trainingLoad.score
-                    : '—'}
-                </span>
-                {selectedDayData.trainingLoad.score > 0 && (
-                  <span
-                    className={`text-xs font-medium ${selectedDayData.trainingLoadLevel.color}`}
-                  >
-                    {selectedDayData.trainingLoadLevel.label}
-                  </span>
-                )}
-              </div>
+              <span className="text-xl font-bold text-foreground">
+                {selectedDayData.trainingLoad.score > 0 ? selectedDayData.trainingLoad.score : '—'}
+              </span>
               <div className="text-activity">
                 <Flame size={18} />
               </div>
             </div>
-            <span className="text-xs text-muted-foreground uppercase tracking-wide">
-              Training Load
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-muted-foreground uppercase tracking-wide">
+                Training Load
+              </span>
+              {selectedDayData.trainingLoad.score > 0 && (
+                <span className={`text-xs font-medium ${selectedDayData.trainingLoadLevel.color}`}>
+                  · {selectedDayData.trainingLoadLevel.label}
+                </span>
+              )}
+            </div>
           </button>
           {bloodTestCounts ? (
             <button
