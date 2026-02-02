@@ -269,13 +269,13 @@ export function MainPageScoreChart({ children }: MainPageScoreChartProps) {
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
                   <span className="flex items-center gap-1 text-green-400">
-                    <CheckCircle2 size={14} />
-                    <span className="text-sm font-semibold">{bloodTestCounts.normalCount}</span>
+                    <CheckCircle2 size={16} />
+                    <span className="text-xl font-bold">{bloodTestCounts.normalCount}</span>
                   </span>
                   {bloodTestCounts.abnormalCount > 0 && (
                     <span className="flex items-center gap-1 text-amber-400">
-                      <AlertTriangle size={14} />
-                      <span className="text-sm font-semibold">{bloodTestCounts.abnormalCount}</span>
+                      <AlertTriangle size={16} />
+                      <span className="text-xl font-bold">{bloodTestCounts.abnormalCount}</span>
                     </span>
                   )}
                 </div>
