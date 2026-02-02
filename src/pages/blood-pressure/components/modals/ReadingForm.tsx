@@ -250,16 +250,16 @@ function ReadingFormContent({ session, onOpenChange }: ReadingFormContentProps) 
         {/* Date & Time of Day */}
         <div className="space-y-2 flex-shrink-0">
           <Label>Date & Time of Day</Label>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Input
               id="date"
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="flex-1"
+              className="sm:flex-1"
             />
             <Select value={timeOfDay} onValueChange={(value) => setTimeOfDay(value as BPTimeOfDay)}>
-              <SelectTrigger className="flex-1">
+              <SelectTrigger className="sm:flex-1">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
