@@ -1,6 +1,7 @@
 import { Heart } from 'lucide-react';
 import type { Activity } from '@/types/activity';
 import { ActivityIcon } from './ActivityIcons';
+import { formatDate } from '@/lib/dateUtils';
 import {
   formatDuration,
   getActivityTypeLabel,
@@ -26,10 +27,11 @@ export function ActivityList({
   onActivityClick,
 }: ActivityListProps) {
   // Filter activities for the current month
+  // Parse date string directly to avoid timezone issues (format: YYYY-MM-DD)
   const monthActivities = activities
     .filter((activity) => {
-      const date = new Date(activity.date + 'T00:00:00');
-      return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+      const [year, month] = activity.date.split('-').map(Number);
+      return year === currentYear && month === currentMonth + 1; // month is 1-indexed in date string
     })
     .sort((a, b) => {
       // Sort by date descending, then by time of day
@@ -43,16 +45,6 @@ export function ActivityList({
   if (monthActivities.length === 0) {
     return <div className="text-center py-8 text-muted-foreground">No activities this month</div>;
   }
-
-  // Format date for display
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString + 'T00:00:00');
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
 
   return (
     <div className="space-y-2 pb-4">
@@ -86,7 +78,7 @@ export function ActivityList({
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <span>{formatDate(activity.date)}</span>
+                  <span>{formatDate(activity.date, { includeWeekday: true })}</span>
                   <span>•</span>
                   <span>{getTimeOfDayLabel(activity.timeOfDay)}</span>
                   <span>•</span>

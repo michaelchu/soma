@@ -25,6 +25,7 @@ import {
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 import Navbar from '@/components/Navbar';
+import { formatDate } from '@/lib/dateUtils';
 import { useReports } from './blood-tests/hooks/useReports';
 import { REFERENCE_RANGES } from './blood-tests/constants/referenceRanges';
 import { CATEGORY_INFO } from './blood-tests/constants/categories';
@@ -372,11 +373,7 @@ export default function BloodTests() {
               >
                 <div className="flex items-center justify-between w-full">
                   <span>
-                    {new Date(report.date).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
+                    {formatDate(report.date, { includeYear: true })}
                   </span>
                   {abnormalCount > 0 && (
                     <span className="text-xs text-amber-500 ml-2">{abnormalCount} ⚠</span>
