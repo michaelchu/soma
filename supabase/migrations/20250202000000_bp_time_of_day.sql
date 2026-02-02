@@ -10,12 +10,13 @@ ADD COLUMN time_of_day TEXT CHECK (time_of_day IN ('morning', 'afternoon', 'even
 -- Morning: 6am-12pm (hours 6-11)
 -- Afternoon: 12pm-6pm (hours 12-17)
 -- Evening: 6pm-12am (hours 18-23) and 12am-6am (hours 0-5)
+-- Using America/New_York timezone to match user's local time
 UPDATE blood_pressure_readings
 SET
-  recorded_date = DATE(recorded_at AT TIME ZONE 'UTC'),
+  recorded_date = DATE(recorded_at AT TIME ZONE 'America/New_York'),
   time_of_day = CASE
-    WHEN EXTRACT(HOUR FROM recorded_at AT TIME ZONE 'UTC') >= 6 AND EXTRACT(HOUR FROM recorded_at AT TIME ZONE 'UTC') < 12 THEN 'morning'
-    WHEN EXTRACT(HOUR FROM recorded_at AT TIME ZONE 'UTC') >= 12 AND EXTRACT(HOUR FROM recorded_at AT TIME ZONE 'UTC') < 18 THEN 'afternoon'
+    WHEN EXTRACT(HOUR FROM recorded_at AT TIME ZONE 'America/New_York') >= 6 AND EXTRACT(HOUR FROM recorded_at AT TIME ZONE 'America/New_York') < 12 THEN 'morning'
+    WHEN EXTRACT(HOUR FROM recorded_at AT TIME ZONE 'America/New_York') >= 12 AND EXTRACT(HOUR FROM recorded_at AT TIME ZONE 'America/New_York') < 18 THEN 'afternoon'
     ELSE 'evening'
   END;
 
