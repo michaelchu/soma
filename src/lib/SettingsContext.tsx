@@ -13,10 +13,10 @@ interface SettingsContextValue {
 const SettingsContext = createContext<SettingsContextValue | null>(null);
 
 const DEFAULT_SETTINGS: Settings = {
-  bpGuideline: 'aha2017', // Default to AHA 2017 guidelines
+  bpGuideline: 'htnCanada2025', // Default to HTN Canada 2025 guidelines
 };
 
-const VALID_BP_GUIDELINES = ['aha2017', 'esc2018', 'ish2020'];
+const VALID_BP_GUIDELINES = ['htnCanada2025', 'simple'];
 
 /**
  * Validates parsed settings object against expected schema
