@@ -242,7 +242,7 @@ export function MainPageScoreChart({ children }: MainPageScoreChartProps) {
             onClick={() => navigate('/activity')}
             className="rounded-xl p-3 border border-white/10 text-left w-full hover:border-white/20 transition-colors active:scale-[0.98] bg-gradient-to-br from-activity/20 via-activity/5 to-transparent"
           >
-            <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center justify-between">
               <span className="text-xl font-bold text-foreground">
                 {selectedDayData.trainingLoad.score > 0 ? selectedDayData.trainingLoad.score : '—'}
               </span>
@@ -250,16 +250,14 @@ export function MainPageScoreChart({ children }: MainPageScoreChartProps) {
                 <Flame size={18} />
               </div>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-muted-foreground uppercase tracking-wide">
-                Training Load
+            {selectedDayData.trainingLoad.score > 0 && (
+              <span className={`text-xs font-medium ${selectedDayData.trainingLoadLevel.color}`}>
+                {selectedDayData.trainingLoadLevel.label}
               </span>
-              {selectedDayData.trainingLoad.score > 0 && (
-                <span className={`text-xs font-medium ${selectedDayData.trainingLoadLevel.color}`}>
-                  · {selectedDayData.trainingLoadLevel.label}
-                </span>
-              )}
-            </div>
+            )}
+            <span className="text-xs text-muted-foreground uppercase tracking-wide block">
+              Training Load
+            </span>
           </button>
           {bloodTestCounts ? (
             <button
