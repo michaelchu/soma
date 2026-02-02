@@ -235,15 +235,6 @@ export function TrainingLoadModal({ open, onOpenChange, activities }: TrainingLo
                 vectorEffect="non-scaling-stroke"
               />
 
-              {/* Selected point indicator */}
-              <circle
-                cx={selectedPointPosition.x}
-                cy={selectedPointPosition.y}
-                r="4"
-                fill="rgb(249 115 22)"
-                vectorEffect="non-scaling-stroke"
-              />
-
               {/* Vertical line at selected point */}
               <line
                 x1={selectedPointPosition.x}
