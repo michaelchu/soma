@@ -105,24 +105,26 @@ export function TrainingLoadChart({ activities }: TrainingLoadChartProps) {
         className="w-full text-left rounded-xl border border-white/10 p-4 hover:border-white/20 transition-colors active:scale-[0.99] bg-gradient-to-br from-activity/10 via-transparent to-transparent"
       >
         {/* Header */}
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-activity" />
             <span className="text-sm font-medium text-muted-foreground">Training Load</span>
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-lg font-bold">{todayData.score}</span>
-            <span className={`text-xs font-medium ${todayLevel.color}`}>{todayLevel.label}</span>
-            {changePercent !== null && (
-              <span
-                className={`text-xs font-medium ${
-                  changePercent >= 0 ? 'text-green-400' : 'text-red-400'
-                }`}
-              >
-                {changePercent >= 0 ? '+' : ''}
-                {changePercent.toFixed(0)}%
-              </span>
-            )}
+          <div className="text-right">
+            <div className="text-lg font-bold">{todayData.score}</div>
+            <div className="flex items-center justify-end gap-1.5 -mt-1">
+              <span className={`text-xs font-medium ${todayLevel.color}`}>{todayLevel.label}</span>
+              {changePercent !== null && (
+                <span
+                  className={`text-xs font-medium ${
+                    changePercent >= 0 ? 'text-green-400' : 'text-red-400'
+                  }`}
+                >
+                  {changePercent >= 0 ? '+' : ''}
+                  {changePercent.toFixed(0)}%
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
