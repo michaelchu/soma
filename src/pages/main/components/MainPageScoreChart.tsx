@@ -91,7 +91,7 @@ export function MainPageScoreChart({ children }: MainPageScoreChartProps) {
   const bpByDate = useMemo(() => {
     const map = new Map<string, typeof bpReadings>();
     for (const reading of bpReadings) {
-      const dateStr = new Date(reading.datetime).toISOString().split('T')[0];
+      const dateStr = reading.date;
       if (!map.has(dateStr)) {
         map.set(dateStr, []);
       }

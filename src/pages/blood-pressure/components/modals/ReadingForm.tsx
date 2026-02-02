@@ -4,14 +4,27 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Plus } from 'lucide-react';
 import { useBloodPressure } from '../../context/BPContext';
 import { showError, showSuccess, showWithUndo, extractErrorMessage } from '@/lib/toast';
-import { getLocalDatetimeNow, toDatetimeLocalFormat } from '@/lib/dateUtils';
+import { getLocalDateNow, getCurrentTimeOfDay } from '@/lib/dateUtils';
 import { BP_VALIDATION } from '@/lib/validation';
 import { BPRowInput, type BPRowData, type BPRowInputRef } from './BPRowInput';
 import { FormActions } from './FormActions';
-import type { Arm } from '@/types/bloodPressure';
+import type { Arm, BPTimeOfDay } from '@/types/bloodPressure';
+
+const TIME_OF_DAY_OPTIONS = [
+  { value: 'morning', label: 'Morning (6am-12pm)' },
+  { value: 'afternoon', label: 'Afternoon (12pm-6pm)' },
+  { value: 'evening', label: 'Evening (6pm-12am)' },
+] as const;
 
 function createEmptyBpRow(): BPRowData {
   return { systolic: '', diastolic: '', arm: null, pulse: '' };
@@ -20,7 +33,8 @@ function createEmptyBpRow(): BPRowData {
 interface ReadingFormContentProps {
   session: {
     sessionId: string;
-    datetime: string;
+    date: string;
+    timeOfDay: BPTimeOfDay;
     notes: string | null;
     readings: Array<{
       systolic: number;
@@ -37,8 +51,9 @@ function ReadingFormContent({ session, onOpenChange }: ReadingFormContentProps) 
   const { addSession, updateSession, deleteSession } = useBloodPressure();
   const isEditing = !!session;
 
-  const [datetime, setDatetime] = useState(() =>
-    session ? toDatetimeLocalFormat(session.datetime) : getLocalDatetimeNow()
+  const [date, setDate] = useState(() => (session ? session.date : getLocalDateNow()));
+  const [timeOfDay, setTimeOfDay] = useState<BPTimeOfDay>(() =>
+    session ? session.timeOfDay : getCurrentTimeOfDay()
   );
   const [bpRows, setBpRows] = useState<BPRowData[]>(() =>
     session?.readings
@@ -131,7 +146,7 @@ function ReadingFormContent({ session, onOpenChange }: ReadingFormContentProps) 
         )
       : null;
 
-  const isValid = Boolean(datetime && validRows.length > 0);
+  const isValid = Boolean(date && timeOfDay && validRows.length > 0);
 
   const handleSave = async () => {
     setSaving(true);
@@ -145,7 +160,8 @@ function ReadingFormContent({ session, onOpenChange }: ReadingFormContentProps) 
     }));
 
     const sessionData = {
-      datetime: new Date(datetime).toISOString(),
+      date,
+      timeOfDay,
       readings,
       notes: notes || null,
     };
@@ -174,7 +190,8 @@ function ReadingFormContent({ session, onOpenChange }: ReadingFormContentProps) 
   };
 
   const handleReset = () => {
-    setDatetime(getLocalDatetimeNow());
+    setDate(getLocalDateNow());
+    setTimeOfDay(getCurrentTimeOfDay());
     setBpRows([createEmptyBpRow()]);
     setNotes('');
     setConfirmDelete(false);
@@ -204,7 +221,8 @@ function ReadingFormContent({ session, onOpenChange }: ReadingFormContentProps) 
       if (deletedItem) {
         // Re-add the session with its readings
         const { error: undoError } = await addSession({
-          datetime: deletedItem.datetime,
+          date: deletedItem.date,
+          timeOfDay: deletedItem.timeOfDay,
           readings: deletedItem.readings.map((r) => ({
             systolic: r.systolic,
             diastolic: r.diastolic,
@@ -229,15 +247,30 @@ function ReadingFormContent({ session, onOpenChange }: ReadingFormContentProps) 
       </DialogHeader>
 
       <div className="flex-1 flex flex-col overflow-hidden px-5 py-4 gap-4">
-        {/* Date & Time */}
+        {/* Date & Time of Day */}
         <div className="space-y-2 flex-shrink-0">
-          <Label htmlFor="datetime">Date & Time</Label>
-          <Input
-            id="datetime"
-            type="datetime-local"
-            value={datetime}
-            onChange={(e) => setDatetime(e.target.value)}
-          />
+          <Label>Date & Time of Day</Label>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Input
+              id="date"
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="sm:flex-1"
+            />
+            <Select value={timeOfDay} onValueChange={(value) => setTimeOfDay(value as BPTimeOfDay)}>
+              <SelectTrigger className="sm:flex-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {TIME_OF_DAY_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* Blood Pressure */}

@@ -8,11 +8,13 @@ import {
   ReferenceArea,
   Cell,
 } from 'recharts';
-import { formatDateTime } from '../../utils/bpHelpers';
+import { formatBPDateTime } from '../../utils/bpHelpers';
 import { useBloodPressureSettings } from '../../hooks/useBloodPressureSettings';
+import type { BPTimeOfDay } from '@/types/bloodPressure';
 
 interface BPReading {
-  datetime: string;
+  date: string;
+  timeOfDay: BPTimeOfDay;
   systolic: number;
   diastolic: number;
   notes?: string | null;
@@ -21,7 +23,8 @@ interface BPReading {
 interface ChartDataPoint {
   x: number;
   y: number;
-  datetime: string;
+  date: string;
+  timeOfDay: BPTimeOfDay;
   dateLabel: string;
   systolic: number;
   diastolic: number;
@@ -166,11 +169,12 @@ export function BPScatterChart({ readings, height = 280 }: BPScatterChartProps) 
   // Transform data for scatter chart
   const chartData = readings.map((r) => {
     const category = getCategory(r.systolic, r.diastolic);
-    const { full } = formatDateTime(r.datetime);
+    const { full } = formatBPDateTime(r.date, r.timeOfDay);
     return {
       x: r.diastolic, // X-axis: diastolic
       y: r.systolic, // Y-axis: systolic
-      datetime: r.datetime,
+      date: r.date,
+      timeOfDay: r.timeOfDay,
       dateLabel: full,
       systolic: r.systolic,
       diastolic: r.diastolic,

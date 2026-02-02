@@ -1,7 +1,7 @@
 import { supabase } from '../supabase';
 import { validateBPSession, sanitizeString } from '../validation';
 import { logError } from '../logger';
-import type { Arm, BPReading, BPSession, BPSessionInput } from '@/types/bloodPressure';
+import type { Arm, BPReading, BPSession, BPSessionInput, BPTimeOfDay } from '@/types/bloodPressure';
 
 /**
  * Blood Pressure data service
@@ -15,7 +15,8 @@ interface BPReadingRow {
   id: string;
   user_id: string;
   session_id: string;
-  recorded_at: string;
+  recorded_date: string; // YYYY-MM-DD format
+  time_of_day: BPTimeOfDay;
   systolic: number;
   diastolic: number;
   pulse: number | null;
@@ -86,7 +87,7 @@ export async function getReadings(): Promise<{ data: BPSession[] | null; error: 
     .from('blood_pressure_readings')
     .select('*')
     .eq('user_id', user.id)
-    .order('recorded_at', { ascending: false });
+    .order('recorded_date', { ascending: false });
 
   if (error) {
     logError('bloodPressure.getReadings', error);
@@ -102,7 +103,8 @@ export async function getReadings(): Promise<{ data: BPSession[] | null; error: 
     }
     sessionMap.get(sessionId)!.push({
       id: row.id,
-      datetime: row.recorded_at,
+      date: row.recorded_date,
+      timeOfDay: row.time_of_day,
       systolic: row.systolic,
       diastolic: row.diastolic,
       pulse: row.pulse,
@@ -115,14 +117,15 @@ export async function getReadings(): Promise<{ data: BPSession[] | null; error: 
   // Convert to array of session objects with computed averages
   const sessions: BPSession[] = [];
   for (const [sessionId, readings] of sessionMap) {
-    // Sort readings within session by datetime
-    readings.sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime());
+    // Sort readings within session by date
+    readings.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     // Calculate averages
     const { avgSystolic, avgDiastolic, avgPulse } = calculateSessionAverages(readings);
 
-    // Use the first reading's datetime as the session datetime
-    const sessionDatetime = readings[0].datetime;
+    // Use the first reading's date and timeOfDay as the session values
+    const sessionDate = readings[0].date;
+    const sessionTimeOfDay = readings[0].timeOfDay;
 
     // Combine notes from all readings (usually only one has notes)
     const notes = readings
@@ -132,7 +135,8 @@ export async function getReadings(): Promise<{ data: BPSession[] | null; error: 
 
     sessions.push({
       sessionId,
-      datetime: sessionDatetime,
+      date: sessionDate,
+      timeOfDay: sessionTimeOfDay,
       systolic: avgSystolic,
       diastolic: avgDiastolic,
       pulse: avgPulse,
@@ -142,8 +146,8 @@ export async function getReadings(): Promise<{ data: BPSession[] | null; error: 
     });
   }
 
-  // Sort sessions by datetime descending
-  sessions.sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime());
+  // Sort sessions by date descending
+  sessions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return { data: sessions, error: null };
 }
@@ -178,7 +182,8 @@ export async function addSession(
   const rows = session.readings.map((reading, index) => ({
     user_id: user.id,
     session_id: sessionId,
-    recorded_at: session.datetime,
+    recorded_date: session.date,
+    time_of_day: session.timeOfDay,
     systolic: reading.systolic,
     diastolic: reading.diastolic,
     pulse: reading.pulse || null,
@@ -196,7 +201,8 @@ export async function addSession(
   // Return session object matching getReadings format
   const readings: BPReading[] = (data as BPReadingRow[]).map((row) => ({
     id: row.id,
-    datetime: row.recorded_at,
+    date: row.recorded_date,
+    timeOfDay: row.time_of_day,
     systolic: row.systolic,
     diastolic: row.diastolic,
     pulse: row.pulse,
@@ -210,7 +216,8 @@ export async function addSession(
   return {
     data: {
       sessionId,
-      datetime: session.datetime,
+      date: session.date,
+      timeOfDay: session.timeOfDay,
       systolic: avgSystolic,
       diastolic: avgDiastolic,
       pulse: avgPulse,
@@ -276,7 +283,8 @@ export async function updateSession(
   const rows = session.readings.map((reading, index) => ({
     user_id: user.id,
     session_id: sessionId,
-    recorded_at: session.datetime,
+    recorded_date: session.date,
+    time_of_day: session.timeOfDay,
     systolic: reading.systolic,
     diastolic: reading.diastolic,
     pulse: reading.pulse || null,
@@ -316,7 +324,8 @@ export async function updateSession(
   // Return session object
   const readings: BPReading[] = (data as BPReadingRow[]).map((row) => ({
     id: row.id,
-    datetime: row.recorded_at,
+    date: row.recorded_date,
+    timeOfDay: row.time_of_day,
     systolic: row.systolic,
     diastolic: row.diastolic,
     pulse: row.pulse,
@@ -330,7 +339,8 @@ export async function updateSession(
   return {
     data: {
       sessionId,
-      datetime: session.datetime,
+      date: session.date,
+      timeOfDay: session.timeOfDay,
       systolic: avgSystolic,
       diastolic: avgDiastolic,
       pulse: avgPulse,

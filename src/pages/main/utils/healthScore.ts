@@ -138,7 +138,7 @@ function calculateBPTrendModifier(readings: BPReadingSummary[]): number {
 
   // Sort by date
   const sorted = [...readings].sort(
-    (a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime()
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
   );
 
   // Split into halves

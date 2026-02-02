@@ -55,7 +55,9 @@ function generateBPMarkdown(readings: BPReadingSummary[]): string {
     return '## Blood Pressure Summary\n\nNo readings available for this period.\n\n';
   }
 
-  const timestamps = readings.map((r) => new Date(r.datetime).getTime()).filter((t) => !isNaN(t));
+  const timestamps = readings
+    .map((r) => new Date(r.date + 'T00:00:00').getTime())
+    .filter((t) => !isNaN(t));
   if (timestamps.length === 0) {
     return '## Blood Pressure Summary\n\nNo valid readings available.\n\n';
   }
@@ -109,16 +111,16 @@ function generateBPMarkdown(readings: BPReadingSummary[]): string {
 
   // Recent readings table
   md += '### Recent Readings\n\n';
-  md += '| Date | Time | Systolic | Diastolic | Pulse | Category |\n';
-  md += '|------|------|----------|-----------|-------|----------|\n';
+  md += '| Date | Time of Day | Systolic | Diastolic | Pulse | Category |\n';
+  md += '|------|-------------|----------|-----------|-------|----------|\n';
   const recentReadings = readings.slice(0, 10);
   recentReadings.forEach((r) => {
-    const date = new Date(r.datetime);
+    const date = new Date(r.date + 'T00:00:00');
     const dateStr = date.toLocaleDateString();
-    const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const timeLabel = r.timeOfDay.charAt(0).toUpperCase() + r.timeOfDay.slice(1);
     const cat = getBPCategory(r.systolic, r.diastolic);
     const info = cat ? getCategoryInfo(cat) : { label: '-' };
-    md += `| ${dateStr} | ${timeStr} | ${r.systolic} | ${r.diastolic} | ${r.pulse || '-'} | ${info.label} |\n`;
+    md += `| ${dateStr} | ${timeLabel} | ${r.systolic} | ${r.diastolic} | ${r.pulse || '-'} | ${info.label} |\n`;
   });
   md += '\n';
 

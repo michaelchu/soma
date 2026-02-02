@@ -30,7 +30,7 @@ export function useReadings() {
   });
 
   const sortByDateDesc = useCallback(
-    (a: BPSession, b: BPSession) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime(),
+    (a: BPSession, b: BPSession) => new Date(b.date).getTime() - new Date(a.date).getTime(),
     []
   );
 

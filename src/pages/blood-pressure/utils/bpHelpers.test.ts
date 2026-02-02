@@ -4,7 +4,7 @@ import {
   getCategoryInfo,
   calculateStats,
   calculateFullStats,
-  formatDateTime,
+  formatBPDateTime,
   getTrend,
   getPreviousPeriodReadings,
 } from './bpHelpers';
@@ -310,23 +310,23 @@ describe('bpHelpers', () => {
     });
   });
 
-  describe('formatDateTime', () => {
-    it('formats date and time correctly', () => {
-      const result = formatDateTime('2024-03-15T14:30:00');
+  describe('formatBPDateTime', () => {
+    it('formats date and time of day correctly', () => {
+      const result = formatBPDateTime('2024-03-15', 'morning');
       expect(result.date).toBeDefined();
-      expect(result.time).toBeDefined();
+      expect(result.time).toBe('Morning');
       expect(result.full).toBeDefined();
     });
 
     it('respects hideCurrentYear option', () => {
       const currentYear = new Date().getFullYear();
-      const dateThisYear = `${currentYear}-06-15T10:00:00`;
-      const result = formatDateTime(dateThisYear, { hideCurrentYear: true });
+      const dateThisYear = `${currentYear}-06-15`;
+      const result = formatBPDateTime(dateThisYear, 'afternoon', { hideCurrentYear: true });
       expect(result.date).not.toContain(currentYear.toString());
     });
 
     it('respects hideWeekday option', () => {
-      const result = formatDateTime('2024-03-15T14:30:00', { hideWeekday: true });
+      const result = formatBPDateTime('2024-03-15', 'evening', { hideWeekday: true });
       // Weekday names are typically 3 letters (Mon, Tue, etc.)
       expect(result.date).not.toMatch(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)/);
     });
@@ -347,13 +347,13 @@ describe('bpHelpers', () => {
   describe('getTrend', () => {
     it('returns null for less than 2 readings', () => {
       expect(getTrend([])).toBeNull();
-      expect(getTrend([{ systolic: 120, diastolic: 80, datetime: '2024-01-01' }])).toBeNull();
+      expect(getTrend([{ systolic: 120, diastolic: 80, date: '2024-01-01' }])).toBeNull();
     });
 
     it('detects improving trend (decreasing BP)', () => {
       const readings = [
-        { systolic: 140, diastolic: 90, datetime: '2024-01-01' },
-        { systolic: 130, diastolic: 85, datetime: '2024-01-02' },
+        { systolic: 140, diastolic: 90, date: '2024-01-01' },
+        { systolic: 130, diastolic: 85, date: '2024-01-02' },
       ];
       const trend = getTrend(readings)!;
       expect(trend.systolic.isImproving).toBe(true);
@@ -362,8 +362,8 @@ describe('bpHelpers', () => {
 
     it('detects worsening trend (increasing BP)', () => {
       const readings = [
-        { systolic: 120, diastolic: 80, datetime: '2024-01-01' },
-        { systolic: 130, diastolic: 85, datetime: '2024-01-02' },
+        { systolic: 120, diastolic: 80, date: '2024-01-01' },
+        { systolic: 130, diastolic: 85, date: '2024-01-02' },
       ];
       const trend = getTrend(readings)!;
       expect(trend.systolic.isImproving).toBe(false);
@@ -372,8 +372,8 @@ describe('bpHelpers', () => {
 
     it('calculates correct differences', () => {
       const readings = [
-        { systolic: 120, diastolic: 80, datetime: '2024-01-01' },
-        { systolic: 125, diastolic: 82, datetime: '2024-01-02' },
+        { systolic: 120, diastolic: 80, date: '2024-01-01' },
+        { systolic: 125, diastolic: 82, date: '2024-01-02' },
       ];
       const trend = getTrend(readings)!;
       expect(trend.systolic.diff).toBe(5);
@@ -382,8 +382,8 @@ describe('bpHelpers', () => {
 
     it('detects stable trend', () => {
       const readings = [
-        { systolic: 120, diastolic: 80, datetime: '2024-01-01' },
-        { systolic: 120, diastolic: 80, datetime: '2024-01-02' },
+        { systolic: 120, diastolic: 80, date: '2024-01-01' },
+        { systolic: 120, diastolic: 80, date: '2024-01-02' },
       ];
       const trend = getTrend(readings)!;
       expect(trend.systolic.direction).toBe('stable');
@@ -392,16 +392,17 @@ describe('bpHelpers', () => {
   });
 
   describe('getPreviousPeriodReadings', () => {
-    // Helper to create a date N days ago at a specific time
-    const daysAgo = (days: number, hours = 12, minutes = 0) => {
+    // Helper to create a date N days ago in YYYY-MM-DD format
+    const daysAgoDate = (days: number) => {
       const date = new Date();
       date.setDate(date.getDate() - days);
-      date.setHours(hours, minutes, 0, 0);
-      return date.toISOString();
+      return date.toISOString().split('T')[0];
     };
 
     it('returns empty array for "all" date range', () => {
-      const mockReadings = [{ datetime: daysAgo(5), systolic: 120, diastolic: 80 }];
+      const mockReadings = [
+        { date: daysAgoDate(5), timeOfDay: 'morning' as const, systolic: 120, diastolic: 80 },
+      ];
       expect(getPreviousPeriodReadings(mockReadings, 'all', 'all')).toEqual([]);
     });
 
@@ -414,50 +415,28 @@ describe('bpHelpers', () => {
     });
 
     describe('1w (7 days) date range', () => {
-      // For '1w':
-      // Current period: 6 days ago (00:00) to now (7 days inclusive)
-      // Previous period: 12 days ago (00:00) to 6 days ago (00:00) - exclusive end
-      // So previous includes readings from days 7-12 ago
       it('filters readings from previous 7-day period', () => {
         const mockReadings = [
-          { datetime: daysAgo(2), systolic: 120, diastolic: 80 }, // Current period
-          { datetime: daysAgo(5), systolic: 121, diastolic: 81 }, // Current period
-          { datetime: daysAgo(8), systolic: 122, diastolic: 82 }, // Previous period
-          { datetime: daysAgo(10), systolic: 123, diastolic: 83 }, // Previous period
-          { datetime: daysAgo(12), systolic: 124, diastolic: 84 }, // Previous period
-          { datetime: daysAgo(15), systolic: 125, diastolic: 85 }, // Outside both periods
+          { date: daysAgoDate(2), timeOfDay: 'morning' as const, systolic: 120, diastolic: 80 }, // Current period
+          { date: daysAgoDate(5), timeOfDay: 'morning' as const, systolic: 121, diastolic: 81 }, // Current period
+          { date: daysAgoDate(8), timeOfDay: 'morning' as const, systolic: 122, diastolic: 82 }, // Previous period
+          { date: daysAgoDate(10), timeOfDay: 'morning' as const, systolic: 123, diastolic: 83 }, // Previous period
+          { date: daysAgoDate(12), timeOfDay: 'morning' as const, systolic: 124, diastolic: 84 }, // Previous period
+          { date: daysAgoDate(15), timeOfDay: 'morning' as const, systolic: 125, diastolic: 85 }, // Outside both periods
         ];
         const result = getPreviousPeriodReadings(mockReadings, '1w', 'all');
         expect(result.length).toBe(3);
-        // Verify the correct readings are included
         expect(result.map((r) => r.systolic).sort()).toEqual([122, 123, 124]);
-      });
-
-      it('excludes readings at exact boundary (start of current period)', () => {
-        // Reading exactly at the current period start should NOT be in previous period
-        const boundaryDate = new Date();
-        boundaryDate.setDate(boundaryDate.getDate() - 6);
-        boundaryDate.setHours(0, 0, 0, 0);
-
-        const mockReadings = [
-          { datetime: boundaryDate.toISOString(), systolic: 120, diastolic: 80 }, // Exact boundary
-          { datetime: daysAgo(8), systolic: 121, diastolic: 81 }, // Previous period
-        ];
-        const result = getPreviousPeriodReadings(mockReadings, '1w', 'all');
-        expect(result.length).toBe(1);
-        expect(result[0].systolic).toBe(121);
       });
     });
 
     describe('1m (1 month) date range', () => {
-      // For '1m': current period is ~30 days, previous is the ~30 days before that
-      // Use day offsets to avoid month-boundary issues with setMonth()
       it('filters readings from previous month', () => {
         const mockReadings = [
-          { datetime: daysAgo(10), systolic: 120, diastolic: 80 }, // Current month
-          { datetime: daysAgo(35), systolic: 130, diastolic: 85 }, // Previous month
-          { datetime: daysAgo(45), systolic: 135, diastolic: 88 }, // Previous month
-          { datetime: daysAgo(70), systolic: 140, diastolic: 90 }, // Two months ago
+          { date: daysAgoDate(10), timeOfDay: 'morning' as const, systolic: 120, diastolic: 80 }, // Current month
+          { date: daysAgoDate(35), timeOfDay: 'morning' as const, systolic: 130, diastolic: 85 }, // Previous month
+          { date: daysAgoDate(45), timeOfDay: 'morning' as const, systolic: 135, diastolic: 88 }, // Previous month
+          { date: daysAgoDate(70), timeOfDay: 'morning' as const, systolic: 140, diastolic: 90 }, // Two months ago
         ];
         const result = getPreviousPeriodReadings(mockReadings, '1m', 'all');
         expect(result.length).toBe(2);
@@ -466,49 +445,49 @@ describe('bpHelpers', () => {
     });
 
     describe('time of day filtering', () => {
-      it('filters previous period readings by AM', () => {
+      it('filters previous period readings by morning', () => {
         const mockReadings = [
-          { datetime: daysAgo(2, 10), systolic: 120, diastolic: 80 }, // Current, AM
-          { datetime: daysAgo(8, 9), systolic: 121, diastolic: 81 }, // Previous, AM
-          { datetime: daysAgo(9, 14), systolic: 122, diastolic: 82 }, // Previous, PM
-          { datetime: daysAgo(10, 11), systolic: 123, diastolic: 83 }, // Previous, AM
+          { date: daysAgoDate(2), timeOfDay: 'morning' as const, systolic: 120, diastolic: 80 }, // Current, morning
+          { date: daysAgoDate(8), timeOfDay: 'morning' as const, systolic: 121, diastolic: 81 }, // Previous, morning
+          { date: daysAgoDate(9), timeOfDay: 'afternoon' as const, systolic: 122, diastolic: 82 }, // Previous, afternoon
+          { date: daysAgoDate(10), timeOfDay: 'morning' as const, systolic: 123, diastolic: 83 }, // Previous, morning
         ];
-        const result = getPreviousPeriodReadings(mockReadings, '1w', 'am');
+        const result = getPreviousPeriodReadings(mockReadings, '1w', 'morning');
         expect(result.length).toBe(2);
         expect(result.map((r) => r.systolic).sort()).toEqual([121, 123]);
       });
 
-      it('filters previous period readings by PM', () => {
+      it('filters previous period readings by afternoon', () => {
         const mockReadings = [
-          { datetime: daysAgo(2, 15), systolic: 120, diastolic: 80 }, // Current, PM
-          { datetime: daysAgo(8, 9), systolic: 121, diastolic: 81 }, // Previous, AM
-          { datetime: daysAgo(9, 14), systolic: 122, diastolic: 82 }, // Previous, PM
-          { datetime: daysAgo(10, 18), systolic: 123, diastolic: 83 }, // Previous, PM
+          { date: daysAgoDate(2), timeOfDay: 'afternoon' as const, systolic: 120, diastolic: 80 }, // Current, afternoon
+          { date: daysAgoDate(8), timeOfDay: 'morning' as const, systolic: 121, diastolic: 81 }, // Previous, morning
+          { date: daysAgoDate(9), timeOfDay: 'afternoon' as const, systolic: 122, diastolic: 82 }, // Previous, afternoon
+          { date: daysAgoDate(10), timeOfDay: 'afternoon' as const, systolic: 123, diastolic: 83 }, // Previous, afternoon
         ];
-        const result = getPreviousPeriodReadings(mockReadings, '1w', 'pm');
+        const result = getPreviousPeriodReadings(mockReadings, '1w', 'afternoon');
         expect(result.length).toBe(2);
         expect(result.map((r) => r.systolic).sort()).toEqual([122, 123]);
       });
 
-      it('filters previous period readings by morning (6-12)', () => {
+      it('filters previous period readings by evening', () => {
         const mockReadings = [
-          { datetime: daysAgo(8, 5), systolic: 120, diastolic: 80 }, // Previous, early (not morning)
-          { datetime: daysAgo(9, 7), systolic: 121, diastolic: 81 }, // Previous, morning
-          { datetime: daysAgo(10, 11), systolic: 122, diastolic: 82 }, // Previous, morning
-          { datetime: daysAgo(11, 13), systolic: 123, diastolic: 83 }, // Previous, afternoon
+          { date: daysAgoDate(8), timeOfDay: 'morning' as const, systolic: 120, diastolic: 80 }, // Previous, morning
+          { date: daysAgoDate(9), timeOfDay: 'evening' as const, systolic: 121, diastolic: 81 }, // Previous, evening
+          { date: daysAgoDate(10), timeOfDay: 'evening' as const, systolic: 122, diastolic: 82 }, // Previous, evening
+          { date: daysAgoDate(11), timeOfDay: 'afternoon' as const, systolic: 123, diastolic: 83 }, // Previous, afternoon
         ];
-        const result = getPreviousPeriodReadings(mockReadings, '1w', 'morning');
+        const result = getPreviousPeriodReadings(mockReadings, '1w', 'evening');
         expect(result.length).toBe(2);
         expect(result.map((r) => r.systolic).sort()).toEqual([121, 122]);
       });
     });
 
-    describe('readings without datetime', () => {
-      it('excludes readings without datetime', () => {
+    describe('readings without date', () => {
+      it('excludes readings without date', () => {
         const mockReadings = [
-          { datetime: daysAgo(8), systolic: 120, diastolic: 80 },
-          { systolic: 125, diastolic: 82 } as any, // No datetime
-          { datetime: daysAgo(10), systolic: 130, diastolic: 85 },
+          { date: daysAgoDate(8), timeOfDay: 'morning' as const, systolic: 120, diastolic: 80 },
+          { systolic: 125, diastolic: 82 } as any, // No date
+          { date: daysAgoDate(10), timeOfDay: 'morning' as const, systolic: 130, diastolic: 85 },
         ];
         const result = getPreviousPeriodReadings(mockReadings, '1w', 'all');
         expect(result.length).toBe(2);
@@ -518,8 +497,8 @@ describe('bpHelpers', () => {
     describe('empty previous period', () => {
       it('returns empty array when no readings in previous period', () => {
         const mockReadings = [
-          { datetime: daysAgo(2), systolic: 120, diastolic: 80 }, // Current period only
-          { datetime: daysAgo(5), systolic: 121, diastolic: 81 }, // Current period only
+          { date: daysAgoDate(2), timeOfDay: 'morning' as const, systolic: 120, diastolic: 80 }, // Current period only
+          { date: daysAgoDate(5), timeOfDay: 'morning' as const, systolic: 121, diastolic: 81 }, // Current period only
         ];
         const result = getPreviousPeriodReadings(mockReadings, '1w', 'all');
         expect(result).toEqual([]);
@@ -529,11 +508,10 @@ describe('bpHelpers', () => {
 
   describe('current vs previous period comparison (integration)', () => {
     // These tests verify the full comparison scenario as used in StatisticsTab
-    const daysAgo = (days: number, hours = 12) => {
+    const daysAgoDate = (days: number) => {
       const date = new Date();
       date.setDate(date.getDate() - days);
-      date.setHours(hours, 0, 0, 0);
-      return date.toISOString();
+      return date.toISOString().split('T')[0];
     };
 
     it('calculates correct stats for comparison between periods', () => {
@@ -542,19 +520,55 @@ describe('bpHelpers', () => {
       // Previous period (7-14 days ago): lower BP readings
       const allReadings = [
         // Current period readings (days 0-6)
-        { datetime: daysAgo(1), systolic: 135, diastolic: 88, pulse: 75 },
-        { datetime: daysAgo(3), systolic: 140, diastolic: 92, pulse: 78 },
-        { datetime: daysAgo(5), systolic: 138, diastolic: 90, pulse: 76 },
+        {
+          date: daysAgoDate(1),
+          timeOfDay: 'morning' as const,
+          systolic: 135,
+          diastolic: 88,
+          pulse: 75,
+        },
+        {
+          date: daysAgoDate(3),
+          timeOfDay: 'morning' as const,
+          systolic: 140,
+          diastolic: 92,
+          pulse: 78,
+        },
+        {
+          date: daysAgoDate(5),
+          timeOfDay: 'morning' as const,
+          systolic: 138,
+          diastolic: 90,
+          pulse: 76,
+        },
 
         // Previous period readings (days 7-13)
-        { datetime: daysAgo(8), systolic: 125, diastolic: 82, pulse: 70 },
-        { datetime: daysAgo(10), systolic: 128, diastolic: 84, pulse: 72 },
-        { datetime: daysAgo(12), systolic: 122, diastolic: 80, pulse: 68 },
+        {
+          date: daysAgoDate(8),
+          timeOfDay: 'morning' as const,
+          systolic: 125,
+          diastolic: 82,
+          pulse: 70,
+        },
+        {
+          date: daysAgoDate(10),
+          timeOfDay: 'morning' as const,
+          systolic: 128,
+          diastolic: 84,
+          pulse: 72,
+        },
+        {
+          date: daysAgoDate(12),
+          timeOfDay: 'morning' as const,
+          systolic: 122,
+          diastolic: 80,
+          pulse: 68,
+        },
       ];
 
       // Get current period readings (normally done by date filtering in the component)
       const currentReadings = allReadings.filter((r) => {
-        const date = new Date(r.datetime);
+        const date = new Date(r.date);
         const sixDaysAgo = new Date();
         sixDaysAgo.setDate(sixDaysAgo.getDate() - 6);
         sixDaysAgo.setHours(0, 0, 0, 0);
@@ -606,12 +620,36 @@ describe('bpHelpers', () => {
     it('calculates correct PP and MAP comparisons', () => {
       const allReadings = [
         // Current period: higher PP (wider gap)
-        { datetime: daysAgo(1), systolic: 140, diastolic: 80, pulse: 72 }, // PP=60, MAP=100
-        { datetime: daysAgo(3), systolic: 145, diastolic: 85, pulse: 74 }, // PP=60, MAP=105
+        {
+          date: daysAgoDate(1),
+          timeOfDay: 'morning' as const,
+          systolic: 140,
+          diastolic: 80,
+          pulse: 72,
+        }, // PP=60, MAP=100
+        {
+          date: daysAgoDate(3),
+          timeOfDay: 'morning' as const,
+          systolic: 145,
+          diastolic: 85,
+          pulse: 74,
+        }, // PP=60, MAP=105
 
         // Previous period: normal PP
-        { datetime: daysAgo(8), systolic: 120, diastolic: 80, pulse: 68 }, // PP=40, MAP=93.33
-        { datetime: daysAgo(10), systolic: 125, diastolic: 85, pulse: 70 }, // PP=40, MAP=98.33
+        {
+          date: daysAgoDate(8),
+          timeOfDay: 'morning' as const,
+          systolic: 120,
+          diastolic: 80,
+          pulse: 68,
+        }, // PP=40, MAP=93.33
+        {
+          date: daysAgoDate(10),
+          timeOfDay: 'morning' as const,
+          systolic: 125,
+          diastolic: 85,
+          pulse: 70,
+        }, // PP=40, MAP=98.33
       ];
 
       const currentReadings = allReadings.slice(0, 2);
@@ -637,8 +675,20 @@ describe('bpHelpers', () => {
     it('handles scenario where previous period has no data', () => {
       const allReadings = [
         // Only current period readings
-        { datetime: daysAgo(1), systolic: 120, diastolic: 80, pulse: 70 },
-        { datetime: daysAgo(3), systolic: 125, diastolic: 82, pulse: 72 },
+        {
+          date: daysAgoDate(1),
+          timeOfDay: 'morning' as const,
+          systolic: 120,
+          diastolic: 80,
+          pulse: 70,
+        },
+        {
+          date: daysAgoDate(3),
+          timeOfDay: 'morning' as const,
+          systolic: 125,
+          diastolic: 82,
+          pulse: 72,
+        },
       ];
 
       const previousReadings = getPreviousPeriodReadings(allReadings, '1w', 'all');
@@ -651,15 +701,57 @@ describe('bpHelpers', () => {
     it('handles scenario with different reading counts per period', () => {
       const allReadings = [
         // Current period: 2 readings
-        { datetime: daysAgo(1), systolic: 130, diastolic: 85, pulse: 72 },
-        { datetime: daysAgo(3), systolic: 132, diastolic: 87, pulse: 74 },
+        {
+          date: daysAgoDate(1),
+          timeOfDay: 'morning' as const,
+          systolic: 130,
+          diastolic: 85,
+          pulse: 72,
+        },
+        {
+          date: daysAgoDate(3),
+          timeOfDay: 'morning' as const,
+          systolic: 132,
+          diastolic: 87,
+          pulse: 74,
+        },
 
         // Previous period: 5 readings
-        { datetime: daysAgo(7), systolic: 125, diastolic: 80, pulse: 68 },
-        { datetime: daysAgo(8), systolic: 128, diastolic: 82, pulse: 70 },
-        { datetime: daysAgo(9), systolic: 126, diastolic: 81, pulse: 69 },
-        { datetime: daysAgo(10), systolic: 124, diastolic: 79, pulse: 67 },
-        { datetime: daysAgo(11), systolic: 127, diastolic: 83, pulse: 71 },
+        {
+          date: daysAgoDate(7),
+          timeOfDay: 'morning' as const,
+          systolic: 125,
+          diastolic: 80,
+          pulse: 68,
+        },
+        {
+          date: daysAgoDate(8),
+          timeOfDay: 'morning' as const,
+          systolic: 128,
+          diastolic: 82,
+          pulse: 70,
+        },
+        {
+          date: daysAgoDate(9),
+          timeOfDay: 'morning' as const,
+          systolic: 126,
+          diastolic: 81,
+          pulse: 69,
+        },
+        {
+          date: daysAgoDate(10),
+          timeOfDay: 'morning' as const,
+          systolic: 124,
+          diastolic: 79,
+          pulse: 67,
+        },
+        {
+          date: daysAgoDate(11),
+          timeOfDay: 'morning' as const,
+          systolic: 127,
+          diastolic: 83,
+          pulse: 71,
+        },
       ];
 
       const currentReadings = allReadings.slice(0, 2);

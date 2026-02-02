@@ -1,8 +1,12 @@
 export type Arm = 'L' | 'R' | null;
 
+// Time of day categories for BP readings (stored in database)
+export type BPTimeOfDay = 'morning' | 'afternoon' | 'evening';
+
 export interface BPReading {
   id: string;
-  datetime: string;
+  date: string; // YYYY-MM-DD format
+  timeOfDay: BPTimeOfDay;
   systolic: number;
   diastolic: number;
   pulse: number | null;
@@ -13,7 +17,8 @@ export interface BPReading {
 
 export interface BPSession {
   sessionId: string;
-  datetime: string;
+  date: string; // YYYY-MM-DD format
+  timeOfDay: BPTimeOfDay;
   systolic: number;
   diastolic: number;
   pulse: number | null;
@@ -23,7 +28,8 @@ export interface BPSession {
 }
 
 export interface BPSessionInput {
-  datetime: string;
+  date: string; // YYYY-MM-DD format
+  timeOfDay: BPTimeOfDay;
   readings: Array<{
     systolic: number;
     diastolic: number;
@@ -108,5 +114,5 @@ export interface BPContextValue {
 // Simplified BP reading type for dashboard/summary use
 export type BPReadingSummary = Pick<
   BPReading,
-  'datetime' | 'systolic' | 'diastolic' | 'pulse' | 'sessionId'
+  'date' | 'timeOfDay' | 'systolic' | 'diastolic' | 'pulse' | 'sessionId'
 >;

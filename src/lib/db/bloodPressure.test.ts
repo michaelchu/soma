@@ -19,7 +19,8 @@ describe('bloodPressure database layer', () => {
     id: 'reading-1',
     user_id: 'user-123',
     session_id: 'session-1',
-    recorded_at: '2024-03-15T10:00:00Z',
+    recorded_date: '2024-03-15',
+    time_of_day: 'morning',
     systolic: 120,
     diastolic: 80,
     pulse: 72,
@@ -28,7 +29,8 @@ describe('bloodPressure database layer', () => {
   };
 
   const mockSessionInput: BPSessionInput = {
-    datetime: '2024-03-15T10:00:00',
+    date: '2024-03-15',
+    timeOfDay: 'morning',
     readings: [
       { systolic: 120, diastolic: 80, pulse: 72, arm: 'L' },
       { systolic: 118, diastolic: 78, pulse: 70, arm: 'L' },
@@ -132,13 +134,14 @@ describe('bloodPressure database layer', () => {
     });
 
     it('validates input before adding', async () => {
-      const result = await addSession({ datetime: '', readings: [] });
-      expect(result.error!.message).toContain('Datetime is required');
+      const result = await addSession({ date: '', timeOfDay: 'morning', readings: [] });
+      expect(result.error!.message).toContain('Date is required');
     });
 
     it('validates readings', async () => {
       const result = await addSession({
-        datetime: '2024-03-15T10:00:00',
+        date: '2024-03-15',
+        timeOfDay: 'morning',
         readings: [{ systolic: 50, diastolic: 80 }], // systolic < diastolic
       });
       expect(result.error).toBeDefined();
@@ -152,7 +155,8 @@ describe('bloodPressure database layer', () => {
       (supabase.from as Mock).mockReturnValue(mockQueryBuilder);
 
       await addSession({
-        datetime: '2024-03-15T10:00:00',
+        date: '2024-03-15',
+        timeOfDay: 'morning',
         readings: [{ systolic: 120, diastolic: 80, arm: 'L' }],
         notes: '<script>xss</script>',
       });

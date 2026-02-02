@@ -55,11 +55,10 @@ export function Insights() {
 
     if (poorSleepDates.length > 0) {
       const nextDayHighBp = bpReadings.filter((r) => {
-        const bpDate = new Date(r.datetime).toISOString().slice(0, 10);
         return poorSleepDates.some((sleepDate) => {
           const nextDay = new Date(sleepDate);
           nextDay.setDate(nextDay.getDate() + 1);
-          return nextDay.toISOString().slice(0, 10) === bpDate;
+          return nextDay.toISOString().slice(0, 10) === r.date;
         });
       });
 

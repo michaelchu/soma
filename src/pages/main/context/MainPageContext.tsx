@@ -96,7 +96,8 @@ export function MainPageProvider({ children }: { children: React.ReactNode }) {
         for (const session of bpResult.data) {
           // Use session average as single reading for main page
           bpReadings.push({
-            datetime: session.datetime,
+            date: session.date,
+            timeOfDay: session.timeOfDay,
             systolic: session.systolic,
             diastolic: session.diastolic,
             pulse: session.pulse,
@@ -141,7 +142,7 @@ export function MainPageProvider({ children }: { children: React.ReactNode }) {
       entries.push({
         id: `bp-${r.sessionId}`,
         type: 'bp',
-        date: new Date(r.datetime),
+        date: new Date(r.date + 'T00:00:00'),
         data: r,
       });
     });

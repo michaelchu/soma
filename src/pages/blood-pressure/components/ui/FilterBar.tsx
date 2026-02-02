@@ -1,6 +1,6 @@
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { DateRangeTabs } from '@/components/shared/DateRangeTabs';
-import { isInTimeOfDay, getDateRange } from '@/lib/dateUtils';
+import { getDateRange } from '@/lib/dateUtils';
 import type { TimeOfDay, BPSession } from '@/types/bloodPressure';
 
 const TIME_OF_DAY = [
@@ -59,13 +59,13 @@ export function filterReadings(
   if (dateRange !== 'all') {
     const { start } = getDateRange(dateRange);
     if (start) {
-      filtered = filtered.filter((r) => new Date(r.datetime) >= start);
+      filtered = filtered.filter((r) => new Date(r.date) >= start);
     }
   }
 
-  // Filter by time of day
+  // Filter by time of day (direct match since we now store categories)
   if (timeOfDay !== 'all') {
-    filtered = filtered.filter((r) => isInTimeOfDay(r.datetime, timeOfDay));
+    filtered = filtered.filter((r) => r.timeOfDay === timeOfDay);
   }
 
   return filtered;
