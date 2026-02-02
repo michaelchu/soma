@@ -59,6 +59,13 @@ export function TrainingLoadChart({ activities }: TrainingLoadChartProps) {
   const todayData = chartData[chartData.length - 1];
   const todayLevel = getTrainingLoadLevel(todayData.score);
 
+  // Calculate change percentage over the period
+  const startData = chartData[0];
+  const changePercent = useMemo(() => {
+    if (!startData || startData.score === 0) return null;
+    return ((todayData.score - startData.score) / startData.score) * 100;
+  }, [todayData.score, startData]);
+
   // Build SVG path for the line
   const linePath = useMemo(() => {
     if (chartData.length === 0) return '';
@@ -103,9 +110,19 @@ export function TrainingLoadChart({ activities }: TrainingLoadChartProps) {
             <TrendingUp className="h-4 w-4 text-activity" />
             <span className="text-sm font-medium text-muted-foreground">Training Load</span>
           </div>
-          <div className="flex items-baseline gap-1.5">
+          <div className="flex items-baseline gap-2">
             <span className="text-lg font-bold">{todayData.score}</span>
             <span className={`text-xs font-medium ${todayLevel.color}`}>{todayLevel.label}</span>
+            {changePercent !== null && (
+              <span
+                className={`text-xs font-medium ${
+                  changePercent >= 0 ? 'text-green-400' : 'text-red-400'
+                }`}
+              >
+                {changePercent >= 0 ? '+' : ''}
+                {changePercent.toFixed(0)}%
+              </span>
+            )}
           </div>
         </div>
 
