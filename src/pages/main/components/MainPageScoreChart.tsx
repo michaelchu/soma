@@ -1,7 +1,7 @@
 import { useState, useMemo, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Activity, Moon, Flame, FlaskConical, CheckCircle2, AlertTriangle } from 'lucide-react';
-import { formatDate } from '@/lib/dateUtils';
+import { formatDate, toLocalDateString } from '@/lib/dateUtils';
 import { ScoreBarChart, type ScoreBarChartItem } from '@/components/shared/ScoreBarChart';
 import { useMainPage } from '../context/MainPageContext';
 import { calculateHealthScore } from '../utils/healthScore';
@@ -80,7 +80,7 @@ export function MainPageScoreChart({ children }: MainPageScoreChartProps) {
     const dates: string[] = [];
     const current = new Date(startDate);
     while (current <= today) {
-      const dateStr = current.toISOString().split('T')[0];
+      const dateStr = toLocalDateString(current);
       dates.push(dateStr);
       current.setDate(current.getDate() + 1);
     }

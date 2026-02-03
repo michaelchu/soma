@@ -30,9 +30,24 @@ export function getLocalDatetimeNow(): string {
  * Get the current date formatted for date input (YYYY-MM-DD)
  */
 export function getLocalDateNow(): string {
-  const now = new Date();
-  const offset = now.getTimezoneOffset();
-  const localDate = new Date(now.getTime() - offset * 60 * 1000);
+  return toLocalDateString(new Date());
+}
+
+/**
+ * Convert a Date object to a local YYYY-MM-DD string.
+ * This avoids the timezone shift that occurs with toISOString().
+ *
+ * IMPORTANT: Always use this instead of date.toISOString().split('T')[0]
+ * because toISOString() converts to UTC, which can shift the date by a day
+ * for users in timezones west of UTC (e.g., EST, PST).
+ *
+ * Example: At 11pm EST on Feb 2nd:
+ *   - toISOString() returns "2026-02-03T04:00:00Z" (wrong date!)
+ *   - toLocalDateString() returns "2026-02-02" (correct local date)
+ */
+export function toLocalDateString(date: Date): string {
+  const offset = date.getTimezoneOffset();
+  const localDate = new Date(date.getTime() - offset * 60 * 1000);
   return localDate.toISOString().slice(0, 10);
 }
 

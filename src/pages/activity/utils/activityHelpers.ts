@@ -1,5 +1,5 @@
 import type { Activity, ActivityType, ActivityTimeOfDay } from '@/types/activity';
-import { formatDurationLong } from '@/lib/dateUtils';
+import { formatDurationLong, toLocalDateString } from '@/lib/dateUtils';
 
 // Re-export formatDuration for backwards compatibility (activity uses "45 min" format)
 export const formatDuration = formatDurationLong;
@@ -262,7 +262,7 @@ export function calculateTrainingLoad(
 
   const current = new Date(earliestDate);
   while (current <= target) {
-    const dateStr = current.toISOString().split('T')[0];
+    const dateStr = toLocalDateString(current);
     const dayEffort = effortByDate.get(dateStr) || 0;
 
     previousLoad = trainingLoad;

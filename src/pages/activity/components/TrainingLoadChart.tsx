@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { TrendingUp } from 'lucide-react';
 import type { Activity } from '@/types/activity';
+import { toLocalDateString } from '@/lib/dateUtils';
 import { calculateTrainingLoad } from '../utils/activityHelpers';
 import { TrainingLoadModal } from './modals/TrainingLoadModal';
 
@@ -28,7 +29,7 @@ export function TrainingLoadChart({ activities }: TrainingLoadChartProps) {
     for (let i = CHART_DAYS - 1; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = toLocalDateString(date);
       const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
 
       const result = calculateTrainingLoad(dateStr, activities);

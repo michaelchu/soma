@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { TrendingUp } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { Activity } from '@/types/activity';
+import { toLocalDateString } from '@/lib/dateUtils';
 import {
   calculateTrainingLoad,
   getTrainingLoadLevel,
@@ -45,7 +46,7 @@ export function TrainingLoadModal({ open, onOpenChange, activities }: TrainingLo
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = toLocalDateString(date);
 
       // Show different label formats based on range
       let label: string;
