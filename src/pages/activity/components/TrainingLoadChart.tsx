@@ -107,7 +107,7 @@ export function TrainingLoadChart({ activities }: TrainingLoadChartProps) {
         {/* Header */}
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-1.5">
-            <span className="text-xs text-muted-foreground">Training Load</span>
+            <span className="text-sm text-muted-foreground">Training Load</span>
             <TrendingUp className="h-4 w-4 text-activity" />
           </div>
           <div className="text-right">
