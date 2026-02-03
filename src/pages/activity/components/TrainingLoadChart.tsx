@@ -106,22 +106,22 @@ export function TrainingLoadChart({ activities }: TrainingLoadChartProps) {
       >
         {/* Header */}
         <div className="flex items-start justify-between mb-3">
-          <TrendingUp className="h-4 w-4 text-activity" />
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-muted-foreground">Training Load</span>
+            <TrendingUp className="h-4 w-4 text-activity" />
+          </div>
           <div className="text-right">
             <div className="text-2xl font-bold">{todayData.score}</div>
-            <div className="flex items-center justify-end gap-1.5">
-              <span className="text-xs text-muted-foreground">Training Load</span>
-              {changePercent !== null && (
-                <span
-                  className={`text-xs font-medium ${
-                    changePercent >= 0 ? 'text-green-400' : 'text-red-400'
-                  }`}
-                >
-                  {changePercent >= 0 ? '+' : ''}
-                  {changePercent.toFixed(0)}%
-                </span>
-              )}
-            </div>
+            {changePercent !== null && (
+              <span
+                className={`text-xs font-medium ${
+                  changePercent >= 0 ? 'text-green-400' : 'text-red-400'
+                }`}
+              >
+                {changePercent >= 0 ? '+' : ''}
+                {changePercent.toFixed(0)}%
+              </span>
+            )}
           </div>
         </div>
 
