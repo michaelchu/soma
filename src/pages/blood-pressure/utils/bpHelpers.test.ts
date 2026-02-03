@@ -8,7 +8,7 @@ import {
   getTrend,
   getPreviousPeriodReadings,
 } from './bpHelpers';
-import { formatDatetimeForId } from '../../../lib/dateUtils';
+import { formatDatetimeForId, toLocalDateString } from '../../../lib/dateUtils';
 
 describe('bpHelpers', () => {
   describe('getBPCategory', () => {
@@ -396,7 +396,7 @@ describe('bpHelpers', () => {
     const daysAgoDate = (days: number) => {
       const date = new Date();
       date.setDate(date.getDate() - days);
-      return date.toISOString().split('T')[0];
+      return toLocalDateString(date);
     };
 
     it('returns empty array for "all" date range', () => {
@@ -511,7 +511,7 @@ describe('bpHelpers', () => {
     const daysAgoDate = (days: number) => {
       const date = new Date();
       date.setDate(date.getDate() - days);
-      return date.toISOString().split('T')[0];
+      return toLocalDateString(date);
     };
 
     it('calculates correct stats for comparison between periods', () => {

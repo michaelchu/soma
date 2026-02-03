@@ -7,6 +7,7 @@ import {
   calculatePersonalBaseline,
   calculateSleepScore,
 } from './sleepHelpers';
+import { toLocalDateString } from '../../../lib/dateUtils';
 import type { SleepEntry } from '../../../lib/db/sleep';
 
 // Helper to create a mock sleep entry
@@ -41,7 +42,7 @@ function createMockEntry(overrides: Partial<SleepEntry> = {}): SleepEntry {
 function daysAgo(days: number): string {
   const date = new Date();
   date.setDate(date.getDate() - days);
-  return date.toISOString().split('T')[0];
+  return toLocalDateString(date);
 }
 
 describe('sleepHelpers', () => {

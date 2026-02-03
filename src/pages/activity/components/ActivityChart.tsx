@@ -1,4 +1,5 @@
 import { useRef, useMemo, useCallback, useLayoutEffect, useEffect } from 'react';
+import { toLocalDateString } from '@/lib/dateUtils';
 import { groupActivitiesByDay, type DayActivities } from '../utils/activityHelpers';
 import type { Activity } from '@/types/activity';
 
@@ -149,7 +150,7 @@ export function ActivityChart({
     const dates: string[] = [];
     const current = new Date(startDate);
     while (current <= today) {
-      const dateStr = current.toISOString().split('T')[0];
+      const dateStr = toLocalDateString(current);
       dates.push(dateStr);
       current.setDate(current.getDate() + 1);
     }

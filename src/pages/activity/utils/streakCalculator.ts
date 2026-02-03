@@ -1,4 +1,5 @@
 import type { Activity } from '@/types/activity';
+import { toLocalDateString } from '@/lib/dateUtils';
 
 export interface WeekData {
   weekStart: Date; // Monday
@@ -191,10 +192,10 @@ export function getCalendarDays(year: number, month: number): Date[] {
 }
 
 /**
- * Format a date as YYYY-MM-DD string
+ * Format a date as YYYY-MM-DD string in local timezone
  */
 export function formatDateKey(date: Date): string {
-  return date.toISOString().split('T')[0];
+  return toLocalDateString(date);
 }
 
 /**
