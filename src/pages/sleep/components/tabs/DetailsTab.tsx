@@ -1,5 +1,5 @@
 import type { ElementType } from 'react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Moon, Heart, Activity, Brain, Thermometer, Move, Clock, BedDouble } from 'lucide-react';
 import { formatTimeString } from '@/lib/dateUtils';
 import {
@@ -10,6 +10,7 @@ import {
   STAGE_COLORS,
 } from '../../utils/sleepHelpers';
 import { StackedBarChart } from '@/components/shared/StackedBarChart';
+import { SleepEntryForm } from '../modals/SleepEntryForm';
 import type { SleepEntry } from '@/lib/db/sleep';
 
 interface DetailsTabProps {
@@ -113,6 +114,13 @@ function SleepStagesDisplay({ entry, score }: { entry: SleepEntry; score?: numbe
 
 export function DetailsTab({ entries, allEntries, dateRange }: DetailsTabProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [editEntry, setEditEntry] = useState<SleepEntry | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+
+  const handleLongPress = useCallback((entry: SleepEntry) => {
+    setEditEntry(entry);
+    setEditModalOpen(true);
+  }, []);
 
   // Sort entries by date ascending (oldest first) for the chart
   const sortedEntries = useMemo(() => {
@@ -234,6 +242,7 @@ export function DetailsTab({ entries, allEntries, dateRange }: DetailsTabProps) 
           allDatesInRange={allDatesInRange}
           selectedIndex={selectedIndex}
           onSelectIndex={setSelectedIndex}
+          onLongPress={handleLongPress}
           barWidth={28}
           barGap={3}
           maxBarHeight={120}
@@ -325,6 +334,8 @@ export function DetailsTab({ entries, allEntries, dateRange }: DetailsTabProps) 
           )}
         </div>
       )}
+
+      <SleepEntryForm open={editModalOpen} onOpenChange={setEditModalOpen} entry={editEntry} />
     </div>
   );
 }

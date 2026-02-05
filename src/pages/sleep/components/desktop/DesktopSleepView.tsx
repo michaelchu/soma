@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { formatTimeString } from '@/lib/dateUtils';
 import {
@@ -12,6 +12,7 @@ import {
   STAGE_COLORS,
 } from '../../utils/sleepHelpers';
 import { StackedBarChart } from '@/components/shared/StackedBarChart';
+import { SleepEntryForm } from '../modals/SleepEntryForm';
 import type { SleepEntry } from '@/lib/db/sleep';
 
 interface DesktopSleepViewProps {
@@ -340,6 +341,13 @@ function ReferenceRangesTable() {
 export function DesktopSleepView({ entries, allEntries, dateRange }: DesktopSleepViewProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [statsExpanded, setStatsExpanded] = useState(true);
+  const [editEntry, setEditEntry] = useState<SleepEntry | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+
+  const handleLongPress = useCallback((entry: SleepEntry) => {
+    setEditEntry(entry);
+    setEditModalOpen(true);
+  }, []);
 
   // Sort entries by date ascending (oldest first) for the chart
   const sortedEntries = useMemo(() => {
@@ -458,6 +466,7 @@ export function DesktopSleepView({ entries, allEntries, dateRange }: DesktopSlee
         allDatesInRange={allDatesInRange}
         selectedIndex={selectedIndex}
         onSelectIndex={setSelectedIndex}
+        onLongPress={handleLongPress}
       />
 
       {/* Compact Stats Bar */}
@@ -540,6 +549,8 @@ export function DesktopSleepView({ entries, allEntries, dateRange }: DesktopSlee
           )}
         </div>
       )}
+
+      <SleepEntryForm open={editModalOpen} onOpenChange={setEditModalOpen} entry={editEntry} />
     </div>
   );
 }

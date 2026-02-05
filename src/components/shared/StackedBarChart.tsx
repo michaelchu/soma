@@ -13,6 +13,7 @@ export interface StackedBarChartProps {
   allDatesInRange: string[];
   selectedIndex: number;
   onSelectIndex: (index: number) => void;
+  onLongPress?: (entry: SleepEntry) => void;
   // Optional customization for different screen sizes
   barWidth?: number;
   barGap?: number;
@@ -111,6 +112,7 @@ export function StackedBarChart({
   allDatesInRange,
   selectedIndex,
   onSelectIndex,
+  onLongPress,
   barWidth = DEFAULT_BAR_WIDTH,
   barGap = DEFAULT_BAR_GAP,
   maxBarHeight = DEFAULT_MAX_BAR_HEIGHT,
@@ -126,6 +128,8 @@ export function StackedBarChart({
   const hasDraggedRef = useRef(false);
   const selectedIndexRef = useRef(selectedIndex);
   const scrollRafRef = useRef<number | null>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressTriggeredRef = useRef(false);
 
   // Keep ref in sync
   selectedIndexRef.current = selectedIndex;
@@ -234,6 +238,26 @@ export function StackedBarChart({
     };
   }, [handleScroll]);
 
+  // Long-press handlers (shared by touch and mouse)
+  const clearLongPressTimer = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, []);
+
+  const startLongPressTimer = useCallback(
+    (entry: SleepEntry | null) => {
+      if (!onLongPress || !entry) return;
+      longPressTriggeredRef.current = false;
+      longPressTimerRef.current = setTimeout(() => {
+        longPressTriggeredRef.current = true;
+        onLongPress(entry);
+      }, 500);
+    },
+    [onLongPress]
+  );
+
   // Mouse drag handlers (for desktop)
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const container = scrollContainerRef.current;
@@ -260,25 +284,32 @@ export function StackedBarChart({
 
       if (Math.abs(x - dragStartRef.current.x) > 5) {
         hasDraggedRef.current = true;
+        clearLongPressTimer();
       }
 
       container.scrollLeft = dragStartRef.current.scrollLeft - walk;
     },
-    [isDragging]
+    [isDragging, clearLongPressTimer]
   );
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
     dragStartRef.current = null;
-  }, []);
+    clearLongPressTimer();
+  }, [clearLongPressTimer]);
 
   const handleMouseLeave = useCallback(() => {
     setIsDragging(false);
     dragStartRef.current = null;
-  }, []);
+    clearLongPressTimer();
+  }, [clearLongPressTimer]);
 
   const handleBarClick = useCallback(
     (index: number, hasEntry: boolean) => {
+      if (longPressTriggeredRef.current) {
+        longPressTriggeredRef.current = false;
+        return;
+      }
       if (!hasDraggedRef.current && hasEntry) {
         scrollToIndex(index);
       }
@@ -340,6 +371,11 @@ export function StackedBarChart({
               marginRight: index < bars.length - 1 ? barGap : 0,
             }}
             onClick={() => handleBarClick(index, !!bar.entry)}
+            onTouchStart={() => startLongPressTimer(bar.entry)}
+            onTouchMove={clearLongPressTimer}
+            onTouchEnd={clearLongPressTimer}
+            onMouseDown={() => startLongPressTimer(bar.entry)}
+            onContextMenu={onLongPress ? (e) => e.preventDefault() : undefined}
           >
             <StackedBar
               bar={bar}
