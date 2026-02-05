@@ -79,3 +79,48 @@ export function standardDeviation(values: number[]): number {
   const variance = squaredDiffs.reduce((a, b) => a + b, 0) / values.length;
   return Math.sqrt(variance);
 }
+
+export interface LinearRegressionResult {
+  slope: number;
+  intercept: number;
+  predict: (x: number) => number;
+}
+
+/**
+ * Simple least-squares linear regression
+ * Requires at least 2 points. Returns slope, intercept, and a predict function.
+ */
+export function linearRegression(
+  points: { x: number; y: number }[]
+): LinearRegressionResult | null {
+  if (points.length < 2) return null;
+
+  const n = points.length;
+  let sumX = 0;
+  let sumY = 0;
+  let sumXY = 0;
+  let sumXX = 0;
+
+  for (const { x, y } of points) {
+    sumX += x;
+    sumY += y;
+    sumXY += x * y;
+    sumXX += x * x;
+  }
+
+  const denominator = n * sumXX - sumX * sumX;
+  if (denominator === 0) {
+    // All x values are the same — return flat line at mean y
+    const meanY = sumY / n;
+    return { slope: 0, intercept: meanY, predict: () => meanY };
+  }
+
+  const slope = (n * sumXY - sumX * sumY) / denominator;
+  const intercept = (sumY - slope * sumX) / n;
+
+  return {
+    slope,
+    intercept,
+    predict: (x: number) => slope * x + intercept,
+  };
+}

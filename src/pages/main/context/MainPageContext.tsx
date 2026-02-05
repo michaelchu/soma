@@ -129,9 +129,10 @@ export function MainPageProvider({ children }: { children: React.ReactNode }) {
 
   // Calculate health score
   const healthScore = useMemo(() => {
-    if (bpReadings.length === 0 && sleepEntries.length === 0) return null;
-    return calculateHealthScore(bpReadings, sleepEntries);
-  }, [bpReadings, sleepEntries]);
+    if (bpReadings.length === 0 && sleepEntries.length === 0 && activities.length === 0)
+      return null;
+    return calculateHealthScore(bpReadings, sleepEntries, activities);
+  }, [bpReadings, sleepEntries, activities]);
 
   // Build timeline (last 7 days of entries)
   const timeline = useMemo(() => {

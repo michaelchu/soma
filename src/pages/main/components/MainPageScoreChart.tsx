@@ -142,18 +142,24 @@ export function MainPageScoreChart({ children }: MainPageScoreChartProps) {
     return allDatesInRange.map((date) => {
       const dayBpReadings = bpByDate.get(date) || [];
       const daySleepEntry = sleepByDate.get(date);
-      const daySleepEntries = daySleepEntry ? [daySleepEntry] : [];
+      const hasDayActivity = activities.some((a) => a.date === date);
 
-      // Calculate health score for this day
-      if (dayBpReadings.length === 0 && daySleepEntries.length === 0) {
+      // Check if there's any data for this day (direct or projectable)
+      if (dayBpReadings.length === 0 && !daySleepEntry && !hasDayActivity) {
+        // Still try to calculate — projection may fill in scores from nearby data
+        if (bpReadings.length >= 3 || sleepEntries.length >= 3 || activities.length > 0) {
+          const healthScore = calculateHealthScore(bpReadings, sleepEntries, activities, date);
+          if (healthScore.overall > 0) {
+            return { date, score: healthScore.overall };
+          }
+        }
         return { date, score: null };
       }
 
-      // Pass all sleep entries for personalized scoring baseline
-      const healthScore = calculateHealthScore(dayBpReadings, daySleepEntries, sleepEntries);
+      const healthScore = calculateHealthScore(bpReadings, sleepEntries, activities, date);
       return { date, score: healthScore.overall };
     });
-  }, [allDatesInRange, bpByDate, sleepByDate, sleepEntries]);
+  }, [allDatesInRange, bpByDate, sleepByDate, bpReadings, sleepEntries, activities]);
 
   // Get selected date's data
   const selectedDate = chartItems[selectedIndex]?.date;
@@ -179,14 +185,14 @@ export function MainPageScoreChart({ children }: MainPageScoreChartProps) {
     };
   }, [selectedDate, bpByDate, sleepEntries, activities]);
 
-  const hasData = bpReadings.length > 0 || sleepEntries.length > 0;
+  const hasData = bpReadings.length > 0 || sleepEntries.length > 0 || activities.length > 0;
 
   if (!hasData) {
     return (
       <div className="text-center py-8">
         <p className="text-muted-foreground">No data yet</p>
         <p className="text-sm text-muted-foreground mt-1">
-          Add BP readings or sleep entries to see your health score
+          Add BP readings, sleep entries, or activities to see your health score
         </p>
       </div>
     );

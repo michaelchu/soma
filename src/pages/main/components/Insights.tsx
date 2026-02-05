@@ -1,7 +1,7 @@
 import { useMainPage } from '../context/MainPageContext';
 
 export function Insights() {
-  const { healthScore, bpReadings, sleepEntries } = useMainPage();
+  const { healthScore, bpReadings, sleepEntries, activities } = useMainPage();
 
   if (!healthScore) return null;
 
@@ -46,12 +46,38 @@ export function Insights() {
     }
   }
 
+  // Activity insights
+  if (healthScore.activityScore) {
+    const { activityScore } = healthScore;
+    if (activityScore.trainingLoadScore < 40) {
+      insights.push('Training load is low. Gradually increase activity to build fitness.');
+    } else if (activityScore.trainingLoadScore >= 85) {
+      insights.push('Training load is high. Ensure adequate recovery between sessions.');
+    }
+    if (activityScore.consistencyScore < 50) {
+      insights.push('Activity consistency is low. Aim for 3-4 sessions per week for best results.');
+    }
+    if (activityScore.effortScore < 50) {
+      insights.push(
+        'Consider adjusting your training intensity to match your current fitness level.'
+      );
+    }
+  }
+
   // Cross-metric insights
-  if (bpReadings.length > 0 && sleepEntries.length > 0) {
-    // Find days with poor sleep followed by high BP
-    const poorSleepDates = sleepEntries
-      .filter((e) => e.durationMinutes < 360) // < 6 hours
-      .map((e) => e.date);
+  if (healthScore.crossMetric.reasons.length > 0) {
+    for (const reason of healthScore.crossMetric.reasons) {
+      insights.push(reason + '.');
+    }
+  }
+
+  // Legacy cross-metric insight (sleep-BP correlation)
+  if (
+    healthScore.crossMetric.reasons.length === 0 &&
+    bpReadings.length > 0 &&
+    sleepEntries.length > 0
+  ) {
+    const poorSleepDates = sleepEntries.filter((e) => e.durationMinutes < 360).map((e) => e.date);
 
     if (poorSleepDates.length > 0) {
       const nextDayHighBp = bpReadings.filter((r) => {
@@ -68,6 +94,17 @@ export function Insights() {
           insights.push('BP tends to be higher after nights with less than 6 hours of sleep.');
         }
       }
+    }
+  }
+
+  // Confidence factor insight
+  if (healthScore.confidenceFactor < 1.0) {
+    const missingCount =
+      3 -
+      [healthScore.bpScore, healthScore.sleepScore, healthScore.activityScore].filter(Boolean)
+        .length;
+    if (missingCount > 0 && activities.length === 0 && bpReadings.length > 0) {
+      insights.push('Add activity data to get a more complete health picture.');
     }
   }
 
