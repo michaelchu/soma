@@ -31,7 +31,7 @@ export default defineConfig({
             '@radix-ui/react-tabs',
             '@radix-ui/react-tooltip',
           ],
-          supabase: ['@supabase/supabase-js'],
+          'wa-sqlite': ['wa-sqlite'],
         },
       },
     },

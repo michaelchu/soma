@@ -1,16 +1,15 @@
-import { supabase } from '../supabase';
+import { querySQL, execSQL } from '../sqlite';
 import { sanitizeString, validateSleepEntry, type SleepEntryInput } from '../validation';
 import { logError } from '../logger';
 import { calculateDurationFromTimes } from '../dateUtils';
 
 /**
  * Sleep data service
- * CRUD operations for sleep entries
+ * CRUD operations for sleep entries (local SQLite)
  */
 
 interface SleepEntryRow {
   id: string;
-  user_id: string;
   date: string;
   timezone: string | null;
   total_sleep_minutes: number | null;
@@ -38,8 +37,8 @@ export interface SleepEntry {
   id: string;
   date: string;
   timezone: string | null;
-  durationMinutes: number; // Time in bed (calculated from sleep times)
-  totalSleepMinutes: number | null; // Actual sleep time (externally calculated)
+  durationMinutes: number;
+  totalSleepMinutes: number | null;
   sleepStart: string | null;
   sleepEnd: string | null;
   hrvLow: number | null;
@@ -58,11 +57,9 @@ export interface SleepEntry {
   notes: string | null;
 }
 
-// Re-export SleepEntryInput from validation for convenience
 export type { SleepEntryInput } from '../validation';
 
 function rowToEntry(row: SleepEntryRow): SleepEntry {
-  // Calculate time in bed from sleep times
   let durationMinutes = 0;
   if (row.sleep_start && row.sleep_end) {
     durationMinutes = calculateDurationFromTimes(row.sleep_start, row.sleep_end);
@@ -72,8 +69,8 @@ function rowToEntry(row: SleepEntryRow): SleepEntry {
     id: row.id,
     date: row.date,
     timezone: row.timezone,
-    durationMinutes, // Time in bed (always calculated from times)
-    totalSleepMinutes: row.total_sleep_minutes, // Actual sleep time (from DB)
+    durationMinutes,
+    totalSleepMinutes: row.total_sleep_minutes,
     sleepStart: row.sleep_start,
     sleepEnd: row.sleep_end,
     hrvLow: row.hrv_low,
@@ -94,33 +91,19 @@ function rowToEntry(row: SleepEntryRow): SleepEntry {
 }
 
 /**
- * Get all sleep entries for the current user
+ * Get all sleep entries
  */
 export async function getSleepEntries(): Promise<{
   data: SleepEntry[] | null;
   error: Error | null;
 }> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { data: null, error: new Error('Not authenticated') };
+  try {
+    const rows = await querySQL<SleepEntryRow>('SELECT * FROM sleep_entries ORDER BY date DESC');
+    return { data: rows.map(rowToEntry), error: null };
+  } catch (err) {
+    logError('sleep.getSleepEntries', err);
+    return { data: null, error: err instanceof Error ? err : new Error(String(err)) };
   }
-
-  const { data, error } = await supabase
-    .from('sleep_entries')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('date', { ascending: false });
-
-  if (error) {
-    logError('sleep.getSleepEntries', error);
-    return { data: null, error };
-  }
-
-  const entries = (data as SleepEntryRow[]).map(rowToEntry);
-  return { data: entries, error: null };
 }
 
 /**
@@ -129,53 +112,56 @@ export async function getSleepEntries(): Promise<{
 export async function addSleepEntry(
   entry: SleepEntryInput
 ): Promise<{ data: SleepEntry | null; error: Error | null }> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { data: null, error: new Error('Not authenticated') };
-  }
-
-  // Validate input
   const validation = validateSleepEntry(entry);
   if (!validation.valid) {
     return { data: null, error: new Error(validation.errors.join(', ')) };
   }
 
-  const sanitizedNotes = entry.notes ? sanitizeString(entry.notes) : null;
+  try {
+    const sanitizedNotes = entry.notes ? sanitizeString(entry.notes) : null;
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
 
-  const row = {
-    user_id: user.id,
-    date: entry.date,
-    timezone: entry.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-    total_sleep_minutes: entry.totalSleepMinutes || null,
-    sleep_start: entry.sleepStart || null,
-    sleep_end: entry.sleepEnd || null,
-    hrv_low: entry.hrvLow || null,
-    hrv_high: entry.hrvHigh || null,
-    resting_hr: entry.restingHr || null,
-    lowest_hr_time: entry.lowestHrTime || null,
-    hr_drop_minutes: entry.hrDropMinutes || null,
-    deep_sleep_pct: entry.deepSleepPct || null,
-    rem_sleep_pct: entry.remSleepPct || null,
-    light_sleep_pct: entry.lightSleepPct || null,
-    awake_pct: entry.awakePct || null,
-    skin_temp_avg: entry.skinTempAvg || null,
-    sleep_cycles_full: entry.sleepCyclesFull || null,
-    sleep_cycles_partial: entry.sleepCyclesPartial || null,
-    movement_count: entry.movementCount || null,
-    notes: sanitizedNotes,
-  };
+    await execSQL(
+      `INSERT INTO sleep_entries
+        (id, date, timezone, total_sleep_minutes, sleep_start, sleep_end,
+         hrv_low, hrv_high, resting_hr, lowest_hr_time, hr_drop_minutes,
+         deep_sleep_pct, rem_sleep_pct, light_sleep_pct, awake_pct,
+         skin_temp_avg, sleep_cycles_full, sleep_cycles_partial, movement_count,
+         notes, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        entry.date,
+        entry.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+        entry.totalSleepMinutes || null,
+        entry.sleepStart || null,
+        entry.sleepEnd || null,
+        entry.hrvLow || null,
+        entry.hrvHigh || null,
+        entry.restingHr || null,
+        entry.lowestHrTime || null,
+        entry.hrDropMinutes || null,
+        entry.deepSleepPct || null,
+        entry.remSleepPct || null,
+        entry.lightSleepPct || null,
+        entry.awakePct || null,
+        entry.skinTempAvg || null,
+        entry.sleepCyclesFull || null,
+        entry.sleepCyclesPartial || null,
+        entry.movementCount || null,
+        sanitizedNotes,
+        now,
+        now,
+      ]
+    );
 
-  const { data, error } = await supabase.from('sleep_entries').insert(row).select().single();
-
-  if (error) {
-    logError('sleep.addSleepEntry', error);
-    return { data: null, error };
+    const rows = await querySQL<SleepEntryRow>('SELECT * FROM sleep_entries WHERE id = ?', [id]);
+    return { data: rowToEntry(rows[0]), error: null };
+  } catch (err) {
+    logError('sleep.addSleepEntry', err);
+    return { data: null, error: err instanceof Error ? err : new Error(String(err)) };
   }
-
-  return { data: rowToEntry(data as SleepEntryRow), error: null };
 }
 
 /**
@@ -185,81 +171,65 @@ export async function updateSleepEntry(
   id: string,
   entry: SleepEntryInput
 ): Promise<{ data: SleepEntry | null; error: Error | null }> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { data: null, error: new Error('Not authenticated') };
-  }
-
-  // Validate input
   const validation = validateSleepEntry(entry);
   if (!validation.valid) {
     return { data: null, error: new Error(validation.errors.join(', ')) };
   }
 
-  const sanitizedNotes = entry.notes ? sanitizeString(entry.notes) : null;
+  try {
+    const sanitizedNotes = entry.notes ? sanitizeString(entry.notes) : null;
+    const now = new Date().toISOString();
 
-  const updates = {
-    date: entry.date,
-    timezone: entry.timezone || undefined,
-    total_sleep_minutes: entry.totalSleepMinutes || null,
-    sleep_start: entry.sleepStart || null,
-    sleep_end: entry.sleepEnd || null,
-    hrv_low: entry.hrvLow || null,
-    hrv_high: entry.hrvHigh || null,
-    resting_hr: entry.restingHr || null,
-    lowest_hr_time: entry.lowestHrTime || null,
-    hr_drop_minutes: entry.hrDropMinutes || null,
-    deep_sleep_pct: entry.deepSleepPct || null,
-    rem_sleep_pct: entry.remSleepPct || null,
-    light_sleep_pct: entry.lightSleepPct || null,
-    awake_pct: entry.awakePct || null,
-    skin_temp_avg: entry.skinTempAvg || null,
-    sleep_cycles_full: entry.sleepCyclesFull || null,
-    sleep_cycles_partial: entry.sleepCyclesPartial || null,
-    movement_count: entry.movementCount || null,
-    notes: sanitizedNotes,
-  };
+    await execSQL(
+      `UPDATE sleep_entries SET
+        date=?, timezone=?, total_sleep_minutes=?, sleep_start=?, sleep_end=?,
+        hrv_low=?, hrv_high=?, resting_hr=?, lowest_hr_time=?, hr_drop_minutes=?,
+        deep_sleep_pct=?, rem_sleep_pct=?, light_sleep_pct=?, awake_pct=?,
+        skin_temp_avg=?, sleep_cycles_full=?, sleep_cycles_partial=?, movement_count=?,
+        notes=?, updated_at=?
+       WHERE id=?`,
+      [
+        entry.date,
+        entry.timezone || undefined,
+        entry.totalSleepMinutes || null,
+        entry.sleepStart || null,
+        entry.sleepEnd || null,
+        entry.hrvLow || null,
+        entry.hrvHigh || null,
+        entry.restingHr || null,
+        entry.lowestHrTime || null,
+        entry.hrDropMinutes || null,
+        entry.deepSleepPct || null,
+        entry.remSleepPct || null,
+        entry.lightSleepPct || null,
+        entry.awakePct || null,
+        entry.skinTempAvg || null,
+        entry.sleepCyclesFull || null,
+        entry.sleepCyclesPartial || null,
+        entry.movementCount || null,
+        sanitizedNotes,
+        now,
+        id,
+      ]
+    );
 
-  const { data, error } = await supabase
-    .from('sleep_entries')
-    .update(updates)
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .select()
-    .single();
-
-  if (error) {
-    logError('sleep.updateSleepEntry', error);
-    return { data: null, error };
+    const rows = await querySQL<SleepEntryRow>('SELECT * FROM sleep_entries WHERE id = ?', [id]);
+    return { data: rowToEntry(rows[0]), error: null };
+  } catch (err) {
+    logError('sleep.updateSleepEntry', err);
+    return { data: null, error: err instanceof Error ? err : new Error(String(err)) };
   }
-
-  return { data: rowToEntry(data as SleepEntryRow), error: null };
 }
 
 /**
  * Delete a sleep entry
  */
 export async function deleteSleepEntry(id: string): Promise<{ error: Error | null }> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: new Error('Not authenticated') };
+  try {
+    await execSQL('DELETE FROM sleep_entries WHERE id = ?', [id]);
+    return { error: null };
+  } catch (err) {
+    logError('sleep.deleteSleepEntry', err);
+    return { error: err instanceof Error ? err : new Error(String(err)) };
   }
-
-  const { error } = await supabase
-    .from('sleep_entries')
-    .delete()
-    .eq('id', id)
-    .eq('user_id', user.id);
-
-  if (error) {
-    logError('sleep.deleteSleepEntry', error);
-  }
-
-  return { error };
 }

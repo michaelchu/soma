@@ -1,21 +1,19 @@
-import { supabase } from '../supabase';
+import { querySQL, execSQL } from '../sqlite';
 import { validateBPSession, sanitizeString } from '../validation';
 import { logError } from '../logger';
 import type { Arm, BPReading, BPSession, BPSessionInput, BPTimeOfDay } from '@/types/bloodPressure';
 
 /**
  * Blood Pressure data service
- * CRUD operations for blood pressure readings
+ * CRUD operations for blood pressure readings (local SQLite)
  */
 
 type CuffLocation = 'left_arm' | 'left_wrist' | 'right_arm' | 'right_wrist' | null;
 
-// Database row type (matches Supabase schema)
 interface BPReadingRow {
   id: string;
-  user_id: string;
   session_id: string;
-  recorded_date: string; // YYYY-MM-DD format
+  recorded_date: string;
   time_of_day: BPTimeOfDay;
   systolic: number;
   diastolic: number;
@@ -26,26 +24,20 @@ interface BPReadingRow {
   updated_at?: string;
 }
 
-// Re-export types for consumers
 export type { BPReading, BPSession, BPSessionInput };
 
-// Map simple arm value to cuff_location for database
 const armToCuff = (arm: Arm): CuffLocation => {
   if (arm === 'L') return 'left_arm';
   if (arm === 'R') return 'right_arm';
   return null;
 };
 
-// Map cuff_location to simple arm value for UI
 const cuffToArm = (cuff: CuffLocation): Arm => {
   if (cuff === 'left_arm' || cuff === 'left_wrist') return 'L';
   if (cuff === 'right_arm' || cuff === 'right_wrist') return 'R';
   return null;
 };
 
-/**
- * Calculate average systolic, diastolic, and pulse from an array of readings
- */
 function calculateSessionAverages(readings: BPReading[]): {
   avgSystolic: number;
   avgDiastolic: number;
@@ -58,7 +50,6 @@ function calculateSessionAverages(readings: BPReading[]): {
     readings.reduce((sum, r) => sum + r.diastolic, 0) / readings.length
   );
 
-  // Average pulse from readings that have it
   const readingsWithPulse = readings.filter((r) => r.pulse);
   const avgPulse =
     readingsWithPulse.length > 0
@@ -71,37 +62,110 @@ function calculateSessionAverages(readings: BPReading[]): {
 }
 
 /**
- * Get all blood pressure readings for the current user, grouped by session
+ * Get all blood pressure readings, grouped by session
  */
 export async function getReadings(): Promise<{ data: BPSession[] | null; error: Error | null }> {
-  // Get current user for explicit filtering (defense in depth alongside RLS)
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  try {
+    const data = await querySQL<BPReadingRow>(
+      'SELECT * FROM blood_pressure_readings ORDER BY recorded_date DESC'
+    );
 
-  if (!user) {
-    return { data: null, error: new Error('Not authenticated') };
-  }
-
-  const { data, error } = await supabase
-    .from('blood_pressure_readings')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('recorded_date', { ascending: false });
-
-  if (error) {
-    logError('bloodPressure.getReadings', error);
-    return { data: null, error };
-  }
-
-  // Group readings by session_id
-  const sessionMap = new Map<string, BPReading[]>();
-  for (const row of data as BPReadingRow[]) {
-    const sessionId = row.session_id;
-    if (!sessionMap.has(sessionId)) {
-      sessionMap.set(sessionId, []);
+    const sessionMap = new Map<string, BPReading[]>();
+    for (const row of data) {
+      const sessionId = row.session_id;
+      if (!sessionMap.has(sessionId)) {
+        sessionMap.set(sessionId, []);
+      }
+      sessionMap.get(sessionId)!.push({
+        id: row.id,
+        date: row.recorded_date,
+        timeOfDay: row.time_of_day,
+        systolic: row.systolic,
+        diastolic: row.diastolic,
+        pulse: row.pulse,
+        notes: row.notes,
+        arm: cuffToArm(row.cuff_location),
+        sessionId: row.session_id,
+      });
     }
-    sessionMap.get(sessionId)!.push({
+
+    const sessions: BPSession[] = [];
+    for (const [sessionId, readings] of sessionMap) {
+      readings.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      const { avgSystolic, avgDiastolic, avgPulse } = calculateSessionAverages(readings);
+      const sessionDate = readings[0].date;
+      const sessionTimeOfDay = readings[0].timeOfDay;
+      const notes = readings
+        .map((r) => r.notes)
+        .filter(Boolean)
+        .join('\n');
+
+      sessions.push({
+        sessionId,
+        date: sessionDate,
+        timeOfDay: sessionTimeOfDay,
+        systolic: avgSystolic,
+        diastolic: avgDiastolic,
+        pulse: avgPulse,
+        notes: notes || null,
+        readings,
+        readingCount: readings.length,
+      });
+    }
+
+    sessions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return { data: sessions, error: null };
+  } catch (err) {
+    logError('bloodPressure.getReadings', err);
+    return { data: null, error: err instanceof Error ? err : new Error(String(err)) };
+  }
+}
+
+/**
+ * Add a session of blood pressure readings
+ */
+export async function addSession(
+  session: BPSessionInput
+): Promise<{ data: BPSession | null; error: Error | null }> {
+  const validation = validateBPSession(session);
+  if (!validation.valid) {
+    return { data: null, error: new Error(validation.errors.join('; ')) };
+  }
+
+  try {
+    const sessionId = crypto.randomUUID();
+    const sanitizedNotes = session.notes ? sanitizeString(session.notes) : null;
+    const now = new Date().toISOString();
+
+    for (let i = 0; i < session.readings.length; i++) {
+      const reading = session.readings[i];
+      const id = crypto.randomUUID();
+      await execSQL(
+        `INSERT INTO blood_pressure_readings
+          (id, session_id, recorded_date, time_of_day, systolic, diastolic, pulse, notes, cuff_location, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          sessionId,
+          session.date,
+          session.timeOfDay,
+          reading.systolic,
+          reading.diastolic,
+          reading.pulse || null,
+          i === 0 ? sanitizedNotes : null,
+          armToCuff(reading.arm || null),
+          now,
+          now,
+        ]
+      );
+    }
+
+    const rows = await querySQL<BPReadingRow>(
+      'SELECT * FROM blood_pressure_readings WHERE session_id = ?',
+      [sessionId]
+    );
+
+    const readings: BPReading[] = rows.map((row) => ({
       id: row.id,
       date: row.recorded_date,
       timeOfDay: row.time_of_day,
@@ -111,269 +175,122 @@ export async function getReadings(): Promise<{ data: BPSession[] | null; error: 
       notes: row.notes,
       arm: cuffToArm(row.cuff_location),
       sessionId: row.session_id,
-    });
-  }
+    }));
 
-  // Convert to array of session objects with computed averages
-  const sessions: BPSession[] = [];
-  for (const [sessionId, readings] of sessionMap) {
-    // Sort readings within session by date
-    readings.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-    // Calculate averages
     const { avgSystolic, avgDiastolic, avgPulse } = calculateSessionAverages(readings);
 
-    // Use the first reading's date and timeOfDay as the session values
-    const sessionDate = readings[0].date;
-    const sessionTimeOfDay = readings[0].timeOfDay;
-
-    // Combine notes from all readings (usually only one has notes)
-    const notes = readings
-      .map((r) => r.notes)
-      .filter(Boolean)
-      .join('\n');
-
-    sessions.push({
-      sessionId,
-      date: sessionDate,
-      timeOfDay: sessionTimeOfDay,
-      systolic: avgSystolic,
-      diastolic: avgDiastolic,
-      pulse: avgPulse,
-      notes: notes || null,
-      readings, // Individual readings for expansion
-      readingCount: readings.length,
-    });
+    return {
+      data: {
+        sessionId,
+        date: session.date,
+        timeOfDay: session.timeOfDay,
+        systolic: avgSystolic,
+        diastolic: avgDiastolic,
+        pulse: avgPulse,
+        notes: sanitizedNotes,
+        readings,
+        readingCount: readings.length,
+      },
+      error: null,
+    };
+  } catch (err) {
+    logError('bloodPressure.addSession', err);
+    return { data: null, error: err instanceof Error ? err : new Error(String(err)) };
   }
-
-  // Sort sessions by date descending
-  sessions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-  return { data: sessions, error: null };
-}
-
-/**
- * Add a session of blood pressure readings
- */
-export async function addSession(
-  session: BPSessionInput
-): Promise<{ data: BPSession | null; error: Error | null }> {
-  // Validate input
-  const validation = validateBPSession(session);
-  if (!validation.valid) {
-    return { data: null, error: new Error(validation.errors.join('; ')) };
-  }
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { data: null, error: new Error('Not authenticated') };
-  }
-
-  // Generate a session ID
-  const sessionId = crypto.randomUUID();
-
-  // Sanitize notes
-  const sanitizedNotes = session.notes ? sanitizeString(session.notes) : null;
-
-  // Create rows for each reading
-  const rows = session.readings.map((reading, index) => ({
-    user_id: user.id,
-    session_id: sessionId,
-    recorded_date: session.date,
-    time_of_day: session.timeOfDay,
-    systolic: reading.systolic,
-    diastolic: reading.diastolic,
-    pulse: reading.pulse || null,
-    notes: index === 0 ? sanitizedNotes : null, // Notes on first reading only
-    cuff_location: armToCuff(reading.arm || null),
-  }));
-
-  const { data, error } = await supabase.from('blood_pressure_readings').insert(rows).select();
-
-  if (error) {
-    logError('bloodPressure.addSession', error);
-    return { data: null, error };
-  }
-
-  // Return session object matching getReadings format
-  const readings: BPReading[] = (data as BPReadingRow[]).map((row) => ({
-    id: row.id,
-    date: row.recorded_date,
-    timeOfDay: row.time_of_day,
-    systolic: row.systolic,
-    diastolic: row.diastolic,
-    pulse: row.pulse,
-    notes: row.notes,
-    arm: cuffToArm(row.cuff_location),
-    sessionId: row.session_id,
-  }));
-
-  const { avgSystolic, avgDiastolic, avgPulse } = calculateSessionAverages(readings);
-
-  return {
-    data: {
-      sessionId,
-      date: session.date,
-      timeOfDay: session.timeOfDay,
-      systolic: avgSystolic,
-      diastolic: avgDiastolic,
-      pulse: avgPulse,
-      notes: sanitizedNotes,
-      readings,
-      readingCount: readings.length,
-    },
-    error: null,
-  };
 }
 
 /**
  * Update a session of blood pressure readings
  * Replaces all readings in the session with new ones
- * Uses a backup-delete-insert pattern with rollback on failure
  */
 export async function updateSession(
   sessionId: string,
   session: BPSessionInput
 ): Promise<{ data: BPSession | null; error: Error | null }> {
-  // Validate input
   const validation = validateBPSession(session);
   if (!validation.valid) {
     return { data: null, error: new Error(validation.errors.join('; ')) };
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  try {
+    const sanitizedNotes = session.notes ? sanitizeString(session.notes) : null;
+    const now = new Date().toISOString();
 
-  if (!user) {
-    return { data: null, error: new Error('Not authenticated') };
-  }
+    // Delete existing readings
+    await execSQL('DELETE FROM blood_pressure_readings WHERE session_id = ?', [sessionId]);
 
-  // Sanitize notes
-  const sanitizedNotes = session.notes ? sanitizeString(session.notes) : null;
-
-  // First, fetch existing readings for rollback capability (filter by user_id for security)
-  const { data: existingReadings, error: fetchError } = await supabase
-    .from('blood_pressure_readings')
-    .select('*')
-    .eq('session_id', sessionId)
-    .eq('user_id', user.id);
-
-  if (fetchError) {
-    logError('bloodPressure.updateSession.fetchBackup', fetchError);
-    return { data: null, error: fetchError };
-  }
-
-  // Delete existing readings in this session (filter by user_id for security)
-  const { error: deleteError } = await supabase
-    .from('blood_pressure_readings')
-    .delete()
-    .eq('session_id', sessionId)
-    .eq('user_id', user.id);
-
-  if (deleteError) {
-    logError('bloodPressure.updateSession.delete', deleteError);
-    return { data: null, error: deleteError };
-  }
-
-  // Insert new readings with the same session ID
-  const rows = session.readings.map((reading, index) => ({
-    user_id: user.id,
-    session_id: sessionId,
-    recorded_date: session.date,
-    time_of_day: session.timeOfDay,
-    systolic: reading.systolic,
-    diastolic: reading.diastolic,
-    pulse: reading.pulse || null,
-    notes: index === 0 ? sanitizedNotes : null,
-    cuff_location: armToCuff(reading.arm || null),
-  }));
-
-  const { data, error } = await supabase.from('blood_pressure_readings').insert(rows).select();
-
-  if (error) {
-    logError('bloodPressure.updateSession', error);
-
-    // Attempt rollback: re-insert the old readings
-    if (existingReadings && existingReadings.length > 0) {
-      const rollbackRows = (existingReadings as BPReadingRow[]).map(
-        ({ id: _id, created_at: _createdAt, updated_at: _updatedAt, ...rest }) => rest
+    // Insert new readings
+    for (let i = 0; i < session.readings.length; i++) {
+      const reading = session.readings[i];
+      const id = crypto.randomUUID();
+      await execSQL(
+        `INSERT INTO blood_pressure_readings
+          (id, session_id, recorded_date, time_of_day, systolic, diastolic, pulse, notes, cuff_location, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          sessionId,
+          session.date,
+          session.timeOfDay,
+          reading.systolic,
+          reading.diastolic,
+          reading.pulse || null,
+          i === 0 ? sanitizedNotes : null,
+          armToCuff(reading.arm || null),
+          now,
+          now,
+        ]
       );
-      const { error: rollbackError } = await supabase
-        .from('blood_pressure_readings')
-        .insert(rollbackRows);
-
-      if (rollbackError) {
-        logError('bloodPressure.updateSession.rollback', rollbackError);
-        // Return a more descriptive error that includes rollback failure
-        return {
-          data: null,
-          error: new Error(
-            'Update failed and data recovery failed. Your previous reading may be lost. Please refresh and re-enter if needed.'
-          ),
-        };
-      }
     }
 
-    return { data: null, error };
+    const rows = await querySQL<BPReadingRow>(
+      'SELECT * FROM blood_pressure_readings WHERE session_id = ?',
+      [sessionId]
+    );
+
+    const readings: BPReading[] = rows.map((row) => ({
+      id: row.id,
+      date: row.recorded_date,
+      timeOfDay: row.time_of_day,
+      systolic: row.systolic,
+      diastolic: row.diastolic,
+      pulse: row.pulse,
+      notes: row.notes,
+      arm: cuffToArm(row.cuff_location),
+      sessionId: row.session_id,
+    }));
+
+    const { avgSystolic, avgDiastolic, avgPulse } = calculateSessionAverages(readings);
+
+    return {
+      data: {
+        sessionId,
+        date: session.date,
+        timeOfDay: session.timeOfDay,
+        systolic: avgSystolic,
+        diastolic: avgDiastolic,
+        pulse: avgPulse,
+        notes: sanitizedNotes,
+        readings,
+        readingCount: readings.length,
+      },
+      error: null,
+    };
+  } catch (err) {
+    logError('bloodPressure.updateSession', err);
+    return { data: null, error: err instanceof Error ? err : new Error(String(err)) };
   }
-
-  // Return session object
-  const readings: BPReading[] = (data as BPReadingRow[]).map((row) => ({
-    id: row.id,
-    date: row.recorded_date,
-    timeOfDay: row.time_of_day,
-    systolic: row.systolic,
-    diastolic: row.diastolic,
-    pulse: row.pulse,
-    notes: row.notes,
-    arm: cuffToArm(row.cuff_location),
-    sessionId: row.session_id,
-  }));
-
-  const { avgSystolic, avgDiastolic, avgPulse } = calculateSessionAverages(readings);
-
-  return {
-    data: {
-      sessionId,
-      date: session.date,
-      timeOfDay: session.timeOfDay,
-      systolic: avgSystolic,
-      diastolic: avgDiastolic,
-      pulse: avgPulse,
-      notes: sanitizedNotes,
-      readings,
-      readingCount: readings.length,
-    },
-    error: null,
-  };
 }
 
 /**
  * Delete an entire session of blood pressure readings
  */
 export async function deleteSession(sessionId: string): Promise<{ error: Error | null }> {
-  // Get current user for explicit filtering (defense in depth alongside RLS)
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: new Error('Not authenticated') };
+  try {
+    await execSQL('DELETE FROM blood_pressure_readings WHERE session_id = ?', [sessionId]);
+    return { error: null };
+  } catch (err) {
+    logError('bloodPressure.deleteSession', err);
+    return { error: err instanceof Error ? err : new Error(String(err)) };
   }
-
-  const { error } = await supabase
-    .from('blood_pressure_readings')
-    .delete()
-    .eq('session_id', sessionId)
-    .eq('user_id', user.id);
-
-  if (error) {
-    logError('bloodPressure.deleteSession', error);
-  }
-
-  return { error };
 }
