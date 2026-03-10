@@ -120,14 +120,17 @@ export async function backup(): Promise<{ modifiedTime: string }> {
 
   if (existing) {
     // Update existing file
-    const response = await fetch(`${UPLOAD_API}/files/${existing.id}?uploadType=media`, {
-      method: 'PATCH',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: blob,
-    });
+    const response = await fetch(
+      `${UPLOAD_API}/files/${existing.id}?uploadType=media&fields=modifiedTime`,
+      {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: blob,
+      }
+    );
 
     if (!response.ok) {
       throw new Error(`Upload failed: ${response.status}`);
@@ -146,7 +149,7 @@ export async function backup(): Promise<{ modifiedTime: string }> {
     form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
     form.append('file', blob);
 
-    const response = await fetch(`${UPLOAD_API}/files?uploadType=multipart`, {
+    const response = await fetch(`${UPLOAD_API}/files?uploadType=multipart&fields=modifiedTime`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
       body: form,
@@ -188,9 +191,9 @@ export async function restore(): Promise<void> {
  * Get info about the latest backup
  */
 export async function getBackupInfo(): Promise<BackupInfo | null> {
+  if (!accessToken) return null;
   try {
-    const token = await getToken();
-    return await findBackupFile(token);
+    return await findBackupFile(accessToken);
   } catch {
     return null;
   }
