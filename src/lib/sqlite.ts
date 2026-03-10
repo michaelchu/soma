@@ -49,6 +49,21 @@ export async function initDatabase(schemaSql: string): Promise<void> {
   }
 }
 
+export async function runMigrations(migrations: [number, string][]): Promise<void> {
+  await ensureInit();
+  const rows = (await send({
+    type: 'query',
+    sql: 'SELECT MAX(version) as v FROM schema_version',
+  })) as { v: number | null }[];
+  const currentVersion = rows[0]?.v ?? 0;
+
+  for (const [targetVersion, sql] of migrations) {
+    if (targetVersion > currentVersion) {
+      await send({ type: 'exec', sql });
+    }
+  }
+}
+
 export async function execSQL(sql: string, params: unknown[] = []): Promise<{ changes: number }> {
   await ensureInit();
   return (await send({ type: 'exec', sql, params })) as { changes: number };

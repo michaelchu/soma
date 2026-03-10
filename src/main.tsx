@@ -6,8 +6,8 @@ import { SettingsProvider } from './lib/SettingsContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import App from './App';
 import { getStoredFont, getStoredFontSize, applyFont, applyFontSize } from './views/SettingsModal';
-import { initDatabase } from './lib/sqlite';
-import { SCHEMA_SQL } from './lib/sqlite-schema';
+import { initDatabase, runMigrations } from './lib/sqlite';
+import { SCHEMA_SQL, MIGRATIONS } from './lib/sqlite-schema';
 import './index.css';
 
 // Apply stored font preferences on app load
@@ -15,7 +15,9 @@ applyFont(getStoredFont());
 applyFontSize(getStoredFontSize());
 
 // Initialize local SQLite database
-initDatabase(SCHEMA_SQL).catch(console.error);
+initDatabase(SCHEMA_SQL)
+  .then(() => runMigrations(MIGRATIONS))
+  .catch(console.error);
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

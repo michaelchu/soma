@@ -5,7 +5,7 @@
  * No RLS policies (SQLite doesn't support them).
  */
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export const SCHEMA_SQL = `
 -- Schema versioning
@@ -25,12 +25,18 @@ CREATE TABLE IF NOT EXISTS blood_pressure_readings (
   pulse INTEGER CHECK (pulse > 0 AND pulse < 300),
   notes TEXT,
   cuff_location TEXT CHECK (cuff_location IN ('left_arm', 'right_arm', 'left_wrist', 'right_wrist')),
+  irregular_heartbeat INTEGER DEFAULT 0,
+  body_position TEXT CHECK (body_position IN ('seated', 'standing', 'lying')),
+  pulse_pressure INTEGER,
+  mean_arterial_pressure REAL,
+  category TEXT,
   created_at TEXT DEFAULT (datetime('now')),
   updated_at TEXT DEFAULT (datetime('now'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_bp_readings_date ON blood_pressure_readings(recorded_date DESC);
 CREATE INDEX IF NOT EXISTS idx_bp_readings_session ON blood_pressure_readings(session_id);
+CREATE INDEX IF NOT EXISTS idx_bp_readings_category ON blood_pressure_readings(category);
 
 -- Sleep Entries
 CREATE TABLE IF NOT EXISTS sleep_entries (
@@ -112,3 +118,22 @@ CREATE INDEX IF NOT EXISTS idx_blood_test_metrics_report ON blood_test_metrics(r
 -- Set schema version
 INSERT OR IGNORE INTO schema_version (version) VALUES (${SCHEMA_VERSION});
 `;
+
+/**
+ * Migrations to run when upgrading from an older schema version.
+ * Each entry is [targetVersion, sql].
+ */
+export const MIGRATIONS: [number, string][] = [
+  [
+    2,
+    `
+    ALTER TABLE blood_pressure_readings ADD COLUMN irregular_heartbeat INTEGER DEFAULT 0;
+    ALTER TABLE blood_pressure_readings ADD COLUMN body_position TEXT;
+    ALTER TABLE blood_pressure_readings ADD COLUMN pulse_pressure INTEGER;
+    ALTER TABLE blood_pressure_readings ADD COLUMN mean_arterial_pressure REAL;
+    ALTER TABLE blood_pressure_readings ADD COLUMN category TEXT;
+    CREATE INDEX IF NOT EXISTS idx_bp_readings_category ON blood_pressure_readings(category);
+    INSERT OR REPLACE INTO schema_version (version) VALUES (2);
+    `,
+  ],
+];
