@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   Select,
@@ -11,6 +11,7 @@ import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { secureGetItem, secureSetItem } from '@/lib/secureStorage';
 import * as googleDrive from '@/lib/googleDrive';
+import { migrateFromFile } from '@/lib/migrateFromSupabase';
 
 const FONT_OPTIONS = [
   {
@@ -130,6 +131,30 @@ export function SettingsModal({
   const [confirmRestore, setConfirmRestore] = useState(false);
   const driveConfigured = googleDrive.isConfigured();
 
+  // Data migration state
+  const [migrateStatus, setMigrateStatus] = useState<string>('');
+  const [migrateLoading, setMigrateLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleMigrateFile = async (e: { target: HTMLInputElement }) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setMigrateLoading(true);
+    setMigrateStatus('');
+    try {
+      const counts = await migrateFromFile(file);
+      const summary = Object.entries(counts)
+        .map(([table, count]) => `${table}: ${count}`)
+        .join(', ');
+      setMigrateStatus(`Import complete. ${summary}`);
+    } catch (err) {
+      setMigrateStatus(`Import failed: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setMigrateLoading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const loadBackupInfo = useCallback(async () => {
     if (!driveConfigured) return;
     try {
@@ -224,6 +249,36 @@ export function SettingsModal({
               <span>{MIN_FONT_SIZE}px</span>
               <span>{MAX_FONT_SIZE}px</span>
             </div>
+          </section>
+
+          {/* Data Import (one-time migration) */}
+          <section>
+            <h2 className="text-sm font-medium mb-2">Import Data</h2>
+            <p className="text-xs text-muted-foreground mb-2">
+              Import a JSON export from Supabase or a previous backup.
+            </p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              onChange={handleMigrateFile}
+              className="hidden"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={migrateLoading}
+            >
+              {migrateLoading ? 'Importing...' : 'Choose JSON File'}
+            </Button>
+            {migrateStatus && (
+              <p
+                className={`text-xs mt-2 ${migrateStatus.includes('failed') ? 'text-destructive' : 'text-muted-foreground'}`}
+              >
+                {migrateStatus}
+              </p>
+            )}
           </section>
 
           {/* Google Drive Backup */}
