@@ -1,3 +1,4 @@
+import { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   Select,
@@ -7,7 +8,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
+import { Button } from '@/components/ui/button';
 import { secureGetItem, secureSetItem } from '@/lib/secureStorage';
+import * as googleDrive from '@/lib/googleDrive';
 
 const FONT_OPTIONS = [
   {
@@ -120,6 +123,64 @@ export function SettingsModal({
   const currentFontFamily =
     FONT_OPTIONS.find((f) => f.id === currentFont)?.family || FONT_OPTIONS[0].family;
 
+  // Google Drive backup state
+  const [backupStatus, setBackupStatus] = useState<string>('');
+  const [backupLoading, setBackupLoading] = useState(false);
+  const [lastBackup, setLastBackup] = useState<string | null>(null);
+  const [confirmRestore, setConfirmRestore] = useState(false);
+  const driveConfigured = googleDrive.isConfigured();
+
+  const loadBackupInfo = useCallback(async () => {
+    if (!driveConfigured) return;
+    try {
+      const info = await googleDrive.getBackupInfo();
+      if (info) {
+        setLastBackup(new Date(info.modifiedTime).toLocaleString());
+      }
+    } catch {
+      // Token not available yet, that's fine
+    }
+  }, [driveConfigured]);
+
+  useEffect(() => {
+    if (open && driveConfigured) {
+      loadBackupInfo();
+    }
+  }, [open, driveConfigured, loadBackupInfo]);
+
+  const handleBackup = async () => {
+    setBackupLoading(true);
+    setBackupStatus('');
+    try {
+      const result = await googleDrive.backup();
+      setLastBackup(new Date(result.modifiedTime).toLocaleString());
+      setBackupStatus('Backup complete');
+    } catch (err) {
+      setBackupStatus(`Backup failed: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setBackupLoading(false);
+    }
+  };
+
+  const handleRestore = async () => {
+    if (!confirmRestore) {
+      setConfirmRestore(true);
+      return;
+    }
+    setBackupLoading(true);
+    setBackupStatus('');
+    setConfirmRestore(false);
+    try {
+      await googleDrive.restore();
+      setBackupStatus('Restore complete. Reloading...');
+      setTimeout(() => window.location.reload(), 1500);
+    } catch (err) {
+      setBackupStatus(`Restore failed: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setBackupLoading(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full h-full max-w-none sm:max-w-md sm:h-auto flex flex-col p-0 gap-0 overflow-hidden rounded-none sm:rounded-lg">
@@ -163,6 +224,54 @@ export function SettingsModal({
               <span>{MIN_FONT_SIZE}px</span>
               <span>{MAX_FONT_SIZE}px</span>
             </div>
+          </section>
+
+          {/* Google Drive Backup */}
+          <section>
+            <h2 className="text-sm font-medium mb-2">Google Drive Backup</h2>
+            {!driveConfigured ? (
+              <p className="text-xs text-muted-foreground">
+                Set VITE_GOOGLE_CLIENT_ID in .env to enable backup.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {lastBackup && (
+                  <p className="text-xs text-muted-foreground">Last backup: {lastBackup}</p>
+                )}
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleBackup}
+                    disabled={backupLoading}
+                    className="flex-1"
+                  >
+                    {backupLoading ? 'Working...' : 'Backup Now'}
+                  </Button>
+                  <Button
+                    variant={confirmRestore ? 'destructive' : 'outline'}
+                    size="sm"
+                    onClick={handleRestore}
+                    disabled={backupLoading}
+                    className="flex-1"
+                  >
+                    {confirmRestore ? 'Confirm Restore' : 'Restore'}
+                  </Button>
+                </div>
+                {confirmRestore && (
+                  <p className="text-xs text-destructive">
+                    This will replace all local data with the backup. Tap again to confirm.
+                  </p>
+                )}
+                {backupStatus && (
+                  <p
+                    className={`text-xs ${backupStatus.includes('failed') ? 'text-destructive' : 'text-muted-foreground'}`}
+                  >
+                    {backupStatus}
+                  </p>
+                )}
+              </div>
+            )}
           </section>
         </div>
       </DialogContent>
