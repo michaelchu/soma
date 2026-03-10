@@ -1,8 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
-import { useAuth } from '@/lib/AuthContext';
-import Auth from '@/views/Auth';
 import MainPage from '@/pages/MainPage';
 
 // Lazy load feature pages for code splitting
@@ -23,16 +21,6 @@ function PageLoader() {
 }
 
 export default function App() {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return <PageLoader />;
-  }
-
-  if (!user) {
-    return <Auth />;
-  }
-
   return (
     <>
       <Suspense fallback={<PageLoader />}>

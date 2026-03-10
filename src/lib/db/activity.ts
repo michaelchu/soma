@@ -1,4 +1,4 @@
-import { supabase } from '../supabase';
+import { querySQL, execSQL } from '../sqlite';
 import { validateActivity, sanitizeString } from '../validation';
 import { logError } from '../logger';
 import type {
@@ -11,13 +11,13 @@ import type {
 
 /**
  * Activity data service
- * CRUD operations for activity entries
+ * CRUD operations for activity entries (local SQLite)
  */
 
 function rowToActivity(row: ActivityRow): Activity {
   return {
     id: row.id,
-    userId: row.user_id,
+    userId: '',
     date: row.date,
     timeOfDay: row.time_of_day as ActivityTimeOfDay,
     activityType: row.activity_type as ActivityType,
@@ -35,33 +35,19 @@ function rowToActivity(row: ActivityRow): Activity {
 }
 
 /**
- * Get all activities for the current user
+ * Get all activities
  */
 export async function getActivities(): Promise<{
   data: Activity[] | null;
   error: Error | null;
 }> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { data: null, error: new Error('Not authenticated') };
+  try {
+    const rows = await querySQL<ActivityRow>('SELECT * FROM activities ORDER BY date DESC');
+    return { data: rows.map(rowToActivity), error: null };
+  } catch (err) {
+    logError('activity.getActivities', err);
+    return { data: null, error: err instanceof Error ? err : new Error(String(err)) };
   }
-
-  const { data, error } = await supabase
-    .from('activities')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('date', { ascending: false });
-
-  if (error) {
-    logError('activity.getActivities', error);
-    return { data: null, error };
-  }
-
-  const activities = (data as ActivityRow[]).map(rowToActivity);
-  return { data: activities, error: null };
 }
 
 /**
@@ -70,45 +56,44 @@ export async function getActivities(): Promise<{
 export async function addActivity(
   input: ActivityInput
 ): Promise<{ data: Activity | null; error: Error | null }> {
-  // Validate input
   const validation = validateActivity(input);
   if (!validation.valid) {
     return { data: null, error: new Error(validation.errors.join('; ')) };
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  try {
+    const sanitizedNotes = input.notes ? sanitizeString(input.notes) : null;
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
 
-  if (!user) {
-    return { data: null, error: new Error('Not authenticated') };
+    await execSQL(
+      `INSERT INTO activities (id, date, time_of_day, activity_type, duration_minutes, intensity, notes,
+        zone1_minutes, zone2_minutes, zone3_minutes, zone4_minutes, zone5_minutes, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        input.date,
+        input.timeOfDay,
+        input.activityType,
+        input.durationMinutes,
+        input.intensity,
+        sanitizedNotes,
+        input.zone1Minutes ?? null,
+        input.zone2Minutes ?? null,
+        input.zone3Minutes ?? null,
+        input.zone4Minutes ?? null,
+        input.zone5Minutes ?? null,
+        now,
+        now,
+      ]
+    );
+
+    const rows = await querySQL<ActivityRow>('SELECT * FROM activities WHERE id = ?', [id]);
+    return { data: rowToActivity(rows[0]), error: null };
+  } catch (err) {
+    logError('activity.addActivity', err);
+    return { data: null, error: err instanceof Error ? err : new Error(String(err)) };
   }
-
-  const sanitizedNotes = input.notes ? sanitizeString(input.notes) : null;
-
-  const row = {
-    user_id: user.id,
-    date: input.date,
-    time_of_day: input.timeOfDay,
-    activity_type: input.activityType,
-    duration_minutes: input.durationMinutes,
-    intensity: input.intensity,
-    notes: sanitizedNotes,
-    zone1_minutes: input.zone1Minutes ?? null,
-    zone2_minutes: input.zone2Minutes ?? null,
-    zone3_minutes: input.zone3Minutes ?? null,
-    zone4_minutes: input.zone4Minutes ?? null,
-    zone5_minutes: input.zone5Minutes ?? null,
-  };
-
-  const { data, error } = await supabase.from('activities').insert(row).select().single();
-
-  if (error) {
-    logError('activity.addActivity', error);
-    return { data: null, error };
-  }
-
-  return { data: rowToActivity(data as ActivityRow), error: null };
 }
 
 /**
@@ -118,69 +103,53 @@ export async function updateActivity(
   id: string,
   input: ActivityInput
 ): Promise<{ data: Activity | null; error: Error | null }> {
-  // Validate input
   const validation = validateActivity(input);
   if (!validation.valid) {
     return { data: null, error: new Error(validation.errors.join('; ')) };
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  try {
+    const sanitizedNotes = input.notes ? sanitizeString(input.notes) : null;
+    const now = new Date().toISOString();
 
-  if (!user) {
-    return { data: null, error: new Error('Not authenticated') };
+    await execSQL(
+      `UPDATE activities SET date=?, time_of_day=?, activity_type=?, duration_minutes=?, intensity=?, notes=?,
+        zone1_minutes=?, zone2_minutes=?, zone3_minutes=?, zone4_minutes=?, zone5_minutes=?, updated_at=?
+       WHERE id=?`,
+      [
+        input.date,
+        input.timeOfDay,
+        input.activityType,
+        input.durationMinutes,
+        input.intensity,
+        sanitizedNotes,
+        input.zone1Minutes ?? null,
+        input.zone2Minutes ?? null,
+        input.zone3Minutes ?? null,
+        input.zone4Minutes ?? null,
+        input.zone5Minutes ?? null,
+        now,
+        id,
+      ]
+    );
+
+    const rows = await querySQL<ActivityRow>('SELECT * FROM activities WHERE id = ?', [id]);
+    return { data: rowToActivity(rows[0]), error: null };
+  } catch (err) {
+    logError('activity.updateActivity', err);
+    return { data: null, error: err instanceof Error ? err : new Error(String(err)) };
   }
-
-  const sanitizedNotes = input.notes ? sanitizeString(input.notes) : null;
-
-  const updates = {
-    date: input.date,
-    time_of_day: input.timeOfDay,
-    activity_type: input.activityType,
-    duration_minutes: input.durationMinutes,
-    intensity: input.intensity,
-    notes: sanitizedNotes,
-    zone1_minutes: input.zone1Minutes ?? null,
-    zone2_minutes: input.zone2Minutes ?? null,
-    zone3_minutes: input.zone3Minutes ?? null,
-    zone4_minutes: input.zone4Minutes ?? null,
-    zone5_minutes: input.zone5Minutes ?? null,
-  };
-
-  const { data, error } = await supabase
-    .from('activities')
-    .update(updates)
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .select()
-    .single();
-
-  if (error) {
-    logError('activity.updateActivity', error);
-    return { data: null, error };
-  }
-
-  return { data: rowToActivity(data as ActivityRow), error: null };
 }
 
 /**
  * Delete an activity
  */
 export async function deleteActivity(id: string): Promise<{ error: Error | null }> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: new Error('Not authenticated') };
+  try {
+    await execSQL('DELETE FROM activities WHERE id = ?', [id]);
+    return { error: null };
+  } catch (err) {
+    logError('activity.deleteActivity', err);
+    return { error: err instanceof Error ? err : new Error(String(err)) };
   }
-
-  const { error } = await supabase.from('activities').delete().eq('id', id).eq('user_id', user.id);
-
-  if (error) {
-    logError('activity.deleteActivity', error);
-  }
-
-  return { error };
 }

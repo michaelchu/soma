@@ -1,27 +1,29 @@
-import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getActivities, addActivity, updateActivity, deleteActivity } from './activity';
-import { supabase } from '../supabase';
 import type { ActivityInput } from '@/types/activity';
 
-vi.mock('../supabase', () => ({
-  supabase: {
-    auth: { getUser: vi.fn() },
-    from: vi.fn(),
-  },
+const mockQuery = vi.fn();
+const mockExec = vi.fn();
+
+vi.mock('../sqlite', () => ({
+  querySQL: (...args: unknown[]) => mockQuery(...args),
+  execSQL: (...args: unknown[]) => mockExec(...args),
 }));
 
 describe('activity database layer', () => {
-  const mockUser = { id: 'user-123', email: 'test@example.com' };
-
   const mockActivityRow = {
     id: 'activity-1',
-    user_id: 'user-123',
     date: '2024-03-15',
     time_of_day: 'morning',
     activity_type: 'walking',
     duration_minutes: 30,
     intensity: 3,
     notes: 'Great walk!',
+    zone1_minutes: null,
+    zone2_minutes: null,
+    zone3_minutes: null,
+    zone4_minutes: null,
+    zone5_minutes: null,
     created_at: '2024-03-15T10:00:00Z',
     updated_at: '2024-03-15T10:00:00Z',
   };
@@ -35,38 +37,13 @@ describe('activity database layer', () => {
     notes: 'Great walk!',
   };
 
-  const createMockQueryBuilder = () => ({
-    select: vi.fn().mockReturnThis(),
-    insert: vi.fn().mockReturnThis(),
-    update: vi.fn().mockReturnThis(),
-    delete: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    order: vi.fn().mockReturnThis(),
-    single: vi.fn(),
-  });
-
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  // Test authentication once - all operations require it
-  it('returns error for unauthenticated user', async () => {
-    (supabase.auth.getUser as Mock).mockResolvedValue({ data: { user: null } });
-
-    expect((await getActivities()).error?.message).toBe('Not authenticated');
-    expect((await addActivity(mockActivityInput)).error?.message).toBe('Not authenticated');
-    expect((await updateActivity('id', mockActivityInput)).error?.message).toBe(
-      'Not authenticated'
-    );
-    expect((await deleteActivity('id')).error?.message).toBe('Not authenticated');
-  });
-
   describe('getActivities', () => {
-    it('returns activities for authenticated user', async () => {
-      const mockQueryBuilder = createMockQueryBuilder();
-      mockQueryBuilder.order.mockResolvedValue({ data: [mockActivityRow], error: null });
-      (supabase.auth.getUser as Mock).mockResolvedValue({ data: { user: mockUser } });
-      (supabase.from as Mock).mockReturnValue(mockQueryBuilder);
+    it('returns activities', async () => {
+      mockQuery.mockResolvedValue([mockActivityRow]);
 
       const result = await getActivities();
 
@@ -79,24 +56,20 @@ describe('activity database layer', () => {
       });
     });
 
-    it('filters by user_id for security', async () => {
-      const mockQueryBuilder = createMockQueryBuilder();
-      mockQueryBuilder.order.mockResolvedValue({ data: [], error: null });
-      (supabase.auth.getUser as Mock).mockResolvedValue({ data: { user: mockUser } });
-      (supabase.from as Mock).mockReturnValue(mockQueryBuilder);
+    it('returns error on failure', async () => {
+      mockQuery.mockRejectedValue(new Error('DB error'));
 
-      await getActivities();
+      const result = await getActivities();
 
-      expect(mockQueryBuilder.eq).toHaveBeenCalledWith('user_id', 'user-123');
+      expect(result.error?.message).toBe('DB error');
+      expect(result.data).toBeNull();
     });
   });
 
   describe('addActivity', () => {
     it('adds activity with validation', async () => {
-      const mockQueryBuilder = createMockQueryBuilder();
-      mockQueryBuilder.single.mockResolvedValue({ data: mockActivityRow, error: null });
-      (supabase.auth.getUser as Mock).mockResolvedValue({ data: { user: mockUser } });
-      (supabase.from as Mock).mockReturnValue(mockQueryBuilder);
+      mockExec.mockResolvedValue({ changes: 1, lastId: 1 });
+      mockQuery.mockResolvedValue([mockActivityRow]);
 
       const result = await addActivity(mockActivityInput);
 
@@ -110,27 +83,21 @@ describe('activity database layer', () => {
     });
 
     it('sanitizes notes (XSS prevention)', async () => {
-      const mockQueryBuilder = createMockQueryBuilder();
-      mockQueryBuilder.single.mockResolvedValue({ data: mockActivityRow, error: null });
-      (supabase.auth.getUser as Mock).mockResolvedValue({ data: { user: mockUser } });
-      (supabase.from as Mock).mockReturnValue(mockQueryBuilder);
+      mockExec.mockResolvedValue({ changes: 1, lastId: 1 });
+      mockQuery.mockResolvedValue([{ ...mockActivityRow, notes: 'alert("xss")' }]);
 
       await addActivity({ ...mockActivityInput, notes: '<script>alert("xss")</script>' });
 
-      const insertCall = mockQueryBuilder.insert.mock.calls[0][0];
-      expect(insertCall.notes).not.toContain('<script>');
+      const insertCall = mockExec.mock.calls[0];
+      const params = insertCall[1] as unknown[];
+      expect(params[6]).not.toContain('<script>');
     });
   });
 
   describe('updateActivity', () => {
     it('updates activity with validation', async () => {
-      const mockQueryBuilder = createMockQueryBuilder();
-      mockQueryBuilder.single.mockResolvedValue({
-        data: { ...mockActivityRow, duration_minutes: 45 },
-        error: null,
-      });
-      (supabase.auth.getUser as Mock).mockResolvedValue({ data: { user: mockUser } });
-      (supabase.from as Mock).mockReturnValue(mockQueryBuilder);
+      mockExec.mockResolvedValue({ changes: 1, lastId: 1 });
+      mockQuery.mockResolvedValue([{ ...mockActivityRow, duration_minutes: 45 }]);
 
       const result = await updateActivity('activity-1', {
         ...mockActivityInput,
@@ -139,46 +106,15 @@ describe('activity database layer', () => {
 
       expect(result.data!.durationMinutes).toBe(45);
     });
-
-    it('filters by both id and user_id for security', async () => {
-      const mockQueryBuilder = createMockQueryBuilder();
-      mockQueryBuilder.single.mockResolvedValue({ data: mockActivityRow, error: null });
-      (supabase.auth.getUser as Mock).mockResolvedValue({ data: { user: mockUser } });
-      (supabase.from as Mock).mockReturnValue(mockQueryBuilder);
-
-      await updateActivity('activity-1', mockActivityInput);
-
-      expect(mockQueryBuilder.eq).toHaveBeenCalledWith('id', 'activity-1');
-      expect(mockQueryBuilder.eq).toHaveBeenCalledWith('user_id', 'user-123');
-    });
   });
 
   describe('deleteActivity', () => {
     it('deletes activity', async () => {
-      const mockQueryBuilder = createMockQueryBuilder();
-      mockQueryBuilder.eq
-        .mockReturnValueOnce(mockQueryBuilder)
-        .mockResolvedValueOnce({ error: null });
-      (supabase.auth.getUser as Mock).mockResolvedValue({ data: { user: mockUser } });
-      (supabase.from as Mock).mockReturnValue(mockQueryBuilder);
+      mockExec.mockResolvedValue({ changes: 1, lastId: 0 });
 
       const result = await deleteActivity('activity-1');
 
       expect(result.error).toBeNull();
-    });
-
-    it('filters by both id and user_id for security', async () => {
-      const mockQueryBuilder = createMockQueryBuilder();
-      mockQueryBuilder.eq
-        .mockReturnValueOnce(mockQueryBuilder)
-        .mockResolvedValueOnce({ error: null });
-      (supabase.auth.getUser as Mock).mockResolvedValue({ data: { user: mockUser } });
-      (supabase.from as Mock).mockReturnValue(mockQueryBuilder);
-
-      await deleteActivity('activity-1');
-
-      expect(mockQueryBuilder.eq).toHaveBeenCalledWith('id', 'activity-1');
-      expect(mockQueryBuilder.eq).toHaveBeenCalledWith('user_id', 'user-123');
     });
   });
 });

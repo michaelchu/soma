@@ -1,10 +1,10 @@
-import { supabase } from '../supabase';
+import { querySQL, execSQL } from '../sqlite';
 import { validateBloodTestReport, sanitizeString } from '../validation';
 import { logError } from '../logger';
 
 /**
  * Blood Tests data service
- * CRUD operations for blood test reports and metrics
+ * CRUD operations for blood test reports and metrics (local SQLite)
  */
 
 interface Reference {
@@ -23,21 +23,19 @@ interface MetricRow {
   id: string;
   report_id: string;
   metric_key: string;
-  value: string;
+  value: number;
   unit: string;
-  reference_min: string | null;
-  reference_max: string | null;
+  reference_min: number | null;
+  reference_max: number | null;
   reference_raw: string | null;
 }
 
 interface ReportRow {
   id: string;
-  user_id: string;
   report_date: string;
   order_number: string | null;
   ordered_by: string | null;
   notes: string | null;
-  blood_test_metrics?: MetricRow[];
 }
 
 interface BloodTestReport {
@@ -63,77 +61,65 @@ interface ReportUpdates {
   notes?: string;
 }
 
+function buildReferenceObject(metric: MetricRow): Reference {
+  const ref: Reference = {};
+  if (metric.reference_min !== null) ref.min = metric.reference_min;
+  if (metric.reference_max !== null) ref.max = metric.reference_max;
+  if (metric.reference_raw) ref.raw = metric.reference_raw;
+  return ref;
+}
+
 /**
- * Get all blood test reports with their metrics for the current user
- * Uses Supabase's relational query to fetch reports and metrics in a single request
+ * Get all blood test reports with their metrics
  */
 export async function getReports(): Promise<{
   data: BloodTestReport[] | null;
   error: Error | null;
 }> {
-  // Get current user for explicit filtering (defense in depth alongside RLS)
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  try {
+    const reports = await querySQL<ReportRow>(
+      'SELECT * FROM blood_test_reports ORDER BY report_date DESC'
+    );
 
-  if (!user) {
-    return { data: null, error: new Error('Not authenticated') };
-  }
-
-  // Fetch reports with their metrics in a single query (fixes N+1 problem)
-  const { data: reports, error } = await supabase
-    .from('blood_test_reports')
-    .select(
-      `
-      *,
-      blood_test_metrics (*)
-    `
-    )
-    .eq('user_id', user.id)
-    .order('report_date', { ascending: false });
-
-  if (error) {
-    logError('bloodTests.getReports', error);
-    return { data: null, error };
-  }
-
-  if (!reports || reports.length === 0) {
-    return { data: [], error: null };
-  }
-
-  // Transform to match the existing data shape used by components
-  const transformedReports: BloodTestReport[] = (reports as ReportRow[]).map((report) => {
-    // Group metrics by metric_key
-    const metrics: Record<string, MetricData> = {};
-    for (const metric of report.blood_test_metrics || []) {
-      metrics[metric.metric_key] = {
-        value: parseFloat(metric.value),
-        unit: metric.unit,
-        reference: buildReferenceObject(metric),
-      };
+    if (reports.length === 0) {
+      return { data: [], error: null };
     }
 
-    return {
-      id: report.id,
-      date: report.report_date,
-      orderNumber: report.order_number || '',
-      orderedBy: report.ordered_by || '',
-      metrics,
-    };
-  });
+    const allMetrics = await querySQL<MetricRow>('SELECT * FROM blood_test_metrics');
 
-  return { data: transformedReports, error: null };
-}
+    // Group metrics by report_id
+    const metricsByReport = new Map<string, MetricRow[]>();
+    for (const metric of allMetrics) {
+      if (!metricsByReport.has(metric.report_id)) {
+        metricsByReport.set(metric.report_id, []);
+      }
+      metricsByReport.get(metric.report_id)!.push(metric);
+    }
 
-/**
- * Build a reference object from metric row
- */
-function buildReferenceObject(metric: MetricRow): Reference {
-  const ref: Reference = {};
-  if (metric.reference_min !== null) ref.min = parseFloat(metric.reference_min);
-  if (metric.reference_max !== null) ref.max = parseFloat(metric.reference_max);
-  if (metric.reference_raw) ref.raw = metric.reference_raw;
-  return ref;
+    const transformedReports: BloodTestReport[] = reports.map((report) => {
+      const metrics: Record<string, MetricData> = {};
+      for (const metric of metricsByReport.get(report.id) || []) {
+        metrics[metric.metric_key] = {
+          value: metric.value,
+          unit: metric.unit,
+          reference: buildReferenceObject(metric),
+        };
+      }
+
+      return {
+        id: report.id,
+        date: report.report_date,
+        orderNumber: report.order_number || '',
+        orderedBy: report.ordered_by || '',
+        metrics,
+      };
+    });
+
+    return { data: transformedReports, error: null };
+  } catch (err) {
+    logError('bloodTests.getReports', err);
+    return { data: null, error: err instanceof Error ? err : new Error(String(err)) };
+  }
 }
 
 /**
@@ -143,75 +129,63 @@ export async function addReport(report: ReportInput): Promise<{
   data: BloodTestReport | null;
   error: Error | null;
 }> {
-  // Validate input
   const validation = validateBloodTestReport(report);
   if (!validation.valid) {
     return { data: null, error: new Error(validation.errors.join('; ')) };
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  try {
+    const sanitizedOrderNumber = report.orderNumber
+      ? sanitizeString(report.orderNumber, 100)
+      : null;
+    const sanitizedOrderedBy = report.orderedBy ? sanitizeString(report.orderedBy, 200) : null;
+    const sanitizedNotes = report.notes ? sanitizeString(report.notes) : null;
 
-  if (!user) {
-    return { data: null, error: new Error('Not authenticated') };
-  }
+    const reportId = crypto.randomUUID();
+    const now = new Date().toISOString();
 
-  // Sanitize string fields
-  const sanitizedOrderNumber = report.orderNumber ? sanitizeString(report.orderNumber, 100) : null;
-  const sanitizedOrderedBy = report.orderedBy ? sanitizeString(report.orderedBy, 200) : null;
-  const sanitizedNotes = report.notes ? sanitizeString(report.notes) : null;
+    await execSQL(
+      `INSERT INTO blood_test_reports (id, report_date, order_number, ordered_by, notes, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [reportId, report.date, sanitizedOrderNumber, sanitizedOrderedBy, sanitizedNotes, now, now]
+    );
 
-  // Insert report
-  const { data: reportData, error: reportError } = await supabase
-    .from('blood_test_reports')
-    .insert({
-      user_id: user.id,
-      report_date: report.date,
-      order_number: sanitizedOrderNumber,
-      ordered_by: sanitizedOrderedBy,
-      notes: sanitizedNotes,
-    })
-    .select()
-    .single();
-
-  if (reportError) {
-    logError('bloodTests.addReport', reportError);
-    return { data: null, error: reportError };
-  }
-
-  // Insert metrics
-  if (report.metrics && Object.keys(report.metrics).length > 0) {
-    const metricsRows = Object.entries(report.metrics).map(([key, data]) => ({
-      report_id: reportData.id,
-      metric_key: key,
-      value: data.value,
-      unit: data.unit || '',
-      reference_min: data.reference?.min ?? null,
-      reference_max: data.reference?.max ?? null,
-      reference_raw: data.reference?.raw || null,
-    }));
-
-    const { error: metricsError } = await supabase.from('blood_test_metrics').insert(metricsRows);
-
-    if (metricsError) {
-      logError('bloodTests.addReport.metrics', metricsError);
-      // Clean up the report if metrics failed
-      await supabase.from('blood_test_reports').delete().eq('id', reportData.id);
-      return { data: null, error: metricsError };
+    // Insert metrics
+    if (report.metrics && Object.keys(report.metrics).length > 0) {
+      for (const [key, data] of Object.entries(report.metrics)) {
+        const metricId = crypto.randomUUID();
+        await execSQL(
+          `INSERT INTO blood_test_metrics (id, report_id, metric_key, value, unit, reference_min, reference_max, reference_raw, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            metricId,
+            reportId,
+            key,
+            data.value,
+            data.unit || '',
+            data.reference?.min ?? null,
+            data.reference?.max ?? null,
+            data.reference?.raw || null,
+            now,
+          ]
+        );
+      }
     }
-  }
 
-  return {
-    data: {
-      id: reportData.id,
-      date: reportData.report_date,
-      orderNumber: reportData.order_number || '',
-      orderedBy: reportData.ordered_by || '',
-      metrics: report.metrics,
-    },
-    error: null,
-  };
+    return {
+      data: {
+        id: reportId,
+        date: report.date,
+        orderNumber: sanitizedOrderNumber || '',
+        orderedBy: sanitizedOrderedBy || '',
+        metrics: report.metrics,
+      },
+      error: null,
+    };
+  } catch (err) {
+    logError('bloodTests.addReport', err);
+    return { data: null, error: err instanceof Error ? err : new Error(String(err)) };
+  }
 }
 
 /**
@@ -221,119 +195,115 @@ export async function updateReport(
   id: string,
   updates: ReportUpdates
 ): Promise<{ data: Partial<BloodTestReport> | null; error: Error | null }> {
-  // Get current user for explicit filtering (defense in depth alongside RLS)
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  try {
+    const setClauses: string[] = [];
+    const params: unknown[] = [];
 
-  if (!user) {
-    return { data: null, error: new Error('Not authenticated') };
+    if (updates.date !== undefined) {
+      setClauses.push('report_date=?');
+      params.push(updates.date);
+    }
+    if (updates.orderNumber !== undefined) {
+      setClauses.push('order_number=?');
+      params.push(sanitizeString(updates.orderNumber, 100));
+    }
+    if (updates.orderedBy !== undefined) {
+      setClauses.push('ordered_by=?');
+      params.push(sanitizeString(updates.orderedBy, 200));
+    }
+    if (updates.notes !== undefined) {
+      setClauses.push('notes=?');
+      params.push(sanitizeString(updates.notes));
+    }
+
+    setClauses.push("updated_at=datetime('now')");
+    params.push(id);
+
+    await execSQL(`UPDATE blood_test_reports SET ${setClauses.join(', ')} WHERE id=?`, params);
+
+    const rows = await querySQL<ReportRow>('SELECT * FROM blood_test_reports WHERE id = ?', [id]);
+    const report = rows[0];
+
+    return {
+      data: {
+        id: report.id,
+        date: report.report_date,
+        orderNumber: report.order_number || '',
+        orderedBy: report.ordered_by || '',
+      },
+      error: null,
+    };
+  } catch (err) {
+    logError('bloodTests.updateReport', err);
+    return { data: null, error: err instanceof Error ? err : new Error(String(err)) };
   }
-
-  const updateData: Record<string, unknown> = {};
-  if (updates.date !== undefined) updateData.report_date = updates.date;
-  if (updates.orderNumber !== undefined)
-    updateData.order_number = sanitizeString(updates.orderNumber, 100);
-  if (updates.orderedBy !== undefined)
-    updateData.ordered_by = sanitizeString(updates.orderedBy, 200);
-  if (updates.notes !== undefined) updateData.notes = sanitizeString(updates.notes);
-
-  const { data, error } = await supabase
-    .from('blood_test_reports')
-    .update(updateData)
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .select()
-    .single();
-
-  if (error) {
-    logError('bloodTests.updateReport', error);
-    return { data: null, error };
-  }
-
-  const reportData = data as ReportRow;
-  return {
-    data: {
-      id: reportData.id,
-      date: reportData.report_date,
-      orderNumber: reportData.order_number || '',
-      orderedBy: reportData.ordered_by || '',
-    },
-    error: null,
-  };
 }
 
 /**
- * Delete a blood test report (cascades to metrics)
+ * Delete a blood test report (cascades to metrics via FK)
  */
 export async function deleteReport(id: string): Promise<{ error: Error | null }> {
-  // Get current user for explicit filtering (defense in depth alongside RLS)
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: new Error('Not authenticated') };
+  try {
+    await execSQL('DELETE FROM blood_test_reports WHERE id = ?', [id]);
+    return { error: null };
+  } catch (err) {
+    logError('bloodTests.deleteReport', err);
+    return { error: err instanceof Error ? err : new Error(String(err)) };
   }
-
-  const { error } = await supabase
-    .from('blood_test_reports')
-    .delete()
-    .eq('id', id)
-    .eq('user_id', user.id);
-
-  if (error) {
-    logError('bloodTests.deleteReport', error);
-  }
-
-  return { error };
 }
 
 /**
- * Update a single metric for a report
+ * Update a single metric for a report (upsert)
  */
 export async function updateMetric(
   reportId: string,
   metricKey: string,
   data: MetricData
 ): Promise<{ error: Error | null }> {
-  // Get current user for explicit filtering (defense in depth alongside RLS)
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  try {
+    // Check if metric exists
+    const existing = await querySQL<MetricRow>(
+      'SELECT id FROM blood_test_metrics WHERE report_id = ? AND metric_key = ?',
+      [reportId, metricKey]
+    );
 
-  if (!user) {
-    return { error: new Error('Not authenticated') };
+    if (existing.length > 0) {
+      await execSQL(
+        `UPDATE blood_test_metrics SET value=?, unit=?, reference_min=?, reference_max=?, reference_raw=?
+         WHERE report_id=? AND metric_key=?`,
+        [
+          data.value,
+          data.unit || '',
+          data.reference?.min ?? null,
+          data.reference?.max ?? null,
+          data.reference?.raw || null,
+          reportId,
+          metricKey,
+        ]
+      );
+    } else {
+      const metricId = crypto.randomUUID();
+      await execSQL(
+        `INSERT INTO blood_test_metrics (id, report_id, metric_key, value, unit, reference_min, reference_max, reference_raw, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+        [
+          metricId,
+          reportId,
+          metricKey,
+          data.value,
+          data.unit || '',
+          data.reference?.min ?? null,
+          data.reference?.max ?? null,
+          data.reference?.raw || null,
+        ]
+      );
+    }
+
+    return { error: null };
+  } catch (err) {
+    logError('bloodTests.updateMetric', err);
+    return { error: err instanceof Error ? err : new Error(String(err)) };
   }
-
-  // Verify the report belongs to the user before updating metric
-  const { data: report, error: reportError } = await supabase
-    .from('blood_test_reports')
-    .select('id')
-    .eq('id', reportId)
-    .eq('user_id', user.id)
-    .single();
-
-  if (reportError || !report) {
-    logError('bloodTests.updateMetric.verifyOwnership', reportError);
-    return { error: new Error('Report not found or access denied') };
-  }
-
-  const { error } = await supabase.from('blood_test_metrics').upsert({
-    report_id: reportId,
-    metric_key: metricKey,
-    value: data.value,
-    unit: data.unit || '',
-    reference_min: data.reference?.min ?? null,
-    reference_max: data.reference?.max ?? null,
-    reference_raw: data.reference?.raw || null,
-  });
-
-  if (error) {
-    logError('bloodTests.updateMetric', error);
-  }
-
-  return { error };
 }
 
 interface BulkReportInput {
@@ -349,55 +319,52 @@ interface BulkReportInput {
 export async function bulkInsertReports(
   reports: BulkReportInput[]
 ): Promise<{ data: ReportRow[] | null; error: Error | null }> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  try {
+    const results: ReportRow[] = [];
 
-  if (!user) {
-    return { data: null, error: new Error('Not authenticated') };
-  }
+    for (const report of reports) {
+      const reportId = crypto.randomUUID();
+      const now = new Date().toISOString();
 
-  const results: ReportRow[] = [];
+      await execSQL(
+        `INSERT INTO blood_test_reports (id, report_date, order_number, ordered_by, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [reportId, report.date, report.orderNumber || null, report.orderedBy || null, now, now]
+      );
 
-  for (const report of reports) {
-    // Insert report
-    const { data: reportData, error: reportError } = await supabase
-      .from('blood_test_reports')
-      .insert({
-        user_id: user.id,
+      if (report.metrics && Object.keys(report.metrics).length > 0) {
+        for (const [key, data] of Object.entries(report.metrics)) {
+          const metricId = crypto.randomUUID();
+          await execSQL(
+            `INSERT INTO blood_test_metrics (id, report_id, metric_key, value, unit, reference_min, reference_max, reference_raw, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              metricId,
+              reportId,
+              key,
+              data.value,
+              data.unit || '',
+              data.reference?.min ?? null,
+              data.reference?.max ?? null,
+              data.reference?.raw || null,
+              now,
+            ]
+          );
+        }
+      }
+
+      results.push({
+        id: reportId,
         report_date: report.date,
         order_number: report.orderNumber || null,
         ordered_by: report.orderedBy || null,
-      })
-      .select()
-      .single();
-
-    if (reportError) {
-      logError('bloodTests.bulkInsertReports.report', reportError);
-      continue;
+        notes: null,
+      });
     }
 
-    // Insert metrics
-    if (report.metrics && Object.keys(report.metrics).length > 0) {
-      const metricsRows = Object.entries(report.metrics).map(([key, data]) => ({
-        report_id: reportData.id,
-        metric_key: key,
-        value: data.value,
-        unit: data.unit || '',
-        reference_min: data.reference?.min ?? null,
-        reference_max: data.reference?.max ?? null,
-        reference_raw: data.reference?.raw || null,
-      }));
-
-      const { error: metricsError } = await supabase.from('blood_test_metrics').insert(metricsRows);
-
-      if (metricsError) {
-        logError('bloodTests.bulkInsertReports.metrics', metricsError);
-      }
-    }
-
-    results.push(reportData as ReportRow);
+    return { data: results, error: null };
+  } catch (err) {
+    logError('bloodTests.bulkInsertReports', err);
+    return { data: null, error: err instanceof Error ? err : new Error(String(err)) };
   }
-
-  return { data: results, error: null };
 }

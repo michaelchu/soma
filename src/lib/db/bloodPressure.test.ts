@@ -1,23 +1,20 @@
-import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getReadings, addSession, deleteSession } from './bloodPressure';
-import { supabase } from '../supabase';
 import type { BPSessionInput } from '@/types/bloodPressure';
 
 vi.stubGlobal('crypto', { randomUUID: () => 'mock-session-uuid' });
 
-vi.mock('../supabase', () => ({
-  supabase: {
-    auth: { getUser: vi.fn() },
-    from: vi.fn(),
-  },
+const mockQuery = vi.fn();
+const mockExec = vi.fn();
+
+vi.mock('../sqlite', () => ({
+  querySQL: (...args: unknown[]) => mockQuery(...args),
+  execSQL: (...args: unknown[]) => mockExec(...args),
 }));
 
 describe('bloodPressure database layer', () => {
-  const mockUser = { id: 'user-123', email: 'test@example.com' };
-
   const mockReadingRow = {
     id: 'reading-1',
-    user_id: 'user-123',
     session_id: 'session-1',
     recorded_date: '2024-03-15',
     time_of_day: 'morning',
@@ -38,25 +35,8 @@ describe('bloodPressure database layer', () => {
     notes: 'Morning readings',
   };
 
-  const createMockQueryBuilder = () => ({
-    select: vi.fn().mockReturnThis(),
-    insert: vi.fn().mockReturnThis(),
-    delete: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    order: vi.fn().mockReturnThis(),
-  });
-
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  // Test authentication once
-  it('returns error for unauthenticated user', async () => {
-    (supabase.auth.getUser as Mock).mockResolvedValue({ data: { user: null } });
-
-    expect((await getReadings()).error?.message).toBe('Not authenticated');
-    expect((await addSession(mockSessionInput)).error?.message).toBe('Not authenticated');
-    expect((await deleteSession('session-1')).error?.message).toBe('Not authenticated');
   });
 
   describe('getReadings', () => {
@@ -65,10 +45,7 @@ describe('bloodPressure database layer', () => {
         { ...mockReadingRow, id: 'r1', systolic: 120, diastolic: 80, pulse: 70 },
         { ...mockReadingRow, id: 'r2', systolic: 130, diastolic: 90, pulse: 80 },
       ];
-      const mockQueryBuilder = createMockQueryBuilder();
-      mockQueryBuilder.order.mockResolvedValue({ data: mockReadings, error: null });
-      (supabase.auth.getUser as Mock).mockResolvedValue({ data: { user: mockUser } });
-      (supabase.from as Mock).mockReturnValue(mockQueryBuilder);
+      mockQuery.mockResolvedValue(mockReadings);
 
       const result = await getReadings();
 
@@ -85,10 +62,7 @@ describe('bloodPressure database layer', () => {
         { ...mockReadingRow, id: 'r2', cuff_location: 'right_arm' },
         { ...mockReadingRow, id: 'r3', cuff_location: null },
       ];
-      const mockQueryBuilder = createMockQueryBuilder();
-      mockQueryBuilder.order.mockResolvedValue({ data: mockReadings, error: null });
-      (supabase.auth.getUser as Mock).mockResolvedValue({ data: { user: mockUser } });
-      (supabase.from as Mock).mockReturnValue(mockQueryBuilder);
+      mockQuery.mockResolvedValue(mockReadings);
 
       const result = await getReadings();
       const readings = result.data![0].readings;
@@ -96,17 +70,6 @@ describe('bloodPressure database layer', () => {
       expect(readings[0].arm).toBe('L');
       expect(readings[1].arm).toBe('R');
       expect(readings[2].arm).toBeNull();
-    });
-
-    it('filters by user_id for security', async () => {
-      const mockQueryBuilder = createMockQueryBuilder();
-      mockQueryBuilder.order.mockResolvedValue({ data: [], error: null });
-      (supabase.auth.getUser as Mock).mockResolvedValue({ data: { user: mockUser } });
-      (supabase.from as Mock).mockReturnValue(mockQueryBuilder);
-
-      await getReadings();
-
-      expect(mockQueryBuilder.eq).toHaveBeenCalledWith('user_id', 'user-123');
     });
   });
 
@@ -122,10 +85,8 @@ describe('bloodPressure database layer', () => {
           diastolic: 78,
         },
       ];
-      const mockQueryBuilder = createMockQueryBuilder();
-      mockQueryBuilder.select.mockResolvedValue({ data: insertedRows, error: null });
-      (supabase.auth.getUser as Mock).mockResolvedValue({ data: { user: mockUser } });
-      (supabase.from as Mock).mockReturnValue(mockQueryBuilder);
+      mockExec.mockResolvedValue({ changes: 1, lastId: 1 });
+      mockQuery.mockResolvedValue(insertedRows);
 
       const result = await addSession(mockSessionInput);
 
@@ -142,17 +103,14 @@ describe('bloodPressure database layer', () => {
       const result = await addSession({
         date: '2024-03-15',
         timeOfDay: 'morning',
-        readings: [{ systolic: 50, diastolic: 80 }], // systolic < diastolic
+        readings: [{ systolic: 50, diastolic: 80 }],
       });
       expect(result.error).toBeDefined();
     });
 
     it('sanitizes notes and maps arm to cuff_location', async () => {
-      const insertedRows = [{ ...mockReadingRow, session_id: 'mock-session-uuid' }];
-      const mockQueryBuilder = createMockQueryBuilder();
-      mockQueryBuilder.select.mockResolvedValue({ data: insertedRows, error: null });
-      (supabase.auth.getUser as Mock).mockResolvedValue({ data: { user: mockUser } });
-      (supabase.from as Mock).mockReturnValue(mockQueryBuilder);
+      mockExec.mockResolvedValue({ changes: 1, lastId: 1 });
+      mockQuery.mockResolvedValue([{ ...mockReadingRow, session_id: 'mock-session-uuid' }]);
 
       await addSession({
         date: '2024-03-15',
@@ -161,38 +119,20 @@ describe('bloodPressure database layer', () => {
         notes: '<script>xss</script>',
       });
 
-      const insertCall = mockQueryBuilder.insert.mock.calls[0][0];
-      expect(insertCall[0].notes).not.toContain('<script>');
-      expect(insertCall[0].cuff_location).toBe('left_arm');
+      // Check exec was called with sanitized notes and correct cuff_location
+      const firstInsertParams = mockExec.mock.calls[0][1] as unknown[];
+      expect(firstInsertParams[7]).not.toContain('<script>'); // notes param
+      expect(firstInsertParams[8]).toBe('left_arm'); // cuff_location param
     });
   });
 
   describe('deleteSession', () => {
     it('deletes session', async () => {
-      const mockQueryBuilder = createMockQueryBuilder();
-      mockQueryBuilder.eq
-        .mockReturnValueOnce(mockQueryBuilder)
-        .mockResolvedValueOnce({ error: null });
-      (supabase.auth.getUser as Mock).mockResolvedValue({ data: { user: mockUser } });
-      (supabase.from as Mock).mockReturnValue(mockQueryBuilder);
+      mockExec.mockResolvedValue({ changes: 1, lastId: 0 });
 
       const result = await deleteSession('session-1');
 
       expect(result.error).toBeNull();
-    });
-
-    it('filters by both session_id and user_id for security', async () => {
-      const mockQueryBuilder = createMockQueryBuilder();
-      mockQueryBuilder.eq
-        .mockReturnValueOnce(mockQueryBuilder)
-        .mockResolvedValueOnce({ error: null });
-      (supabase.auth.getUser as Mock).mockResolvedValue({ data: { user: mockUser } });
-      (supabase.from as Mock).mockReturnValue(mockQueryBuilder);
-
-      await deleteSession('session-1');
-
-      expect(mockQueryBuilder.eq).toHaveBeenCalledWith('session_id', 'session-1');
-      expect(mockQueryBuilder.eq).toHaveBeenCalledWith('user_id', 'user-123');
     });
   });
 });
