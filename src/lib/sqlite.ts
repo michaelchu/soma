@@ -5,6 +5,16 @@ let messageId = 0;
 const pending = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void }>();
 let initPromise: Promise<void> | null = null;
 
+// Terminate old worker on HMR so OPFS file handles are released
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    worker?.terminate();
+    worker = null;
+    initPromise = null;
+    pending.clear();
+  });
+}
+
 function getWorker(): Worker {
   if (!worker) {
     worker = new Worker(new URL('./sqlite-worker.ts', import.meta.url), { type: 'module' });

@@ -4,6 +4,7 @@ import SQLiteESMFactory from 'wa-sqlite/dist/wa-sqlite-async.mjs';
 import * as SQLite from 'wa-sqlite';
 // @ts-expect-error wa-sqlite example VFS has no type declarations
 import { AccessHandlePoolVFS } from 'wa-sqlite/src/examples/AccessHandlePoolVFS.js';
+import wasmUrl from 'wa-sqlite/dist/wa-sqlite-async.wasm?url';
 
 type SQLiteAPI = ReturnType<typeof SQLite.Factory>;
 type SQLiteCompatibleType = number | string | Uint8Array | number[] | bigint | null;
@@ -25,11 +26,25 @@ export interface WorkerResponse {
   error?: string;
 }
 
+async function createVFS(retries = 3): Promise<AccessHandlePoolVFS> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const vfs = new AccessHandlePoolVFS('soma-db');
+      await vfs.isReady;
+      return vfs;
+    } catch (err) {
+      if (i === retries - 1) throw err;
+      // Wait for old worker's OPFS handles to release
+      await new Promise((r) => setTimeout(r, 200 * (i + 1)));
+    }
+  }
+  throw new Error('Failed to create VFS');
+}
+
 async function init(): Promise<void> {
-  const module = await SQLiteESMFactory();
+  const module = await SQLiteESMFactory({ locateFile: () => wasmUrl });
   sqlite3 = SQLite.Factory(module);
-  const vfs = new AccessHandlePoolVFS('soma-db');
-  await vfs.isReady;
+  const vfs = await createVFS();
   sqlite3.vfs_register(vfs, true);
   db = await sqlite3.open_v2('soma.db');
 
