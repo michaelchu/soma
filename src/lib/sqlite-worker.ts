@@ -28,7 +28,8 @@ export interface WorkerResponse {
 async function init(): Promise<void> {
   const module = await SQLiteESMFactory();
   sqlite3 = SQLite.Factory(module);
-  const vfs = await AccessHandlePoolVFS.create('soma-db', module);
+  const vfs = new AccessHandlePoolVFS('soma-db');
+  await vfs.isReady;
   sqlite3.vfs_register(vfs, true);
   db = await sqlite3.open_v2('soma.db');
 
