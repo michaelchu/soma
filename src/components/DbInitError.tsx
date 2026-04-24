@@ -26,10 +26,10 @@ export default function DbInitError() {
       <div className="max-w-md w-full text-center">
         <div className="mb-6">
           <AlertTriangle className="h-16 w-16 text-destructive mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-foreground mb-2">Couldn't load your data</h1>
+          <h1 className="text-2xl font-bold text-foreground mb-2">Couldn&apos;t load your data</h1>
           <p className="text-muted-foreground">
-            The app was interrupted before it could open your database. This usually resolves
-            itself — tap Retry to try again.
+            The app was interrupted before it could open your database. This usually resolves itself
+            — tap Retry to try again.
           </p>
         </div>
         <Button onClick={() => window.location.reload()}>
