@@ -15,12 +15,14 @@ import './index.css';
 applyFont(getStoredFont());
 applyFontSize(getStoredFontSize());
 
-// Initialize local SQLite database. On failure, dispatch an event so the
-// DbInitError component can surface a recovery UI to the user.
+// Initialize local SQLite database. On failure, set a global flag and dispatch
+// an event. The flag ensures DbInitError shows the overlay even if the event
+// fires before the component has mounted and registered its listener.
 initDatabase(SCHEMA_SQL)
   .then(() => runMigrations(MIGRATIONS))
   .catch((err) => {
     console.error('Database initialization failed:', err);
+    (window as Window & { __dbInitFailed?: boolean }).__dbInitFailed = true;
     window.dispatchEvent(new CustomEvent('db-init-failed', { detail: err }));
   });
 

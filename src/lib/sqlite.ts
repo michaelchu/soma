@@ -56,6 +56,16 @@ async function ensureInit(): Promise<void> {
   return initPromise;
 }
 
+// Reject all in-flight send() promises so callers don't hang indefinitely
+// when the worker is terminated mid-flight (e.g. during freeze/visibilitychange).
+function rejectPending(reason: string): void {
+  const err = new Error(reason);
+  for (const handler of pending.values()) {
+    handler.reject(err);
+  }
+  pending.clear();
+}
+
 // Close the SQLite DB inside the worker and terminate it, releasing all OPFS
 // file handles. Called proactively on page freeze/hide so Android does not
 // hold OS-level locks after the process is suspended or killed.
@@ -67,7 +77,7 @@ async function closeDatabase(): Promise<void> {
     worker.terminate();
     worker = null;
     initPromise = null;
-    pending.clear();
+    rejectPending('Database closed — worker terminated');
   }
 }
 
@@ -76,14 +86,18 @@ if (typeof document !== 'undefined') {
   // This is the primary hook — it gives us a guaranteed chance to release OPFS
   // handles cleanly so they are not held by the OS when the PWA relaunches.
   document.addEventListener('freeze', () => {
-    closeDatabase();
+    void closeDatabase().catch((err) => {
+      console.error('Failed to close SQLite database on freeze:', err);
+    });
   });
 
   // visibilitychange is a fallback for graceful backgrounds where freeze may
   // not fire (e.g. desktop Chrome, older Android versions).
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') {
-      closeDatabase();
+      void closeDatabase().catch((err) => {
+        console.error('Failed to close SQLite database on visibilitychange:', err);
+      });
     }
   });
 }

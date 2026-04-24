@@ -9,9 +9,15 @@ import { Button } from '@/components/ui/button';
  *
  * This is mounted outside <ErrorBoundary> because it handles an async failure that
  * occurs before (and independently of) the React render tree.
+ *
+ * The global __dbInitFailed flag on window is checked at initialisation time to
+ * handle the race where the event fires before this component mounts and registers
+ * its listener.
  */
 export default function DbInitError() {
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState(
+    () => !!(window as Window & { __dbInitFailed?: boolean }).__dbInitFailed
+  );
 
   useEffect(() => {
     const handler = () => setFailed(true);
