@@ -10,11 +10,11 @@ type SQLiteAPI = ReturnType<typeof SQLite.Factory>;
 type SQLiteCompatibleType = number | string | Uint8Array | number[] | bigint | null;
 
 let sqlite3: SQLiteAPI;
-let db: number;
+let db: number | undefined;
 
 export interface WorkerRequest {
   id: number;
-  type: 'init' | 'exec' | 'query' | 'export' | 'import';
+  type: 'init' | 'exec' | 'query' | 'export' | 'import' | 'close';
   sql?: string;
   params?: unknown[];
   tables?: Record<string, Record<string, unknown>[]>;
@@ -26,7 +26,10 @@ export interface WorkerResponse {
   error?: string;
 }
 
-async function createVFS(retries = 3): Promise<AccessHandlePoolVFS> {
+// After Android kills the PWA process, the OS can hold OPFS createSyncAccessHandle()
+// locks for several seconds before releasing them. Retry with linear backoff capped at
+// 2s per attempt (300, 600, 900 ... 2000, 2000 ms) for a ~16s total budget.
+async function createVFS(retries = 12): Promise<AccessHandlePoolVFS> {
   for (let i = 0; i < retries; i++) {
     try {
       const vfs = new AccessHandlePoolVFS('soma-db');
@@ -34,8 +37,8 @@ async function createVFS(retries = 3): Promise<AccessHandlePoolVFS> {
       return vfs;
     } catch (err) {
       if (i === retries - 1) throw err;
-      // Wait for old worker's OPFS handles to release
-      await new Promise((r) => setTimeout(r, 200 * (i + 1)));
+      // Linear backoff capped at 2s: 300, 600, 900, 1200, 1500, 1800, 2000, 2000...
+      await new Promise((r) => setTimeout(r, Math.min(300 * (i + 1), 2000)));
     }
   }
   throw new Error('Failed to create VFS');
@@ -52,25 +55,31 @@ async function init(): Promise<void> {
   await sqlite3.exec(db, 'PRAGMA foreign_keys=ON');
 }
 
+function assertOpen(): void {
+  if (db === undefined) throw new Error('Database is closed');
+}
+
 async function exec(
   sql: string,
   params: SQLiteCompatibleType[] = []
 ): Promise<{ changes: number }> {
-  for await (const stmt of sqlite3.statements(db, sql)) {
+  assertOpen();
+  for await (const stmt of sqlite3.statements(db!, sql)) {
     if (params.length > 0) {
       sqlite3.bind_collection(stmt, params as SQLiteCompatibleType[]);
     }
     await sqlite3.step(stmt);
   }
-  return { changes: sqlite3.changes(db) };
+  return { changes: sqlite3.changes(db!) };
 }
 
 async function query(
   sql: string,
   params: SQLiteCompatibleType[] = []
 ): Promise<Record<string, unknown>[]> {
+  assertOpen();
   const results: Record<string, unknown>[] = [];
-  for await (const stmt of sqlite3.statements(db, sql)) {
+  for await (const stmt of sqlite3.statements(db!, sql)) {
     if (params.length > 0) {
       sqlite3.bind_collection(stmt, params as SQLiteCompatibleType[]);
     }
@@ -147,6 +156,15 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       case 'import':
         if (tables) {
           await importAllData(tables);
+        }
+        response.result = true;
+        break;
+      case 'close':
+        // Close the DB and release all OPFS file handles. Called proactively
+        // before Android freezes/kills the process so locks are not held on relaunch.
+        if (db !== undefined) {
+          await sqlite3.close(db);
+          db = undefined;
         }
         response.result = true;
         break;
