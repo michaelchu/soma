@@ -27,8 +27,8 @@ export interface WorkerResponse {
 }
 
 // After Android kills the PWA process, the OS can hold OPFS createSyncAccessHandle()
-// locks for several seconds before releasing them. Use 12 retries with capped exponential
-// backoff (~10s total) to outlast that window on relaunch.
+// locks for several seconds before releasing them. Retry with linear backoff capped at
+// 2s per attempt (300, 600, 900 ... 2000, 2000 ms) for a ~16s total budget.
 async function createVFS(retries = 12): Promise<AccessHandlePoolVFS> {
   for (let i = 0; i < retries; i++) {
     try {
@@ -37,7 +37,7 @@ async function createVFS(retries = 12): Promise<AccessHandlePoolVFS> {
       return vfs;
     } catch (err) {
       if (i === retries - 1) throw err;
-      // Backoff: 300, 600, 900, 1200, 1500, 1800, 2000, 2000... ≈ 10s total
+      // Linear backoff capped at 2s: 300, 600, 900, 1200, 1500, 1800, 2000, 2000...
       await new Promise((r) => setTimeout(r, Math.min(300 * (i + 1), 2000)));
     }
   }
@@ -55,10 +55,15 @@ async function init(): Promise<void> {
   await sqlite3.exec(db, 'PRAGMA foreign_keys=ON');
 }
 
+function assertOpen(): void {
+  if (db === undefined) throw new Error('Database is closed');
+}
+
 async function exec(
   sql: string,
   params: SQLiteCompatibleType[] = []
 ): Promise<{ changes: number }> {
+  assertOpen();
   for await (const stmt of sqlite3.statements(db!, sql)) {
     if (params.length > 0) {
       sqlite3.bind_collection(stmt, params as SQLiteCompatibleType[]);
@@ -72,6 +77,7 @@ async function query(
   sql: string,
   params: SQLiteCompatibleType[] = []
 ): Promise<Record<string, unknown>[]> {
+  assertOpen();
   const results: Record<string, unknown>[] = [];
   for await (const stmt of sqlite3.statements(db!, sql)) {
     if (params.length > 0) {
