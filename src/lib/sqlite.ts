@@ -44,19 +44,59 @@ function send(msg: Omit<WorkerRequest, 'id'>): Promise<unknown> {
 
 async function ensureInit(): Promise<void> {
   if (!initPromise) {
-    initPromise = send({ type: 'init' }).then(() => undefined);
+    // Reset initPromise on failure so the next call can retry rather than
+    // permanently re-throwing the same rejection for the page lifetime.
+    initPromise = send({ type: 'init' })
+      .then(() => undefined)
+      .catch((err) => {
+        initPromise = null;
+        throw err;
+      });
   }
   return initPromise;
 }
 
-export async function initDatabase(schemaSql: string): Promise<void> {
-  await ensureInit();
-  await send({ type: 'exec', sql: schemaSql });
+// Close the SQLite DB inside the worker and terminate it, releasing all OPFS
+// file handles. Called proactively on page freeze/hide so Android does not
+// hold OS-level locks after the process is suspended or killed.
+async function closeDatabase(): Promise<void> {
+  if (!worker) return;
+  try {
+    await send({ type: 'close' });
+  } finally {
+    worker.terminate();
+    worker = null;
+    initPromise = null;
+    pending.clear();
+  }
+}
 
-  // Request persistent storage to prevent eviction
+if (typeof document !== 'undefined') {
+  // freeze fires on Chrome for Android just before the renderer is frozen/killed.
+  // This is the primary hook — it gives us a guaranteed chance to release OPFS
+  // handles cleanly so they are not held by the OS when the PWA relaunches.
+  document.addEventListener('freeze', () => {
+    closeDatabase();
+  });
+
+  // visibilitychange is a fallback for graceful backgrounds where freeze may
+  // not fire (e.g. desktop Chrome, older Android versions).
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      closeDatabase();
+    }
+  });
+}
+
+export async function initDatabase(schemaSql: string): Promise<void> {
+  // Request persistent storage FIRST so OPFS data is protected from Android
+  // eviction before we write anything.
   if (navigator.storage?.persist) {
     await navigator.storage.persist();
   }
+
+  await ensureInit();
+  await send({ type: 'exec', sql: schemaSql });
 }
 
 export async function runMigrations(migrations: [number, string][]): Promise<void> {
