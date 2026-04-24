@@ -28,13 +28,13 @@ async function closeDatabase(): Promise<void> {
         setTimeout(() => reject(new Error('close timed out')), 500)
       ),
     ]);
-  } catch {
-    // Ignore — we always terminate in finally regardless.
+  } catch (_err) {
+    // Ignore - we always terminate in finally regardless.
   } finally {
     worker.terminate();
     worker = null;
     initPromise = null;
-    rejectPending('Database closed — worker terminated');
+    rejectPending('Database closed - worker terminated');
   }
 }
 
@@ -54,7 +54,7 @@ const onVisibilityChange = () => {
 
 if (typeof document !== 'undefined') {
   // freeze fires on Chrome for Android just before the renderer is frozen/killed.
-  // This is the primary hook — it gives us a guaranteed chance to release OPFS
+  // This is the primary hook - it gives us a guaranteed chance to release OPFS
   // handles cleanly so they are not held by the OS when the PWA relaunches.
   document.addEventListener('freeze', onFreeze);
 
