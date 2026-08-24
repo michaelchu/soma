@@ -1,4 +1,12 @@
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useRef,
+} from 'react';
 import { getReadings as getBPReadingSummarys } from '@/lib/db/bloodPressure';
 import { getSleepEntries, type SleepEntry } from '@/lib/db/sleep';
 import { getReports as getBloodTestReports } from '@/lib/db/bloodTests';
@@ -53,8 +61,11 @@ export function MainPageProvider({ children }: { children: React.ReactNode }) {
   const [allSleepEntries, setAllSleepEntries] = useState<SleepEntry[]>([]);
   const [allActivities, setAllActivities] = useState<Activity[]>([]);
   const [bloodTestReports, setBloodTestReports] = useState<BloodTestReport[]>([]);
+  const requestIdRef = useRef(0);
+  const mountedRef = useRef(true);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     setError(null);
 
@@ -65,6 +76,8 @@ export function MainPageProvider({ children }: { children: React.ReactNode }) {
         getBloodTestReports(),
         getActivities(),
       ]);
+
+      if (!mountedRef.current || requestId !== requestIdRef.current) return;
 
       // Collect and surface any fetch errors
       const fetchErrors: string[] = [];
@@ -111,16 +124,24 @@ export function MainPageProvider({ children }: { children: React.ReactNode }) {
       setAllActivities((activityResult.data as Activity[]) || []);
       setBloodTestReports((bloodTestResult.data as BloodTestReport[]) || []);
     } catch (err) {
+      if (!mountedRef.current || requestId !== requestIdRef.current) return;
       setError('Failed to load main page data');
       console.error('Dashboard fetch error:', err);
     } finally {
-      setLoading(false);
+      if (mountedRef.current && requestId === requestIdRef.current) {
+        setLoading(false);
+      }
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    mountedRef.current = true;
+    void fetchData();
+    return () => {
+      mountedRef.current = false;
+      requestIdRef.current += 1;
+    };
+  }, [fetchData]);
 
   // Use all data - no filtering needed since chart handles its own date range
   const bpReadings = allBpReadings;

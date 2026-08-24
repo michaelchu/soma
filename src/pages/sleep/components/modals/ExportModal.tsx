@@ -147,9 +147,7 @@ function generateMarkdown(entries: SleepEntry[]) {
     md += '## Heart Health Insights\n\n';
 
     // Weekly averages if enough data
-    const sortedByDate = [...entriesWithHr].sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-    );
+    const sortedByDate = [...entriesWithHr].sort((a, b) => a.date.localeCompare(b.date));
 
     const firstHalf = sortedByDate.slice(0, Math.floor(sortedByDate.length / 2));
     const secondHalf = sortedByDate.slice(Math.floor(sortedByDate.length / 2));

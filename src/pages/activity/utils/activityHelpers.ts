@@ -1,5 +1,5 @@
 import type { Activity, ActivityType, ActivityTimeOfDay } from '@/types/activity';
-import { formatDurationLong, toLocalDateString } from '@/lib/dateUtils';
+import { formatDurationLong, parseDateOnly, toLocalDateString } from '@/lib/dateUtils';
 
 // Re-export formatDuration for backwards compatibility (activity uses "45 min" format)
 export const formatDuration = formatDurationLong;
@@ -230,9 +230,7 @@ export function calculateTrainingLoad(
   allActivities: Activity[]
 ): TrainingLoadResult {
   // Sort activities by date ascending
-  const sortedActivities = [...allActivities].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-  );
+  const sortedActivities = [...allActivities].sort((a, b) => a.date.localeCompare(b.date));
 
   if (sortedActivities.length === 0) {
     return {
@@ -325,7 +323,7 @@ export function calculateConsistencyMultiplier(
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
   const workoutsInPastWeek = activities.filter((a) => {
-    const activityDate = new Date(a.date);
+    const activityDate = parseDateOnly(a.date);
     return activityDate >= sevenDaysAgo && activityDate < referenceDate;
   }).length;
 
@@ -343,7 +341,7 @@ export function calculateConsistencyMultiplier(
  */
 export function calculateActivityScore(activity: Activity, allActivities: Activity[]): number {
   const baseScore = activity.durationMinutes * activity.intensity;
-  const referenceDate = new Date(activity.date);
+  const referenceDate = parseDateOnly(activity.date);
   const multiplier = calculateConsistencyMultiplier(allActivities, referenceDate);
   return Math.round(baseScore * multiplier);
 }
@@ -375,7 +373,7 @@ export function calculateDailyActivityScore(
   const baseScore = activities.reduce((sum, a) => sum + a.durationMinutes * a.intensity, 0);
 
   // Use the date from the first activity for consistency calculation
-  const referenceDate = new Date(activities[0].date);
+  const referenceDate = parseDateOnly(activities[0].date);
   const multiplier = calculateConsistencyMultiplier(allActivities, referenceDate);
 
   return Math.round(baseScore * multiplier);
@@ -432,7 +430,7 @@ export function groupActivitiesByDay(
   }
 
   // Sort by date ascending
-  result.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  result.sort((a, b) => a.date.localeCompare(b.date));
 
   return result;
 }
@@ -452,7 +450,7 @@ export function filterActivities(activities: Activity[], range: string): Activit
   const cutoff = new Date(now);
   cutoff.setDate(cutoff.getDate() - daysBack);
 
-  return activities.filter((a) => new Date(a.date) >= cutoff);
+  return activities.filter((a) => parseDateOnly(a.date) >= cutoff);
 }
 
 /**

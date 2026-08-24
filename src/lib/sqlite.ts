@@ -1,9 +1,11 @@
 import type { WorkerRequest, WorkerResponse } from './sqlite-worker';
+import { SCHEMA_VERSION } from './sqlite-schema';
 
 let worker: Worker | null = null;
 let messageId = 0;
 const pending = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void }>();
 let initPromise: Promise<void> | null = null;
+let databaseReady: Promise<void> | null = null;
 
 // Reject all in-flight send() promises so callers don't hang indefinitely
 // when the worker is terminated mid-flight (e.g. during freeze/visibilitychange).
@@ -24,16 +26,15 @@ async function closeDatabase(): Promise<void> {
   try {
     await Promise.race([
       send({ type: 'close' }),
-      new Promise<void>((_, reject) =>
-        setTimeout(() => reject(new Error('close timed out')), 500)
-      ),
+      new Promise<void>((_, reject) => setTimeout(() => reject(new Error('close timed out')), 500)),
     ]);
-  } catch (_err) {
+  } catch {
     // Ignore - we always terminate in finally regardless.
   } finally {
     worker.terminate();
     worker = null;
     initPromise = null;
+    databaseReady = null;
     rejectPending('Database closed - worker terminated');
   }
 }
@@ -72,6 +73,7 @@ if (import.meta.hot) {
     worker?.terminate();
     worker = null;
     initPromise = null;
+    databaseReady = null;
     pending.clear();
   });
 }
@@ -117,51 +119,152 @@ async function ensureInit(): Promise<void> {
   return initPromise;
 }
 
-export async function initDatabase(schemaSql: string): Promise<void> {
-  // Request persistent storage FIRST so OPFS data is protected from Android
-  // eviction before we write anything.
-  if (navigator.storage?.persist) {
-    await navigator.storage.persist();
-  }
-
-  await ensureInit();
-  await send({ type: 'exec', sql: schemaSql });
-}
-
-export async function runMigrations(migrations: [number, string][]): Promise<void> {
-  await ensureInit();
+async function runMigrationsInternal(migrations: [number, string][]): Promise<void> {
   const rows = (await send({
     type: 'query',
     sql: 'SELECT MAX(version) as v FROM schema_version',
   })) as { v: number | null }[];
-  const currentVersion = rows[0]?.v ?? 0;
+  const currentVersion = rows[0]?.v ?? null;
 
+  // A new database is created from the current schema SQL, so it does not need
+  // to replay historical ALTER statements. Record the current version instead.
+  if (currentVersion === null) {
+    await send({
+      type: 'exec',
+      sql: 'INSERT OR IGNORE INTO schema_version (version) VALUES (?)',
+      params: [SCHEMA_VERSION],
+    });
+    await repairBloodPressureSchema();
+    return;
+  }
+
+  let appliedVersion = currentVersion;
   for (const [targetVersion, sql] of migrations) {
-    if (targetVersion > currentVersion) {
-      await send({ type: 'exec', sql });
+    if (targetVersion > appliedVersion) {
+      await send({
+        type: 'transaction',
+        statements: [{ sql }],
+      });
+      appliedVersion = targetVersion;
     }
+  }
+  await repairBloodPressureSchema();
+}
+
+// Version 2 was previously recorded before its ALTER statements ran. Repair any
+// database left in that state so an interrupted upgrade is self-healing.
+async function repairBloodPressureSchema(): Promise<void> {
+  const columns = (await send({
+    type: 'query',
+    sql: 'PRAGMA table_info(blood_pressure_readings)',
+  })) as { name: string }[];
+  const existing = new Set(columns.map((column) => column.name));
+  const additions: { sql: string }[] = [];
+  const requiredColumns = [
+    ['irregular_heartbeat', 'INTEGER DEFAULT 0'],
+    ['body_position', 'TEXT'],
+    ['pulse_pressure', 'INTEGER'],
+    ['mean_arterial_pressure', 'REAL'],
+    ['category', 'TEXT'],
+  ];
+  for (const [name, definition] of requiredColumns) {
+    if (!existing.has(name)) {
+      additions.push({
+        sql: `ALTER TABLE blood_pressure_readings ADD COLUMN ${name} ${definition}`,
+      });
+    }
+  }
+  if (additions.length > 0) {
+    additions.push({
+      sql: 'CREATE INDEX IF NOT EXISTS idx_bp_readings_category ON blood_pressure_readings(category)',
+    });
+    additions.push({
+      sql: 'INSERT OR REPLACE INTO schema_version (version) VALUES (2)',
+    });
+    await send({ type: 'transaction', statements: additions });
+  }
+}
+
+export async function runMigrations(migrations: [number, string][]): Promise<void> {
+  await ensureInit();
+  await runMigrationsInternal(migrations);
+}
+
+export async function initDatabase(
+  schemaSql: string,
+  migrations: [number, string][] = []
+): Promise<void> {
+  if (!databaseReady) {
+    databaseReady = (async () => {
+      // Request persistent storage FIRST so OPFS data is protected from Android
+      // eviction before we write anything.
+      if (navigator.storage?.persist) {
+        await navigator.storage.persist();
+      }
+
+      await ensureInit();
+      await send({ type: 'exec', sql: schemaSql });
+      if (migrations.length > 0) {
+        await runMigrationsInternal(migrations);
+      }
+    })().catch((err) => {
+      databaseReady = null;
+      throw err;
+    });
+  }
+  await databaseReady;
+}
+
+async function ensureReady(): Promise<void> {
+  if (databaseReady) {
+    await databaseReady;
+  } else {
+    await ensureInit();
   }
 }
 
 export async function execSQL(sql: string, params: unknown[] = []): Promise<{ changes: number }> {
-  await ensureInit();
+  await ensureReady();
   return (await send({ type: 'exec', sql, params })) as { changes: number };
+}
+
+export async function transactionSQL(
+  statements: { sql: string; params?: unknown[] }[]
+): Promise<void> {
+  await ensureReady();
+  await send({ type: 'transaction', statements });
 }
 
 export async function querySQL<T = Record<string, unknown>>(
   sql: string,
   params: unknown[] = []
 ): Promise<T[]> {
-  await ensureInit();
+  await ensureReady();
   return (await send({ type: 'query', sql, params })) as T[];
 }
 
-export async function exportData(): Promise<Record<string, Record<string, unknown>[]>> {
-  await ensureInit();
-  return (await send({ type: 'export' })) as Record<string, Record<string, unknown>[]>;
+export interface DatabaseBackup {
+  schemaVersion: number;
+  tables: Record<string, Record<string, unknown>[]>;
 }
 
-export async function importData(tables: Record<string, Record<string, unknown>[]>): Promise<void> {
-  await ensureInit();
-  await send({ type: 'import', tables });
+export async function exportData(): Promise<DatabaseBackup> {
+  await ensureReady();
+  const tables = (await send({ type: 'export' })) as Record<string, Record<string, unknown>[]>;
+  return { schemaVersion: SCHEMA_VERSION, tables };
+}
+
+export async function importData(backup: DatabaseBackup): Promise<void> {
+  await ensureReady();
+  if (!backup || typeof backup !== 'object' || !backup.tables) {
+    throw new Error('Invalid backup format');
+  }
+  if (
+    typeof backup.schemaVersion !== 'number' ||
+    backup.schemaVersion < 1 ||
+    backup.schemaVersion > SCHEMA_VERSION
+  ) {
+    throw new Error(`Unsupported backup schema version: ${String(backup.schemaVersion)}`);
+  }
+  await send({ type: 'import', tables: backup.tables });
 }

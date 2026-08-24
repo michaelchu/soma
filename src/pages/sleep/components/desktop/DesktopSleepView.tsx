@@ -351,7 +351,7 @@ export function DesktopSleepView({ entries, allEntries, dateRange }: DesktopSlee
 
   // Sort entries by date ascending (oldest first) for the chart
   const sortedEntries = useMemo(() => {
-    return [...entries].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    return [...entries].sort((a, b) => a.date.localeCompare(b.date));
   }, [entries]);
 
   // Calculate baseline for scoring

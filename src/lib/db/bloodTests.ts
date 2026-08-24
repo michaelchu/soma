@@ -1,4 +1,4 @@
-import { querySQL, execSQL } from '../sqlite';
+import { querySQL, execSQL, transactionSQL } from '../sqlite';
 import { validateBloodTestReport, sanitizeString } from '../validation';
 import { logError } from '../logger';
 
@@ -144,21 +144,29 @@ export async function addReport(report: ReportInput): Promise<{
     const reportId = crypto.randomUUID();
     const now = new Date().toISOString();
 
-    await execSQL(
-      `INSERT INTO blood_test_reports (id, report_date, order_number, ordered_by, notes, created_at, updated_at)
+    const statements: { sql: string; params: unknown[] }[] = [
+      {
+        sql: `INSERT INTO blood_test_reports (id, report_date, order_number, ordered_by, notes, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [reportId, report.date, sanitizedOrderNumber, sanitizedOrderedBy, sanitizedNotes, now, now]
-    );
+        params: [
+          reportId,
+          report.date,
+          sanitizedOrderNumber,
+          sanitizedOrderedBy,
+          sanitizedNotes,
+          now,
+          now,
+        ],
+      },
+    ];
 
-    // Insert metrics
     if (report.metrics && Object.keys(report.metrics).length > 0) {
       for (const [key, data] of Object.entries(report.metrics)) {
-        const metricId = crypto.randomUUID();
-        await execSQL(
-          `INSERT INTO blood_test_metrics (id, report_id, metric_key, value, unit, reference_min, reference_max, reference_raw, created_at)
+        statements.push({
+          sql: `INSERT INTO blood_test_metrics (id, report_id, metric_key, value, unit, reference_min, reference_max, reference_raw, created_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
-            metricId,
+          params: [
+            crypto.randomUUID(),
             reportId,
             key,
             data.value,
@@ -167,10 +175,11 @@ export async function addReport(report: ReportInput): Promise<{
             data.reference?.max ?? null,
             data.reference?.raw || null,
             now,
-          ]
-        );
+          ],
+        });
       }
     }
+    await transactionSQL(statements);
 
     return {
       data: {
@@ -326,20 +335,28 @@ export async function bulkInsertReports(
       const reportId = crypto.randomUUID();
       const now = new Date().toISOString();
 
-      await execSQL(
-        `INSERT INTO blood_test_reports (id, report_date, order_number, ordered_by, created_at, updated_at)
+      const statements: { sql: string; params: unknown[] }[] = [
+        {
+          sql: `INSERT INTO blood_test_reports (id, report_date, order_number, ordered_by, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?)`,
-        [reportId, report.date, report.orderNumber || null, report.orderedBy || null, now, now]
-      );
+          params: [
+            reportId,
+            report.date,
+            report.orderNumber || null,
+            report.orderedBy || null,
+            now,
+            now,
+          ],
+        },
+      ];
 
       if (report.metrics && Object.keys(report.metrics).length > 0) {
         for (const [key, data] of Object.entries(report.metrics)) {
-          const metricId = crypto.randomUUID();
-          await execSQL(
-            `INSERT INTO blood_test_metrics (id, report_id, metric_key, value, unit, reference_min, reference_max, reference_raw, created_at)
+          statements.push({
+            sql: `INSERT INTO blood_test_metrics (id, report_id, metric_key, value, unit, reference_min, reference_max, reference_raw, created_at)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-              metricId,
+            params: [
+              crypto.randomUUID(),
               reportId,
               key,
               data.value,
@@ -348,10 +365,11 @@ export async function bulkInsertReports(
               data.reference?.max ?? null,
               data.reference?.raw || null,
               now,
-            ]
-          );
+            ],
+          });
         }
       }
+      await transactionSQL(statements);
 
       results.push({
         id: reportId,

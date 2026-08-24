@@ -1,6 +1,6 @@
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { DateRangeTabs } from '@/components/shared/DateRangeTabs';
-import { getDateRange } from '@/lib/dateUtils';
+import { getDateRange, parseDateOnly } from '@/lib/dateUtils';
 import type { TimeOfDay, BPSession } from '@/types/bloodPressure';
 
 const TIME_OF_DAY = [
@@ -59,7 +59,7 @@ export function filterReadings(
   if (dateRange !== 'all') {
     const { start } = getDateRange(dateRange);
     if (start) {
-      filtered = filtered.filter((r) => new Date(r.date) >= start);
+      filtered = filtered.filter((r) => parseDateOnly(r.date) >= start);
     }
   }
 

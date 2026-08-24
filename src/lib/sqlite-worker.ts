@@ -14,9 +14,10 @@ let db: number | undefined;
 
 export interface WorkerRequest {
   id: number;
-  type: 'init' | 'exec' | 'query' | 'export' | 'import' | 'close';
+  type: 'init' | 'exec' | 'query' | 'transaction' | 'export' | 'import' | 'close';
   sql?: string;
   params?: unknown[];
+  statements?: { sql: string; params?: unknown[] }[];
   tables?: Record<string, Record<string, unknown>[]>;
 }
 
@@ -95,6 +96,29 @@ async function query(
   return results;
 }
 
+async function transaction(
+  statements: { sql: string; params?: SQLiteCompatibleType[] }[]
+): Promise<void> {
+  await exec('BEGIN IMMEDIATE');
+  try {
+    for (const statement of statements) {
+      await exec(statement.sql, statement.params ?? []);
+    }
+    await exec('COMMIT');
+  } catch (err) {
+    try {
+      await exec('ROLLBACK');
+    } catch {
+      // Preserve the original error if rollback itself fails.
+    }
+    throw err;
+  }
+}
+
+function quoteIdentifier(identifier: string): string {
+  return `"${identifier.replace(/"/g, '""')}"`;
+}
+
 async function exportAllData(): Promise<Record<string, Record<string, unknown>[]>> {
   const tables = (await query(
     "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name != 'schema_version'"
@@ -112,29 +136,71 @@ async function importAllData(tables: Record<string, Record<string, unknown>[]>):
     "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name != 'schema_version'"
   )) as { name: string }[];
 
-  await exec('PRAGMA foreign_keys=OFF');
-
+  const tableNames = new Set(existingTables.map(({ name }) => name));
+  const tableColumns = new Map<string, Set<string>>();
   for (const { name } of existingTables) {
-    await exec(`DELETE FROM "${name}"`);
+    const columns = (await query(`PRAGMA table_info(${quoteIdentifier(name)})`)) as {
+      name: string;
+    }[];
+    tableColumns.set(name, new Set(columns.map((column) => column.name)));
   }
 
+  const importStatements: { sql: string; params: SQLiteCompatibleType[] }[] = [];
   for (const [tableName, rows] of Object.entries(tables)) {
-    if (rows.length === 0) continue;
-    const columns = Object.keys(rows[0]);
-    const placeholders = columns.map(() => '?').join(', ');
-    const sql = `INSERT INTO "${tableName}" (${columns.map((c) => `"${c}"`).join(', ')}) VALUES (${placeholders})`;
+    if (!tableNames.has(tableName)) {
+      throw new Error(`Backup contains unknown table: ${tableName}`);
+    }
+    if (!Array.isArray(rows)) {
+      throw new Error(`Backup table is not an array: ${tableName}`);
+    }
+
+    const allowedColumns = tableColumns.get(tableName)!;
     for (const row of rows) {
-      await exec(
-        sql,
-        columns.map((c) => (row[c] as SQLiteCompatibleType) ?? null)
-      );
+      if (!row || typeof row !== 'object' || Array.isArray(row)) {
+        throw new Error(`Backup contains an invalid row in ${tableName}`);
+      }
+      const columns = Object.keys(row);
+      if (columns.length === 0) continue;
+      const unknownColumn = columns.find((column) => !allowedColumns.has(column));
+      if (unknownColumn) {
+        throw new Error(`Backup contains unknown column ${tableName}.${unknownColumn}`);
+      }
+      importStatements.push({
+        sql: `INSERT INTO ${quoteIdentifier(tableName)} (${columns
+          .map(quoteIdentifier)
+          .join(', ')}) VALUES (${columns.map(() => '?').join(', ')})`,
+        params: columns.map((column) => (row[column] as SQLiteCompatibleType) ?? null),
+      });
     }
   }
 
-  await exec('PRAGMA foreign_keys=ON');
+  // Temporarily disable FK checks so backups can be restored in arbitrary table order.
+  // The transaction guarantees the existing database is preserved if validation or any
+  // insert fails, and the finally block always restores the connection setting.
+  await exec('PRAGMA foreign_keys=OFF');
+  try {
+    await exec('BEGIN IMMEDIATE');
+    // Delete children first to support the current foreign-key relationships.
+    for (const { name } of [...existingTables].reverse()) {
+      await exec(`DELETE FROM ${quoteIdentifier(name)}`);
+    }
+    for (const statement of importStatements) {
+      await exec(statement.sql, statement.params);
+    }
+    await exec('COMMIT');
+  } catch (err) {
+    try {
+      await exec('ROLLBACK');
+    } catch {
+      // Preserve the original error if rollback itself fails.
+    }
+    throw err;
+  } finally {
+    await exec('PRAGMA foreign_keys=ON');
+  }
 }
 
-self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
+async function handleMessage(e: MessageEvent<WorkerRequest>): Promise<void> {
   const { id, type, sql, params, tables } = e.data;
   const response: WorkerResponse = { id };
 
@@ -149,6 +215,15 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
         break;
       case 'query':
         response.result = await query(sql!, params as SQLiteCompatibleType[]);
+        break;
+      case 'transaction':
+        await transaction(
+          (e.data.statements ?? []).map((statement) => ({
+            sql: statement.sql,
+            params: statement.params as SQLiteCompatibleType[] | undefined,
+          }))
+        );
+        response.result = true;
         break;
       case 'export':
         response.result = await exportAllData();
@@ -174,4 +249,11 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   }
 
   self.postMessage(response);
+}
+
+// wa-sqlite uses one database handle. Queue requests so async statement stepping,
+// transactions, and close cannot interleave on that handle.
+let requestQueue = Promise.resolve();
+self.onmessage = (e: MessageEvent<WorkerRequest>) => {
+  requestQueue = requestQueue.catch(() => undefined).then(() => handleMessage(e));
 };

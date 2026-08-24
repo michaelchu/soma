@@ -25,6 +25,7 @@ import {
   isOtherTimezone,
   formatTimeString,
   formatDuration,
+  parseDateOnly,
 } from './dateUtils';
 
 describe('dateUtils', () => {
@@ -100,6 +101,13 @@ describe('dateUtils', () => {
   });
 
   describe('day boundaries', () => {
+    it('parses date-only values in the local timezone', () => {
+      const result = parseDateOnly('2024-03-15');
+      expect(result.getFullYear()).toBe(2024);
+      expect(result.getMonth()).toBe(2);
+      expect(result.getDate()).toBe(15);
+    });
+
     it('startOfDay returns midnight', () => {
       const result = startOfDay('2024-03-15T14:30:00');
       expect(result.getHours()).toBe(0);

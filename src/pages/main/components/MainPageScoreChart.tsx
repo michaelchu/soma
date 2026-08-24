@@ -112,9 +112,7 @@ export function MainPageScoreChart({ children }: MainPageScoreChartProps) {
   // Get the most recent blood test report
   const latestBloodTestReport = useMemo(() => {
     if (!bloodTestReports || bloodTestReports.length === 0) return null;
-    const sorted = [...bloodTestReports].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
+    const sorted = [...bloodTestReports].sort((a, b) => b.date.localeCompare(a.date));
     return sorted[0];
   }, [bloodTestReports]);
 

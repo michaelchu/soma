@@ -1,5 +1,5 @@
 import { useRef, useMemo, useCallback, useLayoutEffect, useEffect } from 'react';
-import { toLocalDateString } from '@/lib/dateUtils';
+import { parseDateOnly, toLocalDateString } from '@/lib/dateUtils';
 import { groupActivitiesByDay, type DayActivities } from '../utils/activityHelpers';
 import type { Activity } from '@/types/activity';
 
@@ -138,7 +138,7 @@ export function ActivityChart({
     if (days === null) {
       // For 'all', use the earliest activity date or today
       if (dailyData.length > 0) {
-        startDate = new Date(dailyData[0].date);
+        startDate = parseDateOnly(dailyData[0].date);
       } else {
         startDate = today;
       }
@@ -252,7 +252,7 @@ export function ActivityChart({
       lastActivityIndex * BAR_TOTAL_WIDTH - containerWidth / 2 + paddingLeft + BAR_WIDTH / 2;
 
     container.scrollLeft = Math.max(0, targetScroll);
-  }, [chartItems.length]);
+  }, [chartItems]);
 
   // Add scroll listener
   useEffect(() => {

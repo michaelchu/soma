@@ -115,8 +115,6 @@ CREATE TABLE IF NOT EXISTS blood_test_metrics (
 
 CREATE INDEX IF NOT EXISTS idx_blood_test_metrics_report ON blood_test_metrics(report_id);
 
--- Set schema version
-INSERT OR IGNORE INTO schema_version (version) VALUES (${SCHEMA_VERSION});
 `;
 
 /**

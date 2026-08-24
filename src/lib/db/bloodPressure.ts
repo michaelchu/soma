@@ -1,4 +1,4 @@
-import { querySQL, execSQL } from '../sqlite';
+import { querySQL, execSQL, transactionSQL } from '../sqlite';
 import { validateBPSession, sanitizeString } from '../validation';
 import { logError } from '../logger';
 import type { Arm, BPReading, BPSession, BPSessionInput, BPTimeOfDay } from '@/types/bloodPressure';
@@ -137,15 +137,13 @@ export async function addSession(
     const sanitizedNotes = session.notes ? sanitizeString(session.notes) : null;
     const now = new Date().toISOString();
 
-    for (let i = 0; i < session.readings.length; i++) {
-      const reading = session.readings[i];
-      const id = crypto.randomUUID();
-      await execSQL(
-        `INSERT INTO blood_pressure_readings
+    await transactionSQL(
+      session.readings.map((reading, i) => ({
+        sql: `INSERT INTO blood_pressure_readings
           (id, session_id, recorded_date, time_of_day, systolic, diastolic, pulse, notes, cuff_location, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          id,
+        params: [
+          crypto.randomUUID(),
           sessionId,
           session.date,
           session.timeOfDay,
@@ -156,9 +154,9 @@ export async function addSession(
           armToCuff(reading.arm || null),
           now,
           now,
-        ]
-      );
-    }
+        ],
+      }))
+    );
 
     const rows = await querySQL<BPReadingRow>(
       'SELECT * FROM blood_pressure_readings WHERE session_id = ?',
@@ -216,19 +214,14 @@ export async function updateSession(
     const sanitizedNotes = session.notes ? sanitizeString(session.notes) : null;
     const now = new Date().toISOString();
 
-    // Delete existing readings
-    await execSQL('DELETE FROM blood_pressure_readings WHERE session_id = ?', [sessionId]);
-
-    // Insert new readings
-    for (let i = 0; i < session.readings.length; i++) {
-      const reading = session.readings[i];
-      const id = crypto.randomUUID();
-      await execSQL(
-        `INSERT INTO blood_pressure_readings
+    await transactionSQL([
+      { sql: 'DELETE FROM blood_pressure_readings WHERE session_id = ?', params: [sessionId] },
+      ...session.readings.map((reading, i) => ({
+        sql: `INSERT INTO blood_pressure_readings
           (id, session_id, recorded_date, time_of_day, systolic, diastolic, pulse, notes, cuff_location, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          id,
+        params: [
+          crypto.randomUUID(),
           sessionId,
           session.date,
           session.timeOfDay,
@@ -239,9 +232,9 @@ export async function updateSession(
           armToCuff(reading.arm || null),
           now,
           now,
-        ]
-      );
-    }
+        ],
+      })),
+    ]);
 
     const rows = await querySQL<BPReadingRow>(
       'SELECT * FROM blood_pressure_readings WHERE session_id = ?',

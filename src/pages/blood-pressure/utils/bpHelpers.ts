@@ -238,9 +238,7 @@ interface Reading {
 export function getTrend(readings: Reading[]) {
   if (readings.length < 2) return null;
 
-  const sorted = [...readings].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-  );
+  const sorted = [...readings].sort((a, b) => a.date.localeCompare(b.date));
   const latest = sorted[sorted.length - 1];
   const previous = sorted[sorted.length - 2];
 

@@ -1,3 +1,5 @@
+import { parseDate } from './dateUtils';
+
 /**
  * Export utilities for generating markdown and CSV content
  * Consolidates common export patterns used across different data types
@@ -46,7 +48,7 @@ export function getDateRangeString<T>(
   if (items.length === 0) return 'No data';
 
   const dates = items
-    .map((item) => new Date(item[dateField] as string).getTime())
+    .map((item) => parseDate(item[dateField] as string).getTime())
     .filter((t) => !isNaN(t));
 
   if (dates.length === 0) return 'No valid dates';

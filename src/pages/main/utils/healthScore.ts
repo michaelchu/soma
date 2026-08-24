@@ -154,9 +154,7 @@ function calculateBPTrendModifier(readings: BPReadingSummary[]): number {
   if (readings.length < 4) return 0; // Need enough data for trend
 
   // Sort by date
-  const sorted = [...readings].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-  );
+  const sorted = [...readings].sort((a, b) => a.date.localeCompare(b.date));
 
   // Split into halves
   const midpoint = Math.floor(sorted.length / 2);

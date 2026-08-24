@@ -5,7 +5,7 @@
  * Stores backup in appDataFolder (hidden, app-specific, non-sensitive scope).
  */
 
-import { exportData, importData } from './sqlite';
+import { exportData, importData, type DatabaseBackup } from './sqlite';
 
 const SCOPES = 'https://www.googleapis.com/auth/drive.appdata';
 const BACKUP_FILENAME = 'soma-backup.json';
@@ -16,9 +16,11 @@ const UPLOAD_API = 'https://www.googleapis.com/upload/drive/v3';
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
 let accessToken: string | null = null;
+let accessTokenExpiresAt = 0;
 let tokenClient: google.accounts.oauth2.TokenClient | null = null;
 let tokenResolve: ((token: string) => void) | null = null;
 let tokenReject: ((err: Error) => void) | null = null;
+let tokenPromise: Promise<string> | null = null;
 
 interface BackupInfo {
   id: string;
@@ -59,6 +61,7 @@ async function getTokenClient(): Promise<google.accounts.oauth2.TokenClient> {
         tokenReject?.(new Error(response.error));
       } else {
         accessToken = response.access_token;
+        accessTokenExpiresAt = Date.now() + Number(response.expires_in ?? 3600) * 1000;
         tokenResolve?.(accessToken);
       }
       tokenResolve = null;
@@ -72,30 +75,54 @@ async function getTokenClient(): Promise<google.accounts.oauth2.TokenClient> {
  * Request an OAuth access token (shows Google consent popup)
  */
 export async function requestToken(): Promise<string> {
+  if (tokenPromise) return tokenPromise;
   const client = await getTokenClient();
 
-  return new Promise((resolve, reject) => {
+  const pending = new Promise<string>((resolve, reject) => {
     tokenResolve = resolve;
     tokenReject = reject;
     client.requestAccessToken();
+  }).finally(() => {
+    tokenPromise = null;
   });
+  tokenPromise = pending;
+  return pending;
 }
 
 /**
  * Get a valid access token, requesting one if needed
  */
 async function getToken(): Promise<string> {
-  if (accessToken) return accessToken;
+  const cachedToken = accessToken;
+  if (cachedToken && Date.now() < accessTokenExpiresAt - 60_000) return cachedToken;
+  accessToken = null;
+  accessTokenExpiresAt = 0;
   return requestToken();
+}
+
+async function fetchWithToken(
+  url: string,
+  init: RequestInit = {},
+  retry = true
+): Promise<Response> {
+  const token = await getToken();
+  const headers = new Headers(init.headers);
+  headers.set('Authorization', `Bearer ${token}`);
+  const response = await fetch(url, { ...init, headers });
+  if (response.status === 401 && retry) {
+    accessToken = null;
+    accessTokenExpiresAt = 0;
+    return fetchWithToken(url, init, false);
+  }
+  return response;
 }
 
 /**
  * Check if there's an existing backup file in appDataFolder
  */
-async function findBackupFile(token: string): Promise<BackupInfo | null> {
-  const response = await fetch(
-    `${DRIVE_API}/files?spaces=appDataFolder&q=name='${BACKUP_FILENAME}'&fields=files(id,modifiedTime,size)`,
-    { headers: { Authorization: `Bearer ${token}` } }
+async function findBackupFile(): Promise<BackupInfo | null> {
+  const response = await fetchWithToken(
+    `${DRIVE_API}/files?spaces=appDataFolder&q=name='${BACKUP_FILENAME}'&fields=files(id,modifiedTime,size)`
   );
 
   if (!response.ok) {
@@ -111,23 +138,19 @@ async function findBackupFile(token: string): Promise<BackupInfo | null> {
  * Overwrites existing backup file (Drive keeps revisions automatically)
  */
 export async function backup(): Promise<{ modifiedTime: string }> {
-  const token = await getToken();
   const dbData = await exportData();
   const content = JSON.stringify(dbData);
   const blob = new Blob([content], { type: 'application/json' });
 
-  const existing = await findBackupFile(token);
+  const existing = await findBackupFile();
 
   if (existing) {
     // Update existing file
-    const response = await fetch(
+    const response = await fetchWithToken(
       `${UPLOAD_API}/files/${existing.id}?uploadType=media&fields=modifiedTime`,
       {
         method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: blob,
       }
     );
@@ -149,11 +172,13 @@ export async function backup(): Promise<{ modifiedTime: string }> {
     form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
     form.append('file', blob);
 
-    const response = await fetch(`${UPLOAD_API}/files?uploadType=multipart&fields=modifiedTime`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: form,
-    });
+    const response = await fetchWithToken(
+      `${UPLOAD_API}/files?uploadType=multipart&fields=modifiedTime`,
+      {
+        method: 'POST',
+        body: form,
+      }
+    );
 
     if (!response.ok) {
       throw new Error(`Upload failed: ${response.status}`);
@@ -168,23 +193,26 @@ export async function backup(): Promise<{ modifiedTime: string }> {
  * Restore the database from a Google Drive backup
  */
 export async function restore(): Promise<void> {
-  const token = await getToken();
-  const existing = await findBackupFile(token);
+  const existing = await findBackupFile();
 
   if (!existing) {
     throw new Error('No backup found');
   }
 
-  const response = await fetch(`${DRIVE_API}/files/${existing.id}?alt=media`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const response = await fetchWithToken(`${DRIVE_API}/files/${existing.id}?alt=media`);
 
   if (!response.ok) {
     throw new Error(`Download failed: ${response.status}`);
   }
 
-  const data = await response.json();
-  await importData(data);
+  const data = (await response.json()) as unknown;
+  // Backups created before the format envelope was added were plain table maps.
+  // Treat those as version 1 so existing user backups remain restorable.
+  const backup: DatabaseBackup =
+    data && typeof data === 'object' && 'tables' in data
+      ? (data as DatabaseBackup)
+      : { schemaVersion: 1, tables: data as DatabaseBackup['tables'] };
+  await importData(backup);
 }
 
 /**
@@ -193,7 +221,7 @@ export async function restore(): Promise<void> {
 export async function getBackupInfo(): Promise<BackupInfo | null> {
   if (!accessToken) return null;
   try {
-    return await findBackupFile(accessToken);
+    return await findBackupFile();
   } catch {
     return null;
   }
@@ -213,5 +241,6 @@ export function disconnect(): void {
   if (accessToken) {
     google.accounts.oauth2.revoke(accessToken, () => {});
     accessToken = null;
+    accessTokenExpiresAt = 0;
   }
 }

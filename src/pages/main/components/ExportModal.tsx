@@ -132,12 +132,10 @@ function generateSleepMarkdown(entries: SleepEntry[]): string {
     return '## Sleep Summary\n\nNo sleep entries available for this period.\n\n';
   }
 
-  const sortedEntries = [...entries].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-  );
+  const sortedEntries = [...entries].sort((a, b) => a.date.localeCompare(b.date));
 
-  const minDate = new Date(sortedEntries[0].date);
-  const maxDate = new Date(sortedEntries[sortedEntries.length - 1].date);
+  const minDate = new Date(`${sortedEntries[0].date}T00:00:00`);
+  const maxDate = new Date(`${sortedEntries[sortedEntries.length - 1].date}T00:00:00`);
   const stats = calculateSleepStats(entries);
   const baseline = calculatePersonalBaseline(entries);
 

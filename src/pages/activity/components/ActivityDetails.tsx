@@ -27,9 +27,7 @@ function groupByDate(activities: Activity[]): Map<string, Activity[]> {
   const grouped = new Map<string, Activity[]>();
 
   // Sort by date descending (most recent first)
-  const sorted = [...activities].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
+  const sorted = [...activities].sort((a, b) => b.date.localeCompare(a.date));
 
   for (const activity of sorted) {
     const existing = grouped.get(activity.date) || [];

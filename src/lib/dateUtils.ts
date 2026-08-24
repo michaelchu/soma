@@ -129,14 +129,21 @@ export const fromDatetimeLocalFormat = inputToISO;
  * Parse a date string, handling date-only strings (YYYY-MM-DD) as local dates
  * to avoid timezone issues where UTC midnight becomes the previous day in local time
  */
-function parseDate(date: DateInput): Date {
+export function parseDateOnly(date: string): Date {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    throw new Error(`Invalid date-only value: ${date}`);
+  }
+
+  const [year, month, day] = date.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+export function parseDate(date: DateInput): Date {
   if (typeof date !== 'string') return date;
 
   // Check if it's a date-only string (YYYY-MM-DD)
   if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    // Parse as local date by using date components directly
-    const [year, month, day] = date.split('-').map(Number);
-    return new Date(year, month - 1, day);
+    return parseDateOnly(date);
   }
 
   // For full ISO strings or other formats, use standard parsing
@@ -225,7 +232,7 @@ export function formatDatetimeForId(datetime: DateInput): string {
  * Get the start of a day
  */
 export function startOfDay(date: DateInput): Date {
-  const dateObj = typeof date === 'string' ? new Date(date) : new Date(date);
+  const dateObj = parseDate(date);
   dateObj.setHours(0, 0, 0, 0);
   return dateObj;
 }
@@ -234,7 +241,7 @@ export function startOfDay(date: DateInput): Date {
  * Get the end of a day
  */
 export function endOfDay(date: DateInput): Date {
-  const dateObj = typeof date === 'string' ? new Date(date) : new Date(date);
+  const dateObj = parseDate(date);
   dateObj.setHours(23, 59, 59, 999);
   return dateObj;
 }

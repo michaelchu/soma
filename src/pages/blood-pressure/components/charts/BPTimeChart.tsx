@@ -166,9 +166,7 @@ export function BPTimeChart({
   }
 
   // Sort by date ascending for chart
-  const sortedReadings = [...readings].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-  );
+  const sortedReadings = [...readings].sort((a, b) => a.date.localeCompare(b.date));
 
   // Transform data for chart
   const chartData: ChartDataPoint[] = sortedReadings.map((r) => {

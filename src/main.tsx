@@ -7,7 +7,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import DbInitError from './components/DbInitError';
 import App from './App';
 import { getStoredFont, getStoredFontSize, applyFont, applyFontSize } from './views/SettingsModal';
-import { initDatabase, runMigrations } from './lib/sqlite';
+import { initDatabase } from './lib/sqlite';
 import { SCHEMA_SQL, MIGRATIONS } from './lib/sqlite-schema';
 import './index.css';
 
@@ -18,13 +18,11 @@ applyFontSize(getStoredFontSize());
 // Initialize local SQLite database. On failure, set a global flag and dispatch
 // an event. The flag ensures DbInitError shows the overlay even if the event
 // fires before the component has mounted and registered its listener.
-initDatabase(SCHEMA_SQL)
-  .then(() => runMigrations(MIGRATIONS))
-  .catch((err) => {
-    console.error('Database initialization failed:', err);
-    (window as Window & { __dbInitFailed?: boolean }).__dbInitFailed = true;
-    window.dispatchEvent(new CustomEvent('db-init-failed', { detail: err }));
-  });
+initDatabase(SCHEMA_SQL, MIGRATIONS).catch((err) => {
+  console.error('Database initialization failed:', err);
+  (window as Window & { __dbInitFailed?: boolean }).__dbInitFailed = true;
+  window.dispatchEvent(new CustomEvent('db-init-failed', { detail: err }));
+});
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

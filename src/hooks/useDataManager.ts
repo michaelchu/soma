@@ -61,8 +61,16 @@ export function useDataManager<T extends { [key: string]: any }>({
 
     const loadData = async () => {
       const currentFetchId = ++fetchIdRef.current;
+      if (!isMountedRef.current) return;
       setLoading(true);
-      const { data: fetchedData, error: fetchError } = await fetchFnRef.current();
+      let fetchedData: T[] | null;
+      let fetchError: Error | string | null;
+      try {
+        ({ data: fetchedData, error: fetchError } = await fetchFnRef.current());
+      } catch (error) {
+        fetchedData = null;
+        fetchError = error instanceof Error ? error : String(error);
+      }
 
       // Ignore stale responses
       if (!isMountedRef.current || currentFetchId !== fetchIdRef.current) return;
@@ -89,9 +97,17 @@ export function useDataManager<T extends { [key: string]: any }>({
   }, []);
 
   const fetchData = useCallback(async () => {
+    if (!isMountedRef.current) return;
     const currentFetchId = ++fetchIdRef.current;
     setLoading(true);
-    const { data: fetchedData, error: fetchError } = await fetchFnRef.current();
+    let fetchedData: T[] | null;
+    let fetchError: Error | string | null;
+    try {
+      ({ data: fetchedData, error: fetchError } = await fetchFnRef.current());
+    } catch (error) {
+      fetchedData = null;
+      fetchError = error instanceof Error ? error : String(error);
+    }
 
     // Ignore stale responses
     if (!isMountedRef.current || currentFetchId !== fetchIdRef.current) return;

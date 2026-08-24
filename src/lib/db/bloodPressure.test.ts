@@ -6,10 +6,12 @@ vi.stubGlobal('crypto', { randomUUID: () => 'mock-session-uuid' });
 
 const mockQuery = vi.fn();
 const mockExec = vi.fn();
+const mockTransaction = vi.fn();
 
 vi.mock('../sqlite', () => ({
   querySQL: (...args: unknown[]) => mockQuery(...args),
   execSQL: (...args: unknown[]) => mockExec(...args),
+  transactionSQL: (...args: unknown[]) => mockTransaction(...args),
 }));
 
 describe('bloodPressure database layer', () => {
@@ -85,7 +87,7 @@ describe('bloodPressure database layer', () => {
           diastolic: 78,
         },
       ];
-      mockExec.mockResolvedValue({ changes: 1, lastId: 1 });
+      mockTransaction.mockResolvedValue(undefined);
       mockQuery.mockResolvedValue(insertedRows);
 
       const result = await addSession(mockSessionInput);
@@ -109,7 +111,7 @@ describe('bloodPressure database layer', () => {
     });
 
     it('sanitizes notes and maps arm to cuff_location', async () => {
-      mockExec.mockResolvedValue({ changes: 1, lastId: 1 });
+      mockTransaction.mockResolvedValue(undefined);
       mockQuery.mockResolvedValue([{ ...mockReadingRow, session_id: 'mock-session-uuid' }]);
 
       await addSession({
@@ -119,8 +121,8 @@ describe('bloodPressure database layer', () => {
         notes: '<script>xss</script>',
       });
 
-      // Check exec was called with sanitized notes and correct cuff_location
-      const firstInsertParams = mockExec.mock.calls[0][1] as unknown[];
+      // Check the transactional insert has sanitized notes and correct cuff location.
+      const firstInsertParams = mockTransaction.mock.calls[0][0][0].params as unknown[];
       expect(firstInsertParams[7]).not.toContain('<script>'); // notes param
       expect(firstInsertParams[8]).toBe('left_arm'); // cuff_location param
     });

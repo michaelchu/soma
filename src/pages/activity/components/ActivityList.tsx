@@ -35,7 +35,7 @@ export function ActivityList({
     })
     .sort((a, b) => {
       // Sort by date descending, then by time of day
-      const dateCompare = new Date(b.date).getTime() - new Date(a.date).getTime();
+      const dateCompare = b.date.localeCompare(a.date);
       if (dateCompare !== 0) return dateCompare;
       // Time order: morning < afternoon < evening < late_evening
       const timeOrder = { morning: 0, afternoon: 1, evening: 2, late_evening: 3 };
