@@ -23,24 +23,10 @@ import {
   calculateSleepScore,
   getSleepQuality,
 } from '@/pages/sleep/utils/sleepHelpers';
+import { countByKey, formatReferenceRange, groupByKey } from '@/lib/exportUtils';
 import type { SleepEntry } from '@/lib/db/sleep';
 import type { BPReadingSummary } from '@/types/bloodPressure';
-
-interface MetricData {
-  value: number;
-  unit?: string;
-  min?: number | null;
-  max?: number | null;
-  category?: string;
-}
-
-interface BloodTestReport {
-  id: string;
-  date: string;
-  orderNumber?: string;
-  orderedBy?: string;
-  metrics: Record<string, MetricData>;
-}
+import type { BloodTestReport } from '@/types/bloodTests';
 
 interface ExportModalProps {
   onClose: () => void;
@@ -71,13 +57,10 @@ function generateBPMarkdown(readings: BPReadingSummary[]): string {
   md += `**Total Readings:** ${readings.length}\n\n`;
 
   // Category distribution
-  const categoryCount: Record<string, number> = {};
-  readings.forEach((r) => {
-    const cat = getBPCategory(r.systolic, r.diastolic);
-    if (cat) {
-      categoryCount[cat] = (categoryCount[cat] || 0) + 1;
-    }
-  });
+  const categoryCount = countByKey(
+    readings.map((r) => getBPCategory(r.systolic, r.diastolic)).filter(Boolean),
+    (category) => category!
+  );
 
   md += '### Reading Distribution\n\n';
   md += '| Category | Count | Percentage |\n';
@@ -248,12 +231,8 @@ function generateBloodTestMarkdown(reports: BloodTestReport[]): string {
     md += '\n';
 
     // Group metrics by category
-    const byCategory: Record<string, Array<{ key: string } & MetricData>> = {};
-    for (const [key, metric] of Object.entries(report.metrics)) {
-      const cat = metric.category || 'Other';
-      if (!byCategory[cat]) byCategory[cat] = [];
-      byCategory[cat].push({ key, ...metric });
-    }
+    const metrics = Object.entries(report.metrics).map(([key, metric]) => ({ key, ...metric }));
+    const byCategory = groupByKey(metrics, (metric) => metric.category || 'Other');
 
     for (const [category, metrics] of Object.entries(byCategory)) {
       if (metrics.length === 0) continue;
@@ -261,14 +240,7 @@ function generateBloodTestMarkdown(reports: BloodTestReport[]): string {
       md += '| Metric | Value | Reference | Unit |\n';
       md += '|--------|-------|-----------|------|\n';
       for (const m of metrics) {
-        const refStr =
-          m.min != null && m.max != null
-            ? `${m.min}-${m.max}`
-            : m.min != null
-              ? `>${m.min}`
-              : m.max != null
-                ? `<${m.max}`
-                : '';
+        const refStr = formatReferenceRange(m.min, m.max);
         md += `| ${m.key} | ${m.value} | ${refStr} | ${m.unit || ''} |\n`;
       }
       md += '\n';

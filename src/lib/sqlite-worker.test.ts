@@ -121,6 +121,92 @@ describe('SQLite worker protocol', () => {
     expect(mockExec.mock.calls.some(([sql]) => String(sql).startsWith('DELETE FROM'))).toBe(false);
   });
 
+  it('rejects unknown backup columns before changing local data', async () => {
+    const responses: unknown[] = [];
+    const workerScope = {
+      onmessage: null as ((event: MessageEvent) => void) | null,
+      postMessage: (response: unknown) => responses.push(response),
+    };
+    vi.stubGlobal('self', workerScope);
+    await import('./sqlite-worker');
+    workerScope.onmessage!({ data: { id: 1, type: 'init' } } as MessageEvent);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const steps = new WeakMap<object, number>();
+    mockStatements.mockImplementation(async function* (...args: unknown[]) {
+      yield { sql: String(args[1]) };
+    });
+    mockStep.mockImplementation(async (...args: unknown[]) => {
+      const statement = args[0] as { sql: string };
+      const count = steps.get(statement) ?? 0;
+      steps.set(statement, count + 1);
+      return count === 0 &&
+        (statement.sql.includes('sqlite_master') || statement.sql.startsWith('PRAGMA'))
+        ? 100
+        : 101;
+    });
+    mockColumnNames.mockImplementation(() => ['name']);
+    mockColumn.mockImplementation((...args: unknown[]) => {
+      const statement = args[0] as { sql: string };
+      return statement.sql.includes('sqlite_master') ? 'activities' : 'id';
+    });
+
+    workerScope.onmessage!({
+      data: { id: 2, type: 'import', tables: { activities: [{ unexpected: 'value' }] } },
+    } as MessageEvent);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(responses[1]).toEqual({
+      id: 2,
+      error: 'Backup contains unknown column activities.unexpected',
+    });
+    expect(mockStatements.mock.calls.map(([, sql]) => String(sql))).not.toContain(
+      'PRAGMA foreign_keys=OFF'
+    );
+  });
+
+  it('rolls back failed imports and restores foreign-key checks', async () => {
+    const responses: unknown[] = [];
+    const workerScope = {
+      onmessage: null as ((event: MessageEvent) => void) | null,
+      postMessage: (response: unknown) => responses.push(response),
+    };
+    vi.stubGlobal('self', workerScope);
+    await import('./sqlite-worker');
+    workerScope.onmessage!({ data: { id: 1, type: 'init' } } as MessageEvent);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const steps = new WeakMap<object, number>();
+    mockStatements.mockImplementation(async function* (...args: unknown[]) {
+      yield { sql: String(args[1]) };
+    });
+    mockStep.mockImplementation(async (...args: unknown[]) => {
+      const statement = args[0] as { sql: string };
+      if (statement.sql.includes('INSERT INTO')) throw new Error('insert failed');
+      const count = steps.get(statement) ?? 0;
+      steps.set(statement, count + 1);
+      return count === 0 &&
+        (statement.sql.includes('sqlite_master') || statement.sql.startsWith('PRAGMA'))
+        ? 100
+        : 101;
+    });
+    mockColumnNames.mockImplementation(() => ['name']);
+    mockColumn.mockImplementation((...args: unknown[]) => {
+      const statement = args[0] as { sql: string };
+      return statement.sql.includes('sqlite_master') ? 'activities' : 'id';
+    });
+
+    workerScope.onmessage!({
+      data: { id: 2, type: 'import', tables: { activities: [{ id: 'activity-1' }] } },
+    } as MessageEvent);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(responses[1]).toEqual({ id: 2, error: 'insert failed' });
+    const executedSql = mockStatements.mock.calls.map(([, sql]) => String(sql));
+    expect(executedSql).toContain('ROLLBACK');
+    expect(executedSql).toContain('PRAGMA foreign_keys=ON');
+  });
+
   it('serves query and export requests with rows from SQLite', async () => {
     const responses: unknown[] = [];
     const workerScope = {

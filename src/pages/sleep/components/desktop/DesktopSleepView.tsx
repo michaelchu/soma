@@ -9,6 +9,7 @@ import {
   calculatePersonalBaseline,
   calculateSleepScore,
   formatDuration,
+  getSleepDateRangeDates,
   STAGE_COLORS,
 } from '../../utils/sleepHelpers';
 import { StackedBarChart } from '@/components/shared/StackedBarChart';
@@ -367,48 +368,10 @@ export function DesktopSleepView({ entries, allEntries, dateRange }: DesktopSlee
   }, [sortedEntries]);
 
   // Generate all dates in the range
-  const allDatesInRange = useMemo(() => {
-    if (sortedEntries.length === 0) return [];
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    let startDate: Date;
-
-    if (dateRange === 'all') {
-      // Use earliest entry date
-      startDate = new Date(sortedEntries[0].date + 'T00:00:00');
-    } else if (dateRange === '1w') {
-      // Rolling 7 days
-      startDate = new Date(today);
-      startDate.setDate(startDate.getDate() - 6);
-    } else if (dateRange === '1m') {
-      // Rolling 1 month
-      startDate = new Date(today);
-      startDate.setMonth(startDate.getMonth() - 1);
-    } else if (dateRange === '3m') {
-      // Rolling 3 months
-      startDate = new Date(today);
-      startDate.setMonth(startDate.getMonth() - 3);
-    } else {
-      // Fallback: try parsing as days
-      const days = parseInt(dateRange, 10);
-      startDate = new Date(today);
-      startDate.setDate(startDate.getDate() - days + 1);
-    }
-
-    const dates: string[] = [];
-    const current = new Date(startDate);
-    while (current <= today) {
-      // Use local date formatting to avoid UTC conversion issues
-      const year = current.getFullYear();
-      const month = String(current.getMonth() + 1).padStart(2, '0');
-      const day = String(current.getDate()).padStart(2, '0');
-      dates.push(`${year}-${month}-${day}`);
-      current.setDate(current.getDate() + 1);
-    }
-    return dates;
-  }, [sortedEntries, dateRange]);
+  const allDatesInRange = useMemo(
+    () => getSleepDateRangeDates(entries, dateRange),
+    [entries, dateRange]
+  );
 
   // Get the selected entry based on selectedIndex
   const selectedEntry = (() => {

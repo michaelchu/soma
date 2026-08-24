@@ -5,35 +5,9 @@ import {
   updateReport as updateReportDb,
   deleteReport as deleteReportDb,
 } from '../../../lib/db/bloodTests';
-import { enrichReportMetrics } from '../utils/metricCalculations';
+import { enrichReportMetrics, type EnrichedReport } from '../utils/metricCalculations';
 import { useDataManager } from '../../../hooks/useDataManager';
 import type { BloodTestReportInput } from '@/types';
-
-interface EnrichedMetric {
-  value: number;
-  unit: string;
-  reference?: {
-    min?: number;
-    max?: number;
-    raw?: string;
-  };
-  min: number | null;
-  max: number | null;
-  category: string;
-  name: string;
-  description: string;
-  clinicalNotes: string;
-  optimalMin: number | null;
-  optimalMax: number | null;
-}
-
-interface EnrichedReport {
-  id: string;
-  date: string;
-  orderNumber: string;
-  orderedBy: string;
-  metrics: Record<string, EnrichedMetric>;
-}
 
 /**
  * Custom hook for managing blood test reports

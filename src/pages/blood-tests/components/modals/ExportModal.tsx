@@ -1,35 +1,19 @@
 import { ExportModal as SharedExportModal } from '@/components/shared/ExportModal';
-import { createMarkdownTable, createCSVContent } from '@/lib/exportUtils';
-
-interface MetricData {
-  value: number;
-  unit?: string;
-  min?: number | null;
-  max?: number | null;
-  category?: string;
-}
-
-interface Report {
-  date: string;
-  orderNumber?: string;
-  orderedBy?: string;
-  metrics: Record<string, MetricData>;
-}
+import {
+  createMarkdownTable,
+  createCSVContent,
+  formatReferenceRange,
+  groupByKey,
+} from '@/lib/exportUtils';
+import type { BloodTestReport } from '@/types/bloodTests';
 
 interface ExportModalProps {
   onClose: () => void;
-  reports: Report[];
+  reports: BloodTestReport[];
   ignoredMetrics?: Set<string>;
 }
 
-function formatReferenceRange(min?: number | null, max?: number | null): string {
-  if (min != null && max != null) return `${min}-${max}`;
-  if (min != null) return `>${min}`;
-  if (max != null) return `<${max}`;
-  return '';
-}
-
-function generateMarkdown(reports: Report[], ignoredMetrics = new Set<string>()) {
+function generateMarkdown(reports: BloodTestReport[], ignoredMetrics = new Set<string>()) {
   let md = '# Blood Test Reports\n\n';
 
   for (const report of reports) {
@@ -40,13 +24,10 @@ function generateMarkdown(reports: Report[], ignoredMetrics = new Set<string>())
     md += '\n';
 
     // Group metrics by category, excluding ignored ones
-    const byCategory: Record<string, Array<MetricData & { key: string }>> = {};
-    for (const [key, metric] of Object.entries(report.metrics)) {
-      if (ignoredMetrics.has(key)) continue;
-      const cat = metric.category || 'Other';
-      if (!byCategory[cat]) byCategory[cat] = [];
-      byCategory[cat].push({ key, ...metric });
-    }
+    const metrics = Object.entries(report.metrics)
+      .filter(([key]) => !ignoredMetrics.has(key))
+      .map(([key, metric]) => ({ key, ...metric }));
+    const byCategory = groupByKey(metrics, (metric) => metric.category || 'Other');
 
     for (const [category, metrics] of Object.entries(byCategory)) {
       if (metrics.length === 0) continue;
@@ -67,7 +48,7 @@ function generateMarkdown(reports: Report[], ignoredMetrics = new Set<string>())
   return md;
 }
 
-function generateCSV(reports: Report[], ignoredMetrics = new Set<string>()) {
+function generateCSV(reports: BloodTestReport[], ignoredMetrics = new Set<string>()) {
   const headers = [
     'Date',
     'Order Number',

@@ -65,6 +65,18 @@ describe('useDataManager', () => {
       expect(result.current.data).toEqual([]);
     });
 
+    it('handles a fetch function that throws', async () => {
+      const fetchFn = vi.fn().mockRejectedValue(new Error('Network unavailable'));
+      const { result } = renderHook(() =>
+        useDataManager<TestItem>({ fetchFn, errorMessage: 'Could not load data' })
+      );
+
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      expect(result.current.error).toBe('Could not load data');
+      expect(result.current.data).toEqual([]);
+    });
+
     it('processes data with processData function', async () => {
       const fetchFn = createMockFetchFn();
       const processData = (items: TestItem[]) => items.filter((item) => item.value > 150);
@@ -95,6 +107,39 @@ describe('useDataManager', () => {
       });
 
       expect(fetchFn).toHaveBeenCalledTimes(2);
+    });
+
+    it('ignores stale refetch results when a newer request finishes first', async () => {
+      let resolveStale!: (value: { data: TestItem[]; error: null }) => void;
+      let resolveFresh!: (value: { data: TestItem[]; error: null }) => void;
+      const stale = new Promise<{ data: TestItem[]; error: null }>((resolve) => {
+        resolveStale = resolve;
+      });
+      const fresh = new Promise<{ data: TestItem[]; error: null }>((resolve) => {
+        resolveFresh = resolve;
+      });
+      const freshItems = [{ id: 'fresh', name: 'Fresh', value: 999 }];
+      const fetchFn = vi
+        .fn()
+        .mockResolvedValueOnce({ data: mockItems, error: null })
+        .mockImplementationOnce(() => stale)
+        .mockImplementationOnce(() => fresh);
+      const { result } = renderHook(() =>
+        useDataManager<TestItem>({ fetchFn, errorMessage: 'Failed to fetch' })
+      );
+
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      await act(async () => {
+        const staleRequest = result.current.refetch();
+        const freshRequest = result.current.refetch();
+        resolveFresh({ data: freshItems, error: null });
+        await freshRequest;
+        resolveStale({ data: [{ id: 'stale', name: 'Stale', value: 1 }], error: null });
+        await staleRequest;
+      });
+
+      expect(result.current.data).toEqual(freshItems);
     });
   });
 

@@ -132,7 +132,7 @@ export function Timeline() {
                           </span>
                         </div>
                         <span className="text-xs text-muted-foreground">
-                          {(entry.data as ActivityType).timeOfDay.replace('_', ' ')}
+                          {getTimeOfDayLabel((entry.data as ActivityType).timeOfDay)}
                         </span>
                       </div>
                     )}

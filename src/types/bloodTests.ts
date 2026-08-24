@@ -8,6 +8,10 @@ export interface MetricValue {
   value: number;
   unit: string;
   reference?: MetricReference;
+  // Optional enrichment fields used by report views and exports.
+  min?: number | null;
+  max?: number | null;
+  category?: string;
 }
 
 export interface BloodTestReport {

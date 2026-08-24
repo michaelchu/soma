@@ -65,7 +65,9 @@ export function getCurrentTimeOfDay(): 'morning' | 'afternoon' | 'evening' {
 /**
  * Get display label for a time of day category
  */
-export function getTimeOfDayLabel(timeOfDay: 'morning' | 'afternoon' | 'evening'): string {
+export function getTimeOfDayLabel(
+  timeOfDay: 'morning' | 'afternoon' | 'evening' | 'late_evening'
+): string {
   switch (timeOfDay) {
     case 'morning':
       return 'Morning';
@@ -73,6 +75,8 @@ export function getTimeOfDayLabel(timeOfDay: 'morning' | 'afternoon' | 'evening'
       return 'Afternoon';
     case 'evening':
       return 'Evening';
+    case 'late_evening':
+      return 'Late Evening';
   }
 }
 

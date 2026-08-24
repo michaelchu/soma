@@ -6,6 +6,8 @@ type Message = { id: number; type: string; sql?: string };
 class FakeWorker {
   static messages: Message[] = [];
   static schemaVersion: number | null = null;
+  static failInit = false;
+  static instances: FakeWorker[] = [];
   static tableColumns = [
     'irregular_heartbeat',
     'body_position',
@@ -15,10 +17,20 @@ class FakeWorker {
   ];
   onmessage: ((event: { data: { id: number; result?: unknown; error?: string } }) => void) | null =
     null;
+  terminated = false;
+
+  constructor() {
+    FakeWorker.instances.push(this);
+  }
 
   postMessage(message: Message) {
     FakeWorker.messages.push(message);
     queueMicrotask(() => {
+      if (message.type === 'init' && FakeWorker.failInit) {
+        FakeWorker.failInit = false;
+        this.onmessage?.({ data: { id: message.id, error: 'init failed' } });
+        return;
+      }
       let result: unknown = true;
       if (message.type === 'query' && message.sql?.includes('MAX(version)')) {
         result = [{ v: FakeWorker.schemaVersion }];
@@ -33,7 +45,9 @@ class FakeWorker {
     });
   }
 
-  terminate() {}
+  terminate() {
+    this.terminated = true;
+  }
 }
 
 describe('sqlite client lifecycle', () => {
@@ -41,6 +55,8 @@ describe('sqlite client lifecycle', () => {
     vi.resetModules();
     FakeWorker.messages = [];
     FakeWorker.schemaVersion = null;
+    FakeWorker.failInit = false;
+    FakeWorker.instances = [];
     FakeWorker.tableColumns = [
       'irregular_heartbeat',
       'body_position',
@@ -113,5 +129,35 @@ describe('sqlite client lifecycle', () => {
       'Unsupported backup schema version'
     );
     expect(FakeWorker.messages).toHaveLength(0);
+  });
+
+  it('retries initialization after a worker startup failure', async () => {
+    FakeWorker.failInit = true;
+    const sqlite = await import('./sqlite');
+
+    await expect(sqlite.querySQL('SELECT * FROM activities')).rejects.toThrow('init failed');
+    await expect(sqlite.querySQL('SELECT * FROM activities')).resolves.toEqual([]);
+    expect(FakeWorker.messages.filter((message) => message.type === 'init')).toHaveLength(2);
+  });
+
+  it('terminates the worker when the page becomes hidden and can reopen it', async () => {
+    const sqlite = await import('./sqlite');
+    await sqlite.initDatabase(SCHEMA_SQL, MIGRATIONS);
+    const activeWorker = FakeWorker.instances.at(-1)!;
+
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      value: 'hidden',
+    });
+    document.dispatchEvent(new Event('visibilitychange'));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(activeWorker.terminated).toBe(true);
+    await expect(sqlite.querySQL('SELECT * FROM activities')).resolves.toEqual([]);
+
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      value: 'visible',
+    });
   });
 });

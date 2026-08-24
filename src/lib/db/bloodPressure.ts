@@ -38,6 +38,68 @@ const cuffToArm = (cuff: CuffLocation): Arm => {
   return null;
 };
 
+function rowToReading(row: BPReadingRow): BPReading {
+  return {
+    id: row.id,
+    date: row.recorded_date,
+    timeOfDay: row.time_of_day,
+    systolic: row.systolic,
+    diastolic: row.diastolic,
+    pulse: row.pulse,
+    notes: row.notes,
+    arm: cuffToArm(row.cuff_location),
+    sessionId: row.session_id,
+  };
+}
+
+function buildInsertStatements(
+  sessionId: string,
+  session: BPSessionInput,
+  sanitizedNotes: string | null,
+  now: string
+) {
+  return session.readings.map((reading, i) => ({
+    sql: `INSERT INTO blood_pressure_readings
+      (id, session_id, recorded_date, time_of_day, systolic, diastolic, pulse, notes, cuff_location, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    params: [
+      crypto.randomUUID(),
+      sessionId,
+      session.date,
+      session.timeOfDay,
+      reading.systolic,
+      reading.diastolic,
+      reading.pulse || null,
+      i === 0 ? sanitizedNotes : null,
+      armToCuff(reading.arm || null),
+      now,
+      now,
+    ],
+  }));
+}
+
+function buildSession(
+  sessionId: string,
+  session: BPSessionInput,
+  rows: BPReadingRow[],
+  notes: string | null
+): BPSession {
+  const readings = rows.map(rowToReading);
+  const { avgSystolic, avgDiastolic, avgPulse } = calculateSessionAverages(readings);
+
+  return {
+    sessionId,
+    date: session.date,
+    timeOfDay: session.timeOfDay,
+    systolic: avgSystolic,
+    diastolic: avgDiastolic,
+    pulse: avgPulse,
+    notes,
+    readings,
+    readingCount: readings.length,
+  };
+}
+
 function calculateSessionAverages(readings: BPReading[]): {
   avgSystolic: number;
   avgDiastolic: number;
@@ -76,17 +138,7 @@ export async function getReadings(): Promise<{ data: BPSession[] | null; error: 
       if (!sessionMap.has(sessionId)) {
         sessionMap.set(sessionId, []);
       }
-      sessionMap.get(sessionId)!.push({
-        id: row.id,
-        date: row.recorded_date,
-        timeOfDay: row.time_of_day,
-        systolic: row.systolic,
-        diastolic: row.diastolic,
-        pulse: row.pulse,
-        notes: row.notes,
-        arm: cuffToArm(row.cuff_location),
-        sessionId: row.session_id,
-      });
+      sessionMap.get(sessionId)!.push(rowToReading(row));
     }
 
     const sessions: BPSession[] = [];
@@ -137,58 +189,15 @@ export async function addSession(
     const sanitizedNotes = session.notes ? sanitizeString(session.notes) : null;
     const now = new Date().toISOString();
 
-    await transactionSQL(
-      session.readings.map((reading, i) => ({
-        sql: `INSERT INTO blood_pressure_readings
-          (id, session_id, recorded_date, time_of_day, systolic, diastolic, pulse, notes, cuff_location, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        params: [
-          crypto.randomUUID(),
-          sessionId,
-          session.date,
-          session.timeOfDay,
-          reading.systolic,
-          reading.diastolic,
-          reading.pulse || null,
-          i === 0 ? sanitizedNotes : null,
-          armToCuff(reading.arm || null),
-          now,
-          now,
-        ],
-      }))
-    );
+    await transactionSQL(buildInsertStatements(sessionId, session, sanitizedNotes, now));
 
     const rows = await querySQL<BPReadingRow>(
       'SELECT * FROM blood_pressure_readings WHERE session_id = ?',
       [sessionId]
     );
 
-    const readings: BPReading[] = rows.map((row) => ({
-      id: row.id,
-      date: row.recorded_date,
-      timeOfDay: row.time_of_day,
-      systolic: row.systolic,
-      diastolic: row.diastolic,
-      pulse: row.pulse,
-      notes: row.notes,
-      arm: cuffToArm(row.cuff_location),
-      sessionId: row.session_id,
-    }));
-
-    const { avgSystolic, avgDiastolic, avgPulse } = calculateSessionAverages(readings);
-
     return {
-      data: {
-        sessionId,
-        date: session.date,
-        timeOfDay: session.timeOfDay,
-        systolic: avgSystolic,
-        diastolic: avgDiastolic,
-        pulse: avgPulse,
-        notes: sanitizedNotes,
-        readings,
-        readingCount: readings.length,
-      },
+      data: buildSession(sessionId, session, rows, sanitizedNotes),
       error: null,
     };
   } catch (err) {
@@ -216,24 +225,7 @@ export async function updateSession(
 
     await transactionSQL([
       { sql: 'DELETE FROM blood_pressure_readings WHERE session_id = ?', params: [sessionId] },
-      ...session.readings.map((reading, i) => ({
-        sql: `INSERT INTO blood_pressure_readings
-          (id, session_id, recorded_date, time_of_day, systolic, diastolic, pulse, notes, cuff_location, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        params: [
-          crypto.randomUUID(),
-          sessionId,
-          session.date,
-          session.timeOfDay,
-          reading.systolic,
-          reading.diastolic,
-          reading.pulse || null,
-          i === 0 ? sanitizedNotes : null,
-          armToCuff(reading.arm || null),
-          now,
-          now,
-        ],
-      })),
+      ...buildInsertStatements(sessionId, session, sanitizedNotes, now),
     ]);
 
     const rows = await querySQL<BPReadingRow>(
@@ -241,32 +233,8 @@ export async function updateSession(
       [sessionId]
     );
 
-    const readings: BPReading[] = rows.map((row) => ({
-      id: row.id,
-      date: row.recorded_date,
-      timeOfDay: row.time_of_day,
-      systolic: row.systolic,
-      diastolic: row.diastolic,
-      pulse: row.pulse,
-      notes: row.notes,
-      arm: cuffToArm(row.cuff_location),
-      sessionId: row.session_id,
-    }));
-
-    const { avgSystolic, avgDiastolic, avgPulse } = calculateSessionAverages(readings);
-
     return {
-      data: {
-        sessionId,
-        date: session.date,
-        timeOfDay: session.timeOfDay,
-        systolic: avgSystolic,
-        diastolic: avgDiastolic,
-        pulse: avgPulse,
-        notes: sanitizedNotes,
-        readings,
-        readingCount: readings.length,
-      },
+      data: buildSession(sessionId, session, rows, sanitizedNotes),
       error: null,
     };
   } catch (err) {

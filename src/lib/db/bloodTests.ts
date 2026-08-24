@@ -1,23 +1,15 @@
 import { querySQL, execSQL, transactionSQL } from '../sqlite';
 import { validateBloodTestReport, sanitizeString } from '../validation';
 import { logError } from '../logger';
+import type { BloodTestReport, BloodTestReportInput, MetricReference, MetricValue } from '@/types';
 
 /**
  * Blood Tests data service
  * CRUD operations for blood test reports and metrics (local SQLite)
  */
 
-interface Reference {
-  min?: number;
-  max?: number;
-  raw?: string;
-}
-
-interface MetricData {
-  value: number;
-  unit: string;
-  reference?: Reference;
-}
+type Reference = MetricReference;
+type MetricData = MetricValue;
 
 interface MetricRow {
   id: string;
@@ -38,21 +30,8 @@ interface ReportRow {
   notes: string | null;
 }
 
-interface BloodTestReport {
-  id: string;
-  date: string;
-  orderNumber: string;
-  orderedBy: string;
-  metrics: Record<string, MetricData>;
-}
-
-interface ReportInput {
-  date: string;
-  orderNumber?: string;
-  orderedBy?: string;
-  notes?: string;
-  metrics: Record<string, MetricData>;
-}
+export type { BloodTestReport };
+type ReportInput = BloodTestReportInput;
 
 interface ReportUpdates {
   date?: string;

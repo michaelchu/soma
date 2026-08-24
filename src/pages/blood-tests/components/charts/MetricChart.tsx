@@ -15,28 +15,13 @@ import { Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { REFERENCE_RANGES } from '../../constants/referenceRanges';
 import { getStatus } from '../../utils/statusHelpers';
+import type { EnrichedReport } from '../../utils/metricCalculations';
 import { StatusBadge } from '../ui/StatusBadge';
 import { RangeBar } from '../ui/RangeBar';
 import { TrendIndicator } from '../ui/TrendIndicator';
 
 const LONG_PRESS_DURATION = 600; // ms
 const MOVE_THRESHOLD = 10; // pixels - cancel long press if moved more than this
-
-interface EnrichedMetric {
-  value: number;
-  unit: string;
-  min: number | null;
-  max: number | null;
-  optimalMin: number | null;
-  optimalMax: number | null;
-  name: string;
-}
-
-interface EnrichedReport {
-  id: string;
-  date: string;
-  metrics: Record<string, EnrichedMetric>;
-}
 
 interface MetricChartProps {
   metricKey: string;

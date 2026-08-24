@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getReadings, addSession, deleteSession } from './bloodPressure';
+import { getReadings, addSession, deleteSession, updateSession } from './bloodPressure';
 import type { BPSessionInput } from '@/types/bloodPressure';
 
 vi.stubGlobal('crypto', { randomUUID: () => 'mock-session-uuid' });
@@ -145,6 +145,46 @@ describe('bloodPressure database layer', () => {
       const result = await deleteSession('session-1');
 
       expect(result.error).toBeNull();
+    });
+  });
+
+  describe('updateSession', () => {
+    it('replaces readings and recalculates session averages', async () => {
+      mockTransaction.mockResolvedValue(undefined);
+      mockQuery.mockResolvedValue([
+        { ...mockReadingRow, systolic: 120, diastolic: 80, pulse: 70 },
+        {
+          ...mockReadingRow,
+          id: 'reading-2',
+          systolic: 130,
+          diastolic: 90,
+          pulse: 80,
+          cuff_location: 'right_arm',
+        },
+      ]);
+
+      const result = await updateSession('session-1', mockSessionInput);
+
+      expect(result.error).toBeNull();
+      expect(result.data).toMatchObject({
+        sessionId: 'session-1',
+        systolic: 125,
+        diastolic: 85,
+        pulse: 75,
+        readingCount: 2,
+      });
+      expect(result.data?.readings[1].arm).toBe('R');
+      expect(mockTransaction.mock.calls[0][0][0].sql).toContain('DELETE FROM');
+    });
+
+    it('returns the transaction error without querying replacement readings', async () => {
+      mockTransaction.mockRejectedValue(new Error('replace failed'));
+
+      const result = await updateSession('session-1', mockSessionInput);
+
+      expect(result.data).toBeNull();
+      expect(result.error?.message).toBe('replace failed');
+      expect(mockQuery).not.toHaveBeenCalled();
     });
   });
 });

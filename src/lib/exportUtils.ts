@@ -128,6 +128,24 @@ export function countByKey<T>(items: T[], keyFn: (item: T) => string): Record<st
   return counts;
 }
 
+/** Group items by a string key while preserving insertion order. */
+export function groupByKey<T>(items: T[], keyFn: (item: T) => string): Record<string, T[]> {
+  const groups: Record<string, T[]> = {};
+  items.forEach((item) => {
+    const key = keyFn(item);
+    (groups[key] ??= []).push(item);
+  });
+  return groups;
+}
+
+/** Format an optional lower/upper reference range for exports. */
+export function formatReferenceRange(min?: number | null, max?: number | null): string {
+  if (min != null && max != null) return `${min}-${max}`;
+  if (min != null) return `>${min}`;
+  if (max != null) return `<${max}`;
+  return '';
+}
+
 /**
  * Group items by a key and sum a numeric field
  */

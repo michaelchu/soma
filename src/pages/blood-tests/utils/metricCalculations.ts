@@ -1,7 +1,7 @@
 import { REFERENCE_RANGES } from '../constants/referenceRanges';
 import type { BloodTestReport, MetricValue } from '@/types';
 
-interface EnrichedMetric extends MetricValue {
+export interface EnrichedMetric extends MetricValue {
   min: number | null;
   max: number | null;
   category: string;
@@ -12,7 +12,7 @@ interface EnrichedMetric extends MetricValue {
   optimalMax: number | null;
 }
 
-interface EnrichedReport extends Omit<BloodTestReport, 'metrics'> {
+export interface EnrichedReport extends Omit<BloodTestReport, 'metrics'> {
   metrics: Record<string, EnrichedMetric>;
 }
 

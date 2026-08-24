@@ -5,7 +5,9 @@ import {
   createMarkdownTable,
   escapeMarkdownCell,
   formatPercentage,
+  formatReferenceRange,
   getDateRangeString,
+  groupByKey,
   sortForExport,
   sumByKey,
 } from './exportUtils';
@@ -36,13 +38,21 @@ describe('export utilities', () => {
     expect(getDateRangeString([], 'date', String)).toBe('No data');
   });
 
-  it('groups and sums values by key', () => {
+  it('groups, sums, and formats values by key', () => {
     const entries = [
       { type: 'a', value: 2 },
       { type: 'b', value: 3 },
       { type: 'a', value: 4 },
     ];
     expect(countByKey(entries, (entry) => entry.type)).toEqual({ a: 2, b: 1 });
+    expect(groupByKey(entries, (entry) => entry.type)).toEqual({
+      a: [entries[0], entries[2]],
+      b: [entries[1]],
+    });
+    expect(formatReferenceRange(1, 2)).toBe('1-2');
+    expect(formatReferenceRange(1, null)).toBe('>1');
+    expect(formatReferenceRange(null, 2)).toBe('<2');
+    expect(formatReferenceRange(null, null)).toBe('');
     expect(
       sumByKey(
         entries,

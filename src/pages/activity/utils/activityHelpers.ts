@@ -1,5 +1,13 @@
-import type { Activity, ActivityType, ActivityTimeOfDay } from '@/types/activity';
-import { formatDurationLong, parseDateOnly, toLocalDateString } from '@/lib/dateUtils';
+import type { Activity, ActivityType } from '@/types/activity';
+import {
+  formatDurationLong,
+  getTimeOfDayLabel,
+  parseDateOnly,
+  toLocalDateString,
+} from '@/lib/dateUtils';
+
+// Re-export for existing activity view imports.
+export { getTimeOfDayLabel };
 
 // Re-export formatDuration for backwards compatibility (activity uses "45 min" format)
 export const formatDuration = formatDurationLong;
@@ -545,21 +553,6 @@ export function getActivityTypeIcon(type: ActivityType): string {
     other: '🏃',
   };
   return icons[type] || '🏃';
-}
-
-/**
- * Get time of day label
- * @param timeOfDay Time of day value
- * @returns Display label
- */
-export function getTimeOfDayLabel(timeOfDay: ActivityTimeOfDay): string {
-  const labels: Record<ActivityTimeOfDay, string> = {
-    morning: 'Morning',
-    afternoon: 'Afternoon',
-    evening: 'Evening',
-    late_evening: 'Late Evening',
-  };
-  return labels[timeOfDay] || timeOfDay;
 }
 
 /**

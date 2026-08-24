@@ -14,30 +14,13 @@ import { getActivities } from '@/lib/db/activity';
 import { calculateHealthScore, type HealthScoreResult } from '../utils/healthScore';
 import type { Activity } from '@/types/activity';
 import type { BPReadingSummary } from '@/types/bloodPressure';
+import type { BloodTestReport } from '@/types/bloodTests';
 
 interface TimelineEntry {
   id: string;
   type: 'bp' | 'sleep' | 'activity';
   date: Date;
   data: BPReadingSummary | SleepEntry | Activity;
-}
-
-interface MetricData {
-  value: number;
-  unit?: string;
-  reference?: {
-    min?: number;
-    max?: number;
-    raw?: string;
-  };
-}
-
-interface BloodTestReport {
-  id: string;
-  date: string;
-  orderNumber: string;
-  orderedBy: string;
-  metrics: Record<string, MetricData>;
 }
 
 interface MainPageContextType {

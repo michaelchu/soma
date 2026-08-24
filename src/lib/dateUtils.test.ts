@@ -26,6 +26,7 @@ import {
   formatTimeString,
   formatDuration,
   parseDateOnly,
+  getTimeOfDayLabel,
 } from './dateUtils';
 
 describe('dateUtils', () => {
@@ -71,6 +72,13 @@ describe('dateUtils', () => {
         pastYear.toString()
       );
     });
+  });
+
+  it('uses one display label map for every supported time-of-day value', () => {
+    expect(getTimeOfDayLabel('morning')).toBe('Morning');
+    expect(getTimeOfDayLabel('afternoon')).toBe('Afternoon');
+    expect(getTimeOfDayLabel('evening')).toBe('Evening');
+    expect(getTimeOfDayLabel('late_evening')).toBe('Late Evening');
   });
 
   describe('formatTime', () => {

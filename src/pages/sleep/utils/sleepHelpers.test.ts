@@ -6,6 +6,7 @@ import {
   calculateDetailedStats,
   calculatePersonalBaseline,
   calculateSleepScore,
+  getSleepDateRangeDates,
 } from './sleepHelpers';
 import { toLocalDateString } from '../../../lib/dateUtils';
 import type { SleepEntry } from '../../../lib/db/sleep';
@@ -46,6 +47,41 @@ function daysAgo(days: number): string {
 }
 
 describe('sleepHelpers', () => {
+  describe('getSleepDateRangeDates', () => {
+    it('uses local dates consistently for all and rolling ranges', () => {
+      const entries = [
+        createMockEntry({ id: 'late', date: '2024-03-20' }),
+        createMockEntry({ id: 'early', date: '2024-03-01' }),
+      ];
+      const today = new Date(2024, 2, 20, 18);
+
+      expect(getSleepDateRangeDates(entries, 'all', today)).toEqual([
+        '2024-03-01',
+        '2024-03-02',
+        '2024-03-03',
+        '2024-03-04',
+        '2024-03-05',
+        '2024-03-06',
+        '2024-03-07',
+        '2024-03-08',
+        '2024-03-09',
+        '2024-03-10',
+        '2024-03-11',
+        '2024-03-12',
+        '2024-03-13',
+        '2024-03-14',
+        '2024-03-15',
+        '2024-03-16',
+        '2024-03-17',
+        '2024-03-18',
+        '2024-03-19',
+        '2024-03-20',
+      ]);
+      expect(getSleepDateRangeDates(entries, '1w', today)).toHaveLength(7);
+      expect(getSleepDateRangeDates([], '1w', today)).toEqual([]);
+    });
+  });
+
   describe('calculateSleepStats', () => {
     it('returns null for empty array', () => {
       expect(calculateSleepStats([])).toBeNull();

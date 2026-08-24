@@ -131,6 +131,52 @@ export function filterEntriesByDateRange(
 }
 
 /**
+ * Build the local calendar dates displayed by the sleep chart/card views.
+ * Keeping this in one place prevents the desktop and compact views from
+ * drifting on rolling-range and timezone behavior.
+ */
+export function getSleepDateRangeDates(
+  entries: SleepEntry[],
+  dateRange: string,
+  today = new Date()
+): string[] {
+  if (entries.length === 0) return [];
+
+  const sortedEntries = [...entries].sort((a, b) => a.date.localeCompare(b.date));
+  const endDate = new Date(today);
+  endDate.setHours(0, 0, 0, 0);
+
+  let startDate: Date;
+  if (dateRange === 'all') {
+    startDate = new Date(sortedEntries[0].date + 'T00:00:00');
+  } else if (dateRange === '1w') {
+    startDate = new Date(endDate);
+    startDate.setDate(startDate.getDate() - 6);
+  } else if (dateRange === '1m') {
+    startDate = new Date(endDate);
+    startDate.setMonth(startDate.getMonth() - 1);
+  } else if (dateRange === '3m') {
+    startDate = new Date(endDate);
+    startDate.setMonth(startDate.getMonth() - 3);
+  } else {
+    const days = parseInt(dateRange, 10);
+    startDate = new Date(endDate);
+    startDate.setDate(startDate.getDate() - days + 1);
+  }
+
+  const dates: string[] = [];
+  const current = new Date(startDate);
+  while (current <= endDate) {
+    const year = current.getFullYear();
+    const month = String(current.getMonth() + 1).padStart(2, '0');
+    const day = String(current.getDate()).padStart(2, '0');
+    dates.push(`${year}-${month}-${day}`);
+    current.setDate(current.getDate() + 1);
+  }
+  return dates;
+}
+
+/**
  * Get entries from the previous period for comparison (rolling periods)
  * e.g., if dateRange is '1m', get entries from 1-2 months ago
  */

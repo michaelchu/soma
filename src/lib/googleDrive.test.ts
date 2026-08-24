@@ -78,6 +78,49 @@ describe('Google Drive backup flow', () => {
     expect(refreshedHeaders.get('Authorization')).toBe('Bearer token-2');
   });
 
+  it('updates an existing backup file instead of creating a duplicate', async () => {
+    const drive = await loadDrive();
+    mockExportData.mockResolvedValue({ schemaVersion: 2, tables: { activities: [] } });
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ files: [{ id: 'backup-1' }] }), { status: 200 })
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ modifiedTime: 'updated' }), { status: 200 })
+      );
+
+    await expect(drive.backup()).resolves.toEqual({ modifiedTime: 'updated' });
+
+    expect(vi.mocked(fetch).mock.calls[1][0]).toContain('/files/backup-1?');
+    expect(vi.mocked(fetch).mock.calls[1][1]?.method).toBe('PATCH');
+  });
+
+  it('surfaces an OAuth denial from Google Identity Services', async () => {
+    const drive = await loadDrive();
+    requestAccessToken.mockImplementation(() => tokenCallback({ error: 'access_denied' }));
+
+    await expect(drive.requestToken()).rejects.toThrow('access_denied');
+  });
+
+  it('surfaces upload and download HTTP failures', async () => {
+    const drive = await loadDrive();
+    mockExportData.mockResolvedValue({ schemaVersion: 2, tables: {} });
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(new Response(JSON.stringify({ files: [] }), { status: 200 }))
+      .mockResolvedValueOnce(new Response('{}', { status: 500 }));
+
+    await expect(drive.backup()).rejects.toThrow('Upload failed: 500');
+
+    vi.clearAllMocks();
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ files: [{ id: 'backup-1' }] }), { status: 200 })
+      )
+      .mockResolvedValueOnce(new Response('{}', { status: 503 }));
+
+    await expect(drive.restore()).rejects.toThrow('Download failed: 503');
+  });
+
   it('restores legacy table-map backups as schema version 1', async () => {
     const drive = await loadDrive();
     vi.mocked(fetch)
