@@ -9,7 +9,7 @@ import { useDataManager } from '../../../hooks/useDataManager';
 import type { Activity, ActivityInput } from '@/types/activity';
 
 /**
- * Custom hook to load and manage activity entries from Supabase
+ * Custom hook to load and manage activity entries from local SQLite
  */
 export function useActivityEntries() {
   const {

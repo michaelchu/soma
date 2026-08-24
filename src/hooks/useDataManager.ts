@@ -22,7 +22,7 @@ interface UpdateItemOptions {
 }
 
 /**
- * Generic hook for managing CRUD operations on data from Supabase
+ * Generic hook for managing CRUD operations on local database data
  */
 
 export function useDataManager<T extends { [key: string]: any }>({

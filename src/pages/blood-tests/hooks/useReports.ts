@@ -37,7 +37,7 @@ interface EnrichedReport {
 
 /**
  * Custom hook for managing blood test reports
- * Loads reports from Supabase and enriches them with reference range data
+ * Loads reports from local SQLite and enriches them with reference range data
  */
 export function useReports() {
   // Cast fetchFn to match expected type - getReports returns raw data that gets processed

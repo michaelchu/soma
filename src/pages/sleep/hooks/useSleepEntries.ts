@@ -10,7 +10,7 @@ import {
 import { useDataManager } from '../../../hooks/useDataManager';
 
 /**
- * Custom hook to load and manage sleep entries from Supabase
+ * Custom hook to load and manage sleep entries from local SQLite
  */
 export function useSleepEntries() {
   const {

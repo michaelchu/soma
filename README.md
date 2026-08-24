@@ -1,6 +1,6 @@
 # Soma
 
-Personal health tracking app - a launcher portal for mini health-related apps built with React, TypeScript, and Supabase.
+Personal health tracking app - a launcher portal for mini health-related apps built with React, TypeScript, and local-first storage.
 
 ## Quick Start
 
@@ -11,11 +11,10 @@ npm run dev
 
 ### Environment Variables
 
-Copy `.env.example` to `.env` and fill in your Supabase credentials:
+Copy `.env.example` to `.env` and add the optional Google Drive client ID if you want backup/restore:
 
 ```
-VITE_SUPABASE_URL=https://your-project-id.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key-here
+VITE_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 ```
 
 ## Features
@@ -81,7 +80,8 @@ Log physical activities:
 | Icons | Lucide React |
 | Routing | React Router v6 |
 | Charts | Recharts |
-| Backend/Auth | Supabase |
+| Storage | SQLite via wa-sqlite + OPFS |
+| Backup | Optional Google Drive appDataFolder |
 | Testing | Vitest + Testing Library |
 | Validation | Zod |
 
@@ -104,8 +104,9 @@ src/
 │   │   ├── bloodPressure.ts
 │   │   ├── bloodTests.ts
 │   │   └── sleep.ts
-│   ├── AuthContext.tsx  # Authentication state
-│   ├── supabase.ts      # Supabase client
+│   ├── sqlite.ts        # Local SQLite worker bridge
+│   ├── sqlite-worker.ts # wa-sqlite + OPFS worker
+│   ├── googleDrive.ts   # Optional backup/restore
 │   ├── validation.ts    # Input validation
 │   ├── dateUtils.ts     # Date formatting/parsing
 │   └── toast.tsx        # Toast notifications with error handling
@@ -119,7 +120,7 @@ src/
 │
 ├── types/               # TypeScript type definitions
 │
-└── views/               # Top-level views (Auth)
+└── views/               # Top-level views (settings and dialogs)
 ```
 
 ### Feature Module Structure
@@ -151,12 +152,12 @@ Context (manages state, calls db layer)
     ↓
 Database Layer (src/lib/db/*.ts)
     ↓
-Supabase
+Local SQLite (OPFS)
 ```
 
 ### Key Patterns
 
-**Database Layer**: All operations require authenticated user, filter by `user_id`, return `{ data, error }` tuples, and validate input before database calls.
+**Database Layer**: Feature data is stored locally in SQLite/OPFS, with validation before database calls and `{ data, error }` tuples returned to the UI.
 
 **State Management**: `useDataManager` hook provides generic CRUD operations. Each feature has its own Context created via `createDataContext` factory.
 

@@ -179,7 +179,9 @@ export function getPreviousPeriodReadings(
 
   let filtered = allReadings.filter((r) => {
     if (!r.date) return false;
-    const date = new Date(r.date);
+    // Blood pressure records use date-only values. Parse them as local dates
+    // so UTC midnight does not shift the reading into the previous day.
+    const date = new Date(`${r.date}T00:00:00`);
     return date >= previousStart && date < previousEnd;
   });
 

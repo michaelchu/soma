@@ -26,7 +26,7 @@ describe('useDataManager', () => {
   };
 
   describe('initial state and data fetching', () => {
-    it('starts with correct initial state', () => {
+    it('starts with correct initial state', async () => {
       const fetchFn = createMockFetchFn();
       const { result } = renderHook(() =>
         useDataManager<TestItem>({ fetchFn, errorMessage: 'Failed to fetch' })
@@ -35,6 +35,9 @@ describe('useDataManager', () => {
       expect(result.current.loading).toBe(true);
       expect(result.current.data).toEqual([]);
       expect(result.current.error).toBeNull();
+
+      // Wait for the initial async fetch so its state updates are wrapped in act.
+      await waitFor(() => expect(result.current.loading).toBe(false));
     });
 
     it('fetches data on mount', async () => {

@@ -131,11 +131,11 @@ describe('dateUtils', () => {
     });
 
     it('returns correct range for numeric values', () => {
-      const { start, end } = getDateRange('30');
+      const { start } = getDateRange('30');
       expect(start).toBeInstanceOf(Date);
-      const diffDays = Math.round((end.getTime() - start!.getTime()) / (1000 * 60 * 60 * 24));
-      // For a 30-day range: start is set 29 days back from today
-      // The time span from start (midnight) to end (current time) is ~30 days
+      const today = startOfDay(new Date());
+      const diffDays = Math.round((today.getTime() - start!.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      // A 30-day range includes today and the preceding 29 calendar days.
       expect(diffDays).toBe(30);
     });
   });

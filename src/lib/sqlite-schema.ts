@@ -1,6 +1,6 @@
 /**
  * SQLite schema for local-first storage.
- * Translated from Supabase PostgreSQL migrations.
+ * Local SQLite schema for the browser database.
  * No user_id columns (single-user local app).
  * No RLS policies (SQLite doesn't support them).
  */

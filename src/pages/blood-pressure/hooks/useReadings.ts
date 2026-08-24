@@ -9,7 +9,7 @@ import { useDataManager } from '../../../hooks/useDataManager';
 import type { BPSession, BPSessionInput } from '@/types/bloodPressure';
 
 /**
- * Custom hook to load and manage blood pressure sessions from Supabase
+ * Custom hook to load and manage blood pressure sessions from local SQLite
  * Each session contains one or more individual readings taken in one sitting
  */
 export function useReadings() {
