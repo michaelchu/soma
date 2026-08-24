@@ -255,7 +255,6 @@ export async function exportData(): Promise<DatabaseBackup> {
 }
 
 export async function importData(backup: DatabaseBackup): Promise<void> {
-  await ensureReady();
   if (!backup || typeof backup !== 'object' || !backup.tables) {
     throw new Error('Invalid backup format');
   }
@@ -266,5 +265,6 @@ export async function importData(backup: DatabaseBackup): Promise<void> {
   ) {
     throw new Error(`Unsupported backup schema version: ${String(backup.schemaVersion)}`);
   }
+  await ensureReady();
   await send({ type: 'import', tables: backup.tables });
 }

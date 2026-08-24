@@ -190,7 +190,7 @@ export async function updateSleepEntry(
        WHERE id=?`,
       [
         entry.date,
-        entry.timezone || undefined,
+        entry.timezone || null,
         entry.totalSleepMinutes || null,
         entry.sleepStart || null,
         entry.sleepEnd || null,

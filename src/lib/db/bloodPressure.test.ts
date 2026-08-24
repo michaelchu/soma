@@ -126,6 +126,16 @@ describe('bloodPressure database layer', () => {
       expect(firstInsertParams[7]).not.toContain('<script>'); // notes param
       expect(firstInsertParams[8]).toBe('left_arm'); // cuff_location param
     });
+
+    it('returns an error when the session transaction fails', async () => {
+      mockTransaction.mockRejectedValue(new Error('transaction failed'));
+
+      const result = await addSession(mockSessionInput);
+
+      expect(result.data).toBeNull();
+      expect(result.error?.message).toBe('transaction failed');
+      expect(mockQuery).not.toHaveBeenCalled();
+    });
   });
 
   describe('deleteSession', () => {
