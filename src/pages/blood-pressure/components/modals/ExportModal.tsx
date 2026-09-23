@@ -2,6 +2,7 @@ import { ExportModal as SharedExportModal } from '@/components/shared/ExportModa
 import { calculateStats } from '../../utils/bpHelpers';
 import { useBloodPressureSettings } from '../../hooks/useBloodPressureSettings';
 import { getTimeOfDayLabel } from '@/lib/dateUtils';
+import { avgRounded } from '@/lib/statsUtils';
 import {
   createMarkdownTable,
   createCSVContent,
@@ -47,7 +48,7 @@ interface BPStats {
 type GetCategoryFn = (systolic: number, diastolic: number) => BPCategoryKey | null;
 type GetCategoryInfoFn = (category: string | null) => BPCategoryInfo;
 
-function generateMarkdown(
+export function generateMarkdown(
   readings: BPReading[],
   stats: BPStats | null,
   getCategory: GetCategoryFn,
@@ -64,6 +65,9 @@ function generateMarkdown(
   }
 
   let md = generateExportHeader('Blood Pressure Summary', dateRange, readings.length, 'Readings');
+
+  // Timezone the readings were recorded in (dates are stored as local dates)
+  md += `**Timezone:** ${Intl.DateTimeFormat().resolvedOptions().timeZone}\n\n`;
 
   // Category distribution
   const categoryCount: Record<string, number> = {};
@@ -109,9 +113,55 @@ function generateMarkdown(
     }
   }
 
-  // Recent readings (last 5)
-  md += '## Recent Readings (Last 5)\n\n';
-  const recentRows = readings.slice(0, 5).map((r) => {
+  // Monthly averages (trend view, oldest to newest)
+  md += '## Monthly Averages\n\n';
+  const readingsByMonth = new Map<string, BPReading[]>();
+  readings.forEach((r) => {
+    const month = r.date.slice(0, 7); // YYYY-MM
+    const group = readingsByMonth.get(month);
+    if (group) {
+      group.push(r);
+    } else {
+      readingsByMonth.set(month, [r]);
+    }
+  });
+  const monthRows = [...readingsByMonth.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([month, group]) => [
+      month,
+      group.length,
+      avgRounded(group.map((g) => g.systolic)) ?? '-',
+      avgRounded(group.map((g) => g.diastolic)) ?? '-',
+      avgRounded(group.map((g) => g.pulse).filter((p): p is number => p != null)) ?? '-',
+    ]);
+  md += createMarkdownTable(
+    ['Month', 'Readings', 'Avg Systolic', 'Avg Diastolic', 'Avg Pulse'],
+    monthRows
+  );
+  md += '\n\n';
+
+  // Averages by time of day
+  md += '## Averages by Time of Day\n\n';
+  const timeOfDayOrder = ['morning', 'afternoon', 'evening', 'late_evening'] as const;
+  const todRows = timeOfDayOrder
+    .map((tod) => readings.filter((r) => r.timeOfDay === tod))
+    .filter((group) => group.length > 0)
+    .map((group) => [
+      getTimeOfDayLabel(group[0].timeOfDay),
+      group.length,
+      avgRounded(group.map((g) => g.systolic)) ?? '-',
+      avgRounded(group.map((g) => g.diastolic)) ?? '-',
+      avgRounded(group.map((g) => g.pulse).filter((p): p is number => p != null)) ?? '-',
+    ]);
+  md += createMarkdownTable(
+    ['Time of Day', 'Readings', 'Avg Systolic', 'Avg Diastolic', 'Avg Pulse'],
+    todRows
+  );
+  md += '\n\n';
+
+  // Recent readings (last 30)
+  md += '## Recent Readings (Last 30)\n\n';
+  const recentRows = readings.slice(0, 30).map((r) => {
     const date = new Date(r.date + 'T00:00:00');
     const cat = getCategory(r.systolic, r.diastolic);
     const info = getCategoryInfo(cat);
