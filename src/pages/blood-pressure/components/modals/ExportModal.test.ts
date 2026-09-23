@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateMarkdown } from './ExportModal';
+import { generateMarkdown } from './exportMarkdown';
 import { calculateStats } from '../../utils/bpHelpers';
 
 const stubGetCategory = () => 'normal' as const;
@@ -23,7 +23,12 @@ const readings = [
 ];
 
 describe('generateMarkdown', () => {
-  const md = generateMarkdown(readings, calculateStats(readings), stubGetCategory, stubGetCategoryInfo);
+  const md = generateMarkdown(
+    readings,
+    calculateStats(readings),
+    stubGetCategory,
+    stubGetCategoryInfo
+  );
 
   it('includes a timezone line', () => {
     expect(md).toMatch(/\*\*Timezone:\*\* \S+/);
