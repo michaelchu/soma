@@ -21,13 +21,23 @@ CI runs: format:check, lint, typecheck, build (in that order). All must pass.
 
 ## Architecture
 
-React 18 + TypeScript SPA using local SQLite (WASM + OPFS), Vite, Tailwind CSS, and shadcn/ui components. Deployed to Vercel.
+React 18 + TypeScript SPA, Vite, Tailwind CSS, and shadcn/ui components. Deployed to Vercel.
+Data lives in Postgres (Neon), accessed through Vercel serverless functions under `api/`.
 
 ### Data Flow
 
 ```
-Component → Feature Context → useDataManager hook → Database Layer (src/lib/db/) → SQLite (via Web Worker)
+Component → Feature Context → useDataManager hook → Database Layer (src/lib/db/) → HTTP (src/lib/api.ts) → Vercel serverless functions (api/) → Neon Postgres
 ```
+
+### Server API (`api/`)
+
+- `api/_db.ts` — Neon HTTP client, idempotent schema bootstrap, shared handler helpers.
+- One domain per file: `api/blood-pressure.ts`, `api/activities.ts`, `api/sleep.ts`,
+  `api/blood-tests.ts` (+ `api/blood-tests-metrics.ts` upsert, `api/blood-tests-bulk.ts` bulk insert).
+- `api/backup.ts` — full export / atomic replace (powers Google Drive backup/restore).
+- `api/health.ts` — startup connectivity check.
+- The browser never sees `DATABASE_URL` (server-side env var injected by the Neon integration).
 
 ### Feature Modules (`src/pages/`)
 
@@ -35,10 +45,8 @@ Each feature (activity, blood-pressure, blood-tests, sleep, main) is self-contai
 
 ### Shared Infrastructure (`src/lib/`)
 
-- `db/` — One file per domain (activity.ts, bloodPressure.ts, bloodTests.ts, sleep.ts). All DB functions return `{ data, error }` tuples.
-- `sqlite.ts` — SQLite interface (export/import data).
-- `sqlite-worker.ts` — Web Worker handling SQLite WASM + OPFS persistence.
-- `sqlite-schema.ts` — Database schema definitions.
+- `db/` — One file per domain (activity.ts, bloodPressure.ts, bloodTests.ts, sleep.ts). All DB functions return `{ data, error }` tuples. Each is a thin client over the matching `api/` endpoint.
+- `api.ts` — HTTP client for the server API, plus `exportData`/`importData` (backup/restore) and `checkApiHealth` (startup check).
 - `googleDrive.ts` — Google Drive backup/restore using Google Identity Services token flow.
 - `validation.ts` — Zod schemas for all input validation with XSS sanitization.
 - `dateUtils.ts` — Timezone-aware date/time helpers. Dates stored as `YYYY-MM-DD` strings; be careful with UTC vs local conversions.
@@ -69,7 +77,10 @@ Centralized in `src/types/` — one file per domain. Always use these shared typ
 
 ## Database
 
-Local SQLite via WASM, persisted with OPFS (Origin Private File System). Schema defined in `src/lib/sqlite-schema.ts`. All database operations run in a Web Worker (`src/lib/sqlite-worker.ts`). Tables: `blood_pressure_readings`, `sleep_entries`, `activities`, `blood_test_reports`, `blood_test_metrics`.
+Postgres (Neon), accessed only through the Vercel serverless functions in `api/`
+(the browser never holds database credentials). `api/_db.ts` runs an idempotent
+schema bootstrap on cold start. Tables: `blood_pressure_readings`, `sleep_entries`,
+`activities`, `blood_test_reports`, `blood_test_metrics`.
 
 Google Drive backup/restore is available via `src/lib/googleDrive.ts` (optional, requires `VITE_GOOGLE_CLIENT_ID`).
 
