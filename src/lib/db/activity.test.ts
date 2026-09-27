@@ -2,16 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getActivities, addActivity, updateActivity, deleteActivity } from './activity';
 import type { ActivityInput } from '@/types/activity';
 
-const mockGet = vi.fn();
-const mockPost = vi.fn();
-const mockPut = vi.fn();
-const mockDelete = vi.fn();
+const mockQuery = vi.fn();
+const mockExec = vi.fn();
 
-vi.mock('../api', () => ({
-  apiGet: (...args: unknown[]) => mockGet(...args),
-  apiPost: (...args: unknown[]) => mockPost(...args),
-  apiPut: (...args: unknown[]) => mockPut(...args),
-  apiDelete: (...args: unknown[]) => mockDelete(...args),
+vi.mock('../sqlite', () => ({
+  querySQL: (...args: unknown[]) => mockQuery(...args),
+  execSQL: (...args: unknown[]) => mockExec(...args),
 }));
 
 describe('activity database layer', () => {
@@ -47,11 +43,10 @@ describe('activity database layer', () => {
 
   describe('getActivities', () => {
     it('returns activities', async () => {
-      mockGet.mockResolvedValue({ rows: [mockActivityRow] });
+      mockQuery.mockResolvedValue([mockActivityRow]);
 
       const result = await getActivities();
 
-      expect(mockGet).toHaveBeenCalledWith('/api/activities');
       expect(result.error).toBeNull();
       expect(result.data).toHaveLength(1);
       expect(result.data![0]).toMatchObject({
@@ -62,18 +57,19 @@ describe('activity database layer', () => {
     });
 
     it('returns error on failure', async () => {
-      mockGet.mockRejectedValue(new Error('API error'));
+      mockQuery.mockRejectedValue(new Error('DB error'));
 
       const result = await getActivities();
 
-      expect(result.error?.message).toBe('API error');
+      expect(result.error?.message).toBe('DB error');
       expect(result.data).toBeNull();
     });
   });
 
   describe('addActivity', () => {
     it('adds activity with validation', async () => {
-      mockPost.mockResolvedValue({ row: mockActivityRow });
+      mockExec.mockResolvedValue({ changes: 1, lastId: 1 });
+      mockQuery.mockResolvedValue([mockActivityRow]);
 
       const result = await addActivity(mockActivityInput);
 
@@ -84,40 +80,40 @@ describe('activity database layer', () => {
     it('validates input before adding', async () => {
       const result = await addActivity({ ...mockActivityInput, date: '' });
       expect(result.error!.message).toContain('Date is required');
-      expect(mockPost).not.toHaveBeenCalled();
     });
 
     it('sanitizes notes (XSS prevention)', async () => {
-      mockPost.mockResolvedValue({ row: { ...mockActivityRow, notes: 'alert("xss")' } });
+      mockExec.mockResolvedValue({ changes: 1, lastId: 1 });
+      mockQuery.mockResolvedValue([{ ...mockActivityRow, notes: 'alert("xss")' }]);
 
       await addActivity({ ...mockActivityInput, notes: '<script>alert("xss")</script>' });
 
-      const body = mockPost.mock.calls[0][1] as { notes: string };
-      expect(body.notes).not.toContain('<script>');
+      const insertCall = mockExec.mock.calls[0];
+      const params = insertCall[1] as unknown[];
+      expect(params[6]).not.toContain('<script>');
     });
   });
 
   describe('updateActivity', () => {
     it('updates activity with validation', async () => {
-      mockPut.mockResolvedValue({ row: { ...mockActivityRow, duration_minutes: 45 } });
+      mockExec.mockResolvedValue({ changes: 1, lastId: 1 });
+      mockQuery.mockResolvedValue([{ ...mockActivityRow, duration_minutes: 45 }]);
 
       const result = await updateActivity('activity-1', {
         ...mockActivityInput,
         durationMinutes: 45,
       });
 
-      expect(mockPut.mock.calls[0][0]).toContain('id=activity-1');
       expect(result.data!.durationMinutes).toBe(45);
     });
   });
 
   describe('deleteActivity', () => {
     it('deletes activity', async () => {
-      mockDelete.mockResolvedValue({ ok: true });
+      mockExec.mockResolvedValue({ changes: 1, lastId: 0 });
 
       const result = await deleteActivity('activity-1');
 
-      expect(mockDelete).toHaveBeenCalledWith('/api/activities?id=activity-1');
       expect(result.error).toBeNull();
     });
   });

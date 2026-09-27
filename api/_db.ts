@@ -15,7 +15,14 @@ let client: SqlClient | null = null;
 
 export function getSql(): SqlClient {
   if (!client) {
-    const url = process.env.DATABASE_URL;
+    // The Neon Vercel integration names the variable DATABASE_URL, but accept
+    // common alternates so a differently-named integration still works.
+    const url =
+      process.env.DATABASE_URL ||
+      process.env.POSTGRES_URL ||
+      process.env.NEON_DATABASE_URL ||
+      process.env.DATABASE_URL_UNPOOLED ||
+      process.env.POSTGRES_URL_NON_POOLING;
     if (!url) {
       throw new Error('DATABASE_URL is not configured');
     }
@@ -179,7 +186,14 @@ export async function handleErrors(
     await ensureSchema();
     await fn();
   } catch (err) {
-    console.error(`[api:${context}]`, err instanceof Error ? err.message : err);
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error(`[api:${context}]`, message);
+    // Surface a missing-database-variable as 503 with a safe message so a
+    // misconfigured deployment is diagnosable without leaking anything.
+    if (message.includes('DATABASE_URL is not configured')) {
+      json(res, 503, { error: 'Database not configured' });
+      return;
+    }
     json(res, 500, { error: 'Internal server error' });
   }
 }

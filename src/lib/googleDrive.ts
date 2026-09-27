@@ -1,11 +1,11 @@
 /* eslint-disable no-undef */
 /**
- * Google Drive backup/restore for the server database.
+ * Google Drive backup/restore for local SQLite database.
  * Uses Google Identity Services (GIS) token flow + Drive API v3.
  * Stores backup in appDataFolder (hidden, app-specific, non-sensitive scope).
  */
 
-import { exportData, importData, type DatabaseBackup } from './api';
+import { exportData, importData, type DatabaseBackup } from './sqlite';
 
 const SCOPES = 'https://www.googleapis.com/auth/drive.appdata';
 const BACKUP_FILENAME = 'soma-backup.json';
@@ -134,7 +134,7 @@ async function findBackupFile(): Promise<BackupInfo | null> {
 }
 
 /**
- * Backup the server database to Google Drive
+ * Backup the local database to Google Drive
  * Overwrites existing backup file (Drive keeps revisions automatically)
  */
 export async function backup(): Promise<{ modifiedTime: string }> {

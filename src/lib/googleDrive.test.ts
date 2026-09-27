@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mockExportData = vi.fn();
 const mockImportData = vi.fn();
 
-vi.mock('./api', () => ({
+vi.mock('./sqlite', () => ({
   exportData: (...args: unknown[]) => mockExportData(...args),
   importData: (...args: unknown[]) => mockImportData(...args),
 }));

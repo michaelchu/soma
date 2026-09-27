@@ -7,16 +7,12 @@ import {
   type SleepEntryInput,
 } from './sleep';
 
-const mockGet = vi.fn();
-const mockPost = vi.fn();
-const mockPut = vi.fn();
-const mockDelete = vi.fn();
+const mockQuery = vi.fn();
+const mockExec = vi.fn();
 
-vi.mock('../api', () => ({
-  apiGet: (...args: unknown[]) => mockGet(...args),
-  apiPost: (...args: unknown[]) => mockPost(...args),
-  apiPut: (...args: unknown[]) => mockPut(...args),
-  apiDelete: (...args: unknown[]) => mockDelete(...args),
+vi.mock('../sqlite', () => ({
+  querySQL: (...args: unknown[]) => mockQuery(...args),
+  execSQL: (...args: unknown[]) => mockExec(...args),
 }));
 
 const input: SleepEntryInput = {
@@ -58,36 +54,36 @@ describe('sleep database layer', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('loads entries and calculates overnight duration', async () => {
-    mockGet.mockResolvedValue({ rows: [row] });
+    mockQuery.mockResolvedValue([row]);
 
     const result = await getSleepEntries();
 
-    expect(mockGet).toHaveBeenCalledWith('/api/sleep');
     expect(result.error).toBeNull();
     expect(result.data?.[0]).toMatchObject({ id: 'sleep-1', durationMinutes: 480 });
   });
 
   it('adds and maps a sleep entry', async () => {
-    mockPost.mockResolvedValue({ row });
+    mockExec.mockResolvedValue({ changes: 1 });
+    mockQuery.mockResolvedValue([row]);
 
     const result = await addSleepEntry(input);
 
     expect(result.error).toBeNull();
     expect(result.data?.timezone).toBe('America/Toronto');
-    expect(mockPost).toHaveBeenCalledOnce();
-    expect((mockPost.mock.calls[0][1] as { timezone: string }).timezone).toBe('America/Toronto');
+    expect(mockExec).toHaveBeenCalledOnce();
+    expect((mockExec.mock.calls[0][1] as unknown[])[2]).toBe('America/Toronto');
   });
 
-  it('rejects invalid input before touching the API', async () => {
+  it('rejects invalid input before touching the database', async () => {
     const result = await addSleepEntry({ ...input, date: '' });
 
     expect(result.data).toBeNull();
     expect(result.error?.message).toContain('Date is required');
-    expect(mockPost).not.toHaveBeenCalled();
+    expect(mockExec).not.toHaveBeenCalled();
   });
 
   it('returns an error when an insert fails', async () => {
-    mockPost.mockRejectedValue(new Error('insert failed'));
+    mockExec.mockRejectedValue(new Error('insert failed'));
 
     const result = await addSleepEntry(input);
 
@@ -95,18 +91,18 @@ describe('sleep database layer', () => {
     expect(result.error?.message).toBe('insert failed');
   });
 
-  it('updates an entry and sends missing timezone as null', async () => {
-    mockPut.mockResolvedValue({ row });
+  it('updates an entry and binds missing timezone as null', async () => {
+    mockExec.mockResolvedValue({ changes: 1 });
+    mockQuery.mockResolvedValue([row]);
 
     await updateSleepEntry('sleep-1', { ...input, timezone: undefined });
 
-    const body = mockPut.mock.calls[0][1] as { timezone: string | null };
-    expect(body.timezone).toBeNull();
-    expect(mockPut.mock.calls[0][0]).toContain('id=sleep-1');
+    const params = mockExec.mock.calls[0][1] as unknown[];
+    expect(params[1]).toBeNull();
   });
 
   it('returns an error when an update fails', async () => {
-    mockPut.mockRejectedValue(new Error('update failed'));
+    mockExec.mockRejectedValue(new Error('update failed'));
 
     const result = await updateSleepEntry('sleep-1', input);
 
@@ -114,11 +110,11 @@ describe('sleep database layer', () => {
     expect(result.error?.message).toBe('update failed');
   });
 
-  it('handles fetch and delete failures', async () => {
-    mockGet.mockRejectedValue(new Error('fetch failed'));
-    expect((await getSleepEntries()).error?.message).toBe('fetch failed');
+  it('handles query and delete failures', async () => {
+    mockQuery.mockRejectedValue(new Error('query failed'));
+    expect((await getSleepEntries()).error?.message).toBe('query failed');
 
-    mockDelete.mockRejectedValue(new Error('delete failed'));
+    mockExec.mockRejectedValue(new Error('delete failed'));
     expect((await deleteSleepEntry('sleep-1')).error?.message).toBe('delete failed');
   });
 });

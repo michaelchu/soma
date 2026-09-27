@@ -1,11 +1,11 @@
-import { apiGet, apiPost, apiPut, apiDelete } from '../api';
+import { querySQL, execSQL, transactionSQL } from '../sqlite';
 import { validateBPSession, sanitizeString } from '../validation';
 import { logError } from '../logger';
 import type { Arm, BPReading, BPSession, BPSessionInput, BPTimeOfDay } from '@/types/bloodPressure';
 
 /**
  * Blood Pressure data service
- * CRUD operations for blood pressure readings (server API backed by Postgres)
+ * CRUD operations for blood pressure readings (local SQLite)
  */
 
 type CuffLocation = 'left_arm' | 'left_wrist' | 'right_arm' | 'right_wrist' | null;
@@ -26,6 +26,12 @@ interface BPReadingRow {
 
 export type { BPReading, BPSession, BPSessionInput };
 
+const armToCuff = (arm: Arm): CuffLocation => {
+  if (arm === 'L') return 'left_arm';
+  if (arm === 'R') return 'right_arm';
+  return null;
+};
+
 const cuffToArm = (cuff: CuffLocation): Arm => {
   if (cuff === 'left_arm' || cuff === 'left_wrist') return 'L';
   if (cuff === 'right_arm' || cuff === 'right_wrist') return 'R';
@@ -44,6 +50,32 @@ function rowToReading(row: BPReadingRow): BPReading {
     arm: cuffToArm(row.cuff_location),
     sessionId: row.session_id,
   };
+}
+
+function buildInsertStatements(
+  sessionId: string,
+  session: BPSessionInput,
+  sanitizedNotes: string | null,
+  now: string
+) {
+  return session.readings.map((reading, i) => ({
+    sql: `INSERT INTO blood_pressure_readings
+      (id, session_id, recorded_date, time_of_day, systolic, diastolic, pulse, notes, cuff_location, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    params: [
+      crypto.randomUUID(),
+      sessionId,
+      session.date,
+      session.timeOfDay,
+      reading.systolic,
+      reading.diastolic,
+      reading.pulse || null,
+      i === 0 ? sanitizedNotes : null,
+      armToCuff(reading.arm || null),
+      now,
+      now,
+    ],
+  }));
 }
 
 function buildSession(
@@ -91,35 +123,17 @@ function calculateSessionAverages(readings: BPReading[]): {
   return { avgSystolic, avgDiastolic, avgPulse };
 }
 
-interface SessionPayload {
-  date: string;
-  timeOfDay: BPTimeOfDay;
-  readings: Array<{ systolic: number; diastolic: number; pulse: number | null; arm: Arm }>;
-}
-
-function toPayload(session: BPSessionInput, notes: string | null) {
-  const payload: SessionPayload = {
-    date: session.date,
-    timeOfDay: session.timeOfDay,
-    readings: session.readings.map((reading) => ({
-      systolic: reading.systolic,
-      diastolic: reading.diastolic,
-      pulse: reading.pulse ?? null,
-      arm: reading.arm ?? null,
-    })),
-  };
-  return { session: payload, notes };
-}
-
 /**
  * Get all blood pressure readings, grouped by session
  */
 export async function getReadings(): Promise<{ data: BPSession[] | null; error: Error | null }> {
   try {
-    const { rows } = await apiGet<{ rows: BPReadingRow[] }>('/api/blood-pressure');
+    const data = await querySQL<BPReadingRow>(
+      'SELECT * FROM blood_pressure_readings ORDER BY recorded_date DESC'
+    );
 
     const sessionMap = new Map<string, BPReading[]>();
-    for (const row of rows) {
+    for (const row of data) {
       const sessionId = row.session_id;
       if (!sessionMap.has(sessionId)) {
         sessionMap.set(sessionId, []);
@@ -171,10 +185,15 @@ export async function addSession(
   }
 
   try {
+    const sessionId = crypto.randomUUID();
     const sanitizedNotes = session.notes ? sanitizeString(session.notes) : null;
-    const { sessionId, rows } = await apiPost<{ sessionId: string; rows: BPReadingRow[] }>(
-      '/api/blood-pressure',
-      toPayload(session, sanitizedNotes)
+    const now = new Date().toISOString();
+
+    await transactionSQL(buildInsertStatements(sessionId, session, sanitizedNotes, now));
+
+    const rows = await querySQL<BPReadingRow>(
+      'SELECT * FROM blood_pressure_readings WHERE session_id = ?',
+      [sessionId]
     );
 
     return {
@@ -202,9 +221,16 @@ export async function updateSession(
 
   try {
     const sanitizedNotes = session.notes ? sanitizeString(session.notes) : null;
-    const { rows } = await apiPut<{ sessionId: string; rows: BPReadingRow[] }>(
-      `/api/blood-pressure?sessionId=${encodeURIComponent(sessionId)}`,
-      toPayload(session, sanitizedNotes)
+    const now = new Date().toISOString();
+
+    await transactionSQL([
+      { sql: 'DELETE FROM blood_pressure_readings WHERE session_id = ?', params: [sessionId] },
+      ...buildInsertStatements(sessionId, session, sanitizedNotes, now),
+    ]);
+
+    const rows = await querySQL<BPReadingRow>(
+      'SELECT * FROM blood_pressure_readings WHERE session_id = ?',
+      [sessionId]
     );
 
     return {
@@ -222,7 +248,7 @@ export async function updateSession(
  */
 export async function deleteSession(sessionId: string): Promise<{ error: Error | null }> {
   try {
-    await apiDelete(`/api/blood-pressure?sessionId=${encodeURIComponent(sessionId)}`);
+    await execSQL('DELETE FROM blood_pressure_readings WHERE session_id = ?', [sessionId]);
     return { error: null };
   } catch (err) {
     logError('bloodPressure.deleteSession', err);

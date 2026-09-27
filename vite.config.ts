@@ -37,6 +37,9 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  optimizeDeps: {
+    exclude: ['wa-sqlite'],
+  },
   build: {
     rollupOptions: {
       output: {
@@ -59,6 +62,7 @@ export default defineConfig({
             '@radix-ui/react-tabs',
             '@radix-ui/react-tooltip',
           ],
+          'wa-sqlite': ['wa-sqlite'],
         },
       },
     },

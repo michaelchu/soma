@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut, apiDelete } from '../api';
+import { querySQL, execSQL } from '../sqlite';
 import { validateActivity, sanitizeString } from '../validation';
 import { logError } from '../logger';
 import type {
@@ -11,7 +11,7 @@ import type {
 
 /**
  * Activity data service
- * CRUD operations for activity entries (server API backed by Postgres)
+ * CRUD operations for activity entries (local SQLite)
  */
 
 function rowToActivity(row: ActivityRow): Activity {
@@ -34,22 +34,6 @@ function rowToActivity(row: ActivityRow): Activity {
   };
 }
 
-function toPayload(input: ActivityInput, notes: string | null) {
-  return {
-    date: input.date,
-    timeOfDay: input.timeOfDay,
-    activityType: input.activityType,
-    durationMinutes: input.durationMinutes,
-    intensity: input.intensity,
-    notes,
-    zone1Minutes: input.zone1Minutes ?? null,
-    zone2Minutes: input.zone2Minutes ?? null,
-    zone3Minutes: input.zone3Minutes ?? null,
-    zone4Minutes: input.zone4Minutes ?? null,
-    zone5Minutes: input.zone5Minutes ?? null,
-  };
-}
-
 /**
  * Get all activities
  */
@@ -58,7 +42,7 @@ export async function getActivities(): Promise<{
   error: Error | null;
 }> {
   try {
-    const { rows } = await apiGet<{ rows: ActivityRow[] }>('/api/activities');
+    const rows = await querySQL<ActivityRow>('SELECT * FROM activities ORDER BY date DESC');
     return { data: rows.map(rowToActivity), error: null };
   } catch (err) {
     logError('activity.getActivities', err);
@@ -79,11 +63,33 @@ export async function addActivity(
 
   try {
     const sanitizedNotes = input.notes ? sanitizeString(input.notes) : null;
-    const { row } = await apiPost<{ row: ActivityRow }>(
-      '/api/activities',
-      toPayload(input, sanitizedNotes)
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+
+    await execSQL(
+      `INSERT INTO activities (id, date, time_of_day, activity_type, duration_minutes, intensity, notes,
+        zone1_minutes, zone2_minutes, zone3_minutes, zone4_minutes, zone5_minutes, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        input.date,
+        input.timeOfDay,
+        input.activityType,
+        input.durationMinutes,
+        input.intensity,
+        sanitizedNotes,
+        input.zone1Minutes ?? null,
+        input.zone2Minutes ?? null,
+        input.zone3Minutes ?? null,
+        input.zone4Minutes ?? null,
+        input.zone5Minutes ?? null,
+        now,
+        now,
+      ]
     );
-    return { data: rowToActivity(row), error: null };
+
+    const rows = await querySQL<ActivityRow>('SELECT * FROM activities WHERE id = ?', [id]);
+    return { data: rowToActivity(rows[0]), error: null };
   } catch (err) {
     logError('activity.addActivity', err);
     return { data: null, error: err instanceof Error ? err : new Error(String(err)) };
@@ -104,11 +110,31 @@ export async function updateActivity(
 
   try {
     const sanitizedNotes = input.notes ? sanitizeString(input.notes) : null;
-    const { row } = await apiPut<{ row: ActivityRow }>(
-      `/api/activities?id=${encodeURIComponent(id)}`,
-      toPayload(input, sanitizedNotes)
+    const now = new Date().toISOString();
+
+    await execSQL(
+      `UPDATE activities SET date=?, time_of_day=?, activity_type=?, duration_minutes=?, intensity=?, notes=?,
+        zone1_minutes=?, zone2_minutes=?, zone3_minutes=?, zone4_minutes=?, zone5_minutes=?, updated_at=?
+       WHERE id=?`,
+      [
+        input.date,
+        input.timeOfDay,
+        input.activityType,
+        input.durationMinutes,
+        input.intensity,
+        sanitizedNotes,
+        input.zone1Minutes ?? null,
+        input.zone2Minutes ?? null,
+        input.zone3Minutes ?? null,
+        input.zone4Minutes ?? null,
+        input.zone5Minutes ?? null,
+        now,
+        id,
+      ]
     );
-    return { data: rowToActivity(row), error: null };
+
+    const rows = await querySQL<ActivityRow>('SELECT * FROM activities WHERE id = ?', [id]);
+    return { data: rowToActivity(rows[0]), error: null };
   } catch (err) {
     logError('activity.updateActivity', err);
     return { data: null, error: err instanceof Error ? err : new Error(String(err)) };
@@ -120,7 +146,7 @@ export async function updateActivity(
  */
 export async function deleteActivity(id: string): Promise<{ error: Error | null }> {
   try {
-    await apiDelete(`/api/activities?id=${encodeURIComponent(id)}`);
+    await execSQL('DELETE FROM activities WHERE id = ?', [id]);
     return { error: null };
   } catch (err) {
     logError('activity.deleteActivity', err);
