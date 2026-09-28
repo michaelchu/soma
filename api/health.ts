@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { query, json, methodNotAllowed, handleErrors } from './_db';
+import { query, json, methodNotAllowed, handleErrors } from './_db.js';
 
 /**
  * GET /api/health -> { ok: true }

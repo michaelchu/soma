@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { query, json, badRequest, methodNotAllowed, handleErrors, getQueryParam } from './_db';
+import { query, json, badRequest, methodNotAllowed, handleErrors, getQueryParam } from './_db.js';
 
 /**
  * GET    /api/blood-tests          -> { reports, metrics }

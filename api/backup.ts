@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { query, json, badRequest, methodNotAllowed, handleErrors } from './_db';
+import { query, json, badRequest, methodNotAllowed, handleErrors } from './_db.js';
 
 /**
  * GET  /api/backup -> { schemaVersion, tables } (full database export)
