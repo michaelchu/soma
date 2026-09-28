@@ -39,6 +39,28 @@ export async function query<T = Record<string, unknown>>(
   return (await getSql().query(text, params)) as T[];
 }
 
+/**
+ * Normalize a Postgres DATE value to a 'YYYY-MM-DD' string.
+ *
+ * The Neon HTTP driver parses DATE columns into JS Date objects (local
+ * midnight), and JSON.stringify would turn those into full ISO timestamps
+ * ("2026-09-24T04:00:00.000Z"). The frontend expects date-only strings, so
+ * convert back to 'YYYY-MM-DD' before sending JSON responses.
+ */
+export function toDateOnly(value: unknown): string {
+  if (value instanceof Date) {
+    const y = value.getFullYear();
+    const m = String(value.getMonth() + 1).padStart(2, '0');
+    const d = String(value.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  if (typeof value === 'string') {
+    const match = /^(\d{4}-\d{2}-\d{2})/.exec(value);
+    if (match) return match[1];
+  }
+  throw new Error(`Cannot convert to date-only string: ${String(value)}`);
+}
+
 // Postgres port of the app's data model. Every statement is idempotent
 // (IF NOT EXISTS) so this is safe to run on every cold start. It also
 // backfills columns on tables created before a column existed.

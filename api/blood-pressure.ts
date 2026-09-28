@@ -1,6 +1,14 @@
 import { randomUUID } from 'crypto';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { query, json, badRequest, methodNotAllowed, handleErrors, getQueryParam } from './_db.js';
+import {
+  query,
+  json,
+  badRequest,
+  methodNotAllowed,
+  handleErrors,
+  getQueryParam,
+  toDateOnly,
+} from './_db.js';
 
 /**
  * GET    /api/blood-pressure                  -> { rows } (all readings, newest first)
@@ -11,6 +19,14 @@ import { query, json, badRequest, methodNotAllowed, handleErrors, getQueryParam 
 
 const COLUMNS =
   'id, session_id, recorded_date, time_of_day, systolic, diastolic, pulse, notes, cuff_location, created_at, updated_at';
+
+/**
+ * The Neon driver returns DATE columns as JS Date objects; serialize them back
+ * to 'YYYY-MM-DD' so the frontend receives the date-only strings it expects.
+ */
+function serializeRow(row: Record<string, unknown>): Record<string, unknown> {
+  return { ...row, recorded_date: toDateOnly(row.recorded_date) };
+}
 
 const TIME_OF_DAY = new Set(['morning', 'afternoon', 'evening', 'late_evening']);
 
@@ -129,7 +145,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       const rows = await query(
         `SELECT ${COLUMNS} FROM blood_pressure_readings ORDER BY recorded_date DESC`
       );
-      json(res, 200, { rows });
+      json(res, 200, { rows: rows.map(serializeRow) });
       return;
     }
 
@@ -148,7 +164,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         parsed.notes,
         false
       );
-      json(res, 201, { sessionId, rows });
+      json(res, 201, { sessionId, rows: rows.map(serializeRow) });
       return;
     }
 
@@ -171,7 +187,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         parsed.notes,
         true
       );
-      json(res, 200, { sessionId, rows });
+      json(res, 200, { sessionId, rows: rows.map(serializeRow) });
       return;
     }
 
