@@ -1,6 +1,6 @@
 # Soma
 
-Personal health tracking app - a launcher portal for mini health-related apps built with React, TypeScript, and local-first storage.
+Personal health tracking app - a launcher portal for mini health-related apps built with React, TypeScript, and Postgres (Neon) storage via serverless API.
 
 ## Quick Start
 
@@ -80,7 +80,7 @@ Log physical activities:
 | Icons | Lucide React |
 | Routing | React Router v6 |
 | Charts | Recharts |
-| Storage | SQLite via wa-sqlite + OPFS |
+| Storage | Postgres (Neon) via Vercel serverless API |
 | Backup | Optional Google Drive appDataFolder |
 | Testing | Vitest + Testing Library |
 | Validation | Zod |
@@ -90,6 +90,15 @@ Log physical activities:
 ### Directory Structure
 
 ```
+api/                    # Vercel serverless functions (Neon Postgres backend)
+│   ├── _db.ts           # Neon client + schema bootstrap + handler helpers
+│   ├── blood-pressure.ts
+│   ├── activities.ts
+│   ├── sleep.ts
+│   ├── blood-tests.ts   # reports CRUD (+ metrics upsert, bulk insert)
+│   ├── backup.ts        # full export / atomic restore
+│   └── health.ts        # startup connectivity check
+│
 src/
 ├── components/           # Shared components
 │   ├── shared/          # App-wide shared components (Layout, Navigation)
@@ -104,8 +113,7 @@ src/
 │   │   ├── bloodPressure.ts
 │   │   ├── bloodTests.ts
 │   │   └── sleep.ts
-│   ├── sqlite.ts        # Local SQLite worker bridge
-│   ├── sqlite-worker.ts # wa-sqlite + OPFS worker
+│   ├── api.ts           # HTTP client for the server API
 │   ├── googleDrive.ts   # Optional backup/restore
 │   ├── validation.ts    # Input validation
 │   ├── dateUtils.ts     # Date formatting/parsing
@@ -152,12 +160,16 @@ Context (manages state, calls db layer)
     ↓
 Database Layer (src/lib/db/*.ts)
     ↓
-Local SQLite (OPFS)
+HTTP client (src/lib/api.ts)
+    ↓
+Vercel serverless functions (api/)
+    ↓
+Neon Postgres
 ```
 
 ### Key Patterns
 
-**Database Layer**: Feature data is stored locally in SQLite/OPFS, with validation before database calls and `{ data, error }` tuples returned to the UI.
+**Database Layer**: Feature data is stored in Neon Postgres and accessed through the `api/` serverless functions, with validation before API calls and `{ data, error }` tuples returned to the UI.
 
 **State Management**: `useDataManager` hook provides generic CRUD operations. Each feature has its own Context created via `createDataContext` factory.
 

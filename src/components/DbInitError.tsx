@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 
 /**
  * Listens for the 'db-init-failed' CustomEvent dispatched from main.tsx when the
- * SQLite database cannot be opened on startup. Renders a full-screen blocking
+ * server API/database cannot be reached on startup. Renders a full-screen blocking
  * overlay with a Retry button so the user can recover without knowing what went wrong.
  *
  * This is mounted outside <ErrorBoundary> because it handles an async failure that
@@ -50,8 +50,8 @@ export default function DbInitError() {
             Couldn&apos;t load your data
           </h1>
           <p id="db-error-desc" className="text-muted-foreground">
-            The app was interrupted before it could open your database. This usually resolves itself
-            — tap Retry to try again.
+            The app couldn&apos;t connect to your database. Check your connection — this usually
+            resolves itself — then tap Retry to try again.
           </p>
         </div>
         <Button ref={retryButtonRef} onClick={() => window.location.reload()}>

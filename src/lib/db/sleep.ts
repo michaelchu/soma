@@ -1,11 +1,11 @@
-import { querySQL, execSQL } from '../sqlite';
+import { apiGet, apiPost, apiPut, apiDelete } from '../api';
 import { sanitizeString, validateSleepEntry, type SleepEntryInput } from '../validation';
 import { logError } from '../logger';
 import { calculateDurationFromTimes } from '../dateUtils';
 
 /**
  * Sleep data service
- * CRUD operations for sleep entries (local SQLite)
+ * CRUD operations for sleep entries (server API backed by Postgres)
  */
 
 interface SleepEntryRow {
@@ -90,6 +90,32 @@ function rowToEntry(row: SleepEntryRow): SleepEntry {
   };
 }
 
+function toPayload(entry: SleepEntryInput, notes: string | null, fallbackTimezone: boolean) {
+  return {
+    date: entry.date,
+    timezone:
+      entry.timezone ||
+      (fallbackTimezone ? Intl.DateTimeFormat().resolvedOptions().timeZone : null),
+    totalSleepMinutes: entry.totalSleepMinutes || null,
+    sleepStart: entry.sleepStart || null,
+    sleepEnd: entry.sleepEnd || null,
+    hrvLow: entry.hrvLow || null,
+    hrvHigh: entry.hrvHigh || null,
+    restingHr: entry.restingHr || null,
+    lowestHrTime: entry.lowestHrTime || null,
+    hrDropMinutes: entry.hrDropMinutes || null,
+    deepSleepPct: entry.deepSleepPct || null,
+    remSleepPct: entry.remSleepPct || null,
+    lightSleepPct: entry.lightSleepPct || null,
+    awakePct: entry.awakePct || null,
+    skinTempAvg: entry.skinTempAvg || null,
+    sleepCyclesFull: entry.sleepCyclesFull || null,
+    sleepCyclesPartial: entry.sleepCyclesPartial || null,
+    movementCount: entry.movementCount || null,
+    notes,
+  };
+}
+
 /**
  * Get all sleep entries
  */
@@ -98,7 +124,7 @@ export async function getSleepEntries(): Promise<{
   error: Error | null;
 }> {
   try {
-    const rows = await querySQL<SleepEntryRow>('SELECT * FROM sleep_entries ORDER BY date DESC');
+    const { rows } = await apiGet<{ rows: SleepEntryRow[] }>('/api/sleep');
     return { data: rows.map(rowToEntry), error: null };
   } catch (err) {
     logError('sleep.getSleepEntries', err);
@@ -119,45 +145,11 @@ export async function addSleepEntry(
 
   try {
     const sanitizedNotes = entry.notes ? sanitizeString(entry.notes) : null;
-    const id = crypto.randomUUID();
-    const now = new Date().toISOString();
-
-    await execSQL(
-      `INSERT INTO sleep_entries
-        (id, date, timezone, total_sleep_minutes, sleep_start, sleep_end,
-         hrv_low, hrv_high, resting_hr, lowest_hr_time, hr_drop_minutes,
-         deep_sleep_pct, rem_sleep_pct, light_sleep_pct, awake_pct,
-         skin_temp_avg, sleep_cycles_full, sleep_cycles_partial, movement_count,
-         notes, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        id,
-        entry.date,
-        entry.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-        entry.totalSleepMinutes || null,
-        entry.sleepStart || null,
-        entry.sleepEnd || null,
-        entry.hrvLow || null,
-        entry.hrvHigh || null,
-        entry.restingHr || null,
-        entry.lowestHrTime || null,
-        entry.hrDropMinutes || null,
-        entry.deepSleepPct || null,
-        entry.remSleepPct || null,
-        entry.lightSleepPct || null,
-        entry.awakePct || null,
-        entry.skinTempAvg || null,
-        entry.sleepCyclesFull || null,
-        entry.sleepCyclesPartial || null,
-        entry.movementCount || null,
-        sanitizedNotes,
-        now,
-        now,
-      ]
+    const { row } = await apiPost<{ row: SleepEntryRow }>(
+      '/api/sleep',
+      toPayload(entry, sanitizedNotes, true)
     );
-
-    const rows = await querySQL<SleepEntryRow>('SELECT * FROM sleep_entries WHERE id = ?', [id]);
-    return { data: rowToEntry(rows[0]), error: null };
+    return { data: rowToEntry(row), error: null };
   } catch (err) {
     logError('sleep.addSleepEntry', err);
     return { data: null, error: err instanceof Error ? err : new Error(String(err)) };
@@ -178,43 +170,11 @@ export async function updateSleepEntry(
 
   try {
     const sanitizedNotes = entry.notes ? sanitizeString(entry.notes) : null;
-    const now = new Date().toISOString();
-
-    await execSQL(
-      `UPDATE sleep_entries SET
-        date=?, timezone=?, total_sleep_minutes=?, sleep_start=?, sleep_end=?,
-        hrv_low=?, hrv_high=?, resting_hr=?, lowest_hr_time=?, hr_drop_minutes=?,
-        deep_sleep_pct=?, rem_sleep_pct=?, light_sleep_pct=?, awake_pct=?,
-        skin_temp_avg=?, sleep_cycles_full=?, sleep_cycles_partial=?, movement_count=?,
-        notes=?, updated_at=?
-       WHERE id=?`,
-      [
-        entry.date,
-        entry.timezone || null,
-        entry.totalSleepMinutes || null,
-        entry.sleepStart || null,
-        entry.sleepEnd || null,
-        entry.hrvLow || null,
-        entry.hrvHigh || null,
-        entry.restingHr || null,
-        entry.lowestHrTime || null,
-        entry.hrDropMinutes || null,
-        entry.deepSleepPct || null,
-        entry.remSleepPct || null,
-        entry.lightSleepPct || null,
-        entry.awakePct || null,
-        entry.skinTempAvg || null,
-        entry.sleepCyclesFull || null,
-        entry.sleepCyclesPartial || null,
-        entry.movementCount || null,
-        sanitizedNotes,
-        now,
-        id,
-      ]
+    const { row } = await apiPut<{ row: SleepEntryRow }>(
+      `/api/sleep?id=${encodeURIComponent(id)}`,
+      toPayload(entry, sanitizedNotes, false)
     );
-
-    const rows = await querySQL<SleepEntryRow>('SELECT * FROM sleep_entries WHERE id = ?', [id]);
-    return { data: rowToEntry(rows[0]), error: null };
+    return { data: rowToEntry(row), error: null };
   } catch (err) {
     logError('sleep.updateSleepEntry', err);
     return { data: null, error: err instanceof Error ? err : new Error(String(err)) };
@@ -226,7 +186,7 @@ export async function updateSleepEntry(
  */
 export async function deleteSleepEntry(id: string): Promise<{ error: Error | null }> {
   try {
-    await execSQL('DELETE FROM sleep_entries WHERE id = ?', [id]);
+    await apiDelete(`/api/sleep?id=${encodeURIComponent(id)}`);
     return { error: null };
   } catch (err) {
     logError('sleep.deleteSleepEntry', err);

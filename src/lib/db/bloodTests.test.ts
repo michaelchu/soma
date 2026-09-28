@@ -8,16 +8,16 @@ import {
   updateReport,
 } from './bloodTests';
 
-const mockQuery = vi.fn();
-const mockExec = vi.fn();
-const mockTransaction = vi.fn();
+const mockGet = vi.fn();
+const mockPost = vi.fn();
+const mockPut = vi.fn();
+const mockDelete = vi.fn();
 
-vi.stubGlobal('crypto', { randomUUID: () => 'generated-id' });
-
-vi.mock('../sqlite', () => ({
-  querySQL: (...args: unknown[]) => mockQuery(...args),
-  execSQL: (...args: unknown[]) => mockExec(...args),
-  transactionSQL: (...args: unknown[]) => mockTransaction(...args),
+vi.mock('../api', () => ({
+  apiGet: (...args: unknown[]) => mockGet(...args),
+  apiPost: (...args: unknown[]) => mockPost(...args),
+  apiPut: (...args: unknown[]) => mockPut(...args),
+  apiDelete: (...args: unknown[]) => mockDelete(...args),
 }));
 
 const reportInput = {
@@ -52,17 +52,17 @@ const metricRow = {
 describe('blood test database layer', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('returns an empty report list without querying metrics', async () => {
-    mockQuery.mockResolvedValue([]);
+  it('returns an empty report list without fetching metrics', async () => {
+    mockGet.mockResolvedValue({ reports: [], metrics: [] });
 
     const result = await getReports();
 
     expect(result).toEqual({ data: [], error: null });
-    expect(mockQuery).toHaveBeenCalledOnce();
+    expect(mockGet).toHaveBeenCalledWith('/api/blood-tests');
   });
 
   it('groups metrics into reports', async () => {
-    mockQuery.mockResolvedValueOnce([reportRow]).mockResolvedValueOnce([metricRow]);
+    mockGet.mockResolvedValue({ reports: [reportRow], metrics: [metricRow] });
 
     const result = await getReports();
 
@@ -74,17 +74,17 @@ describe('blood test database layer', () => {
     });
   });
 
-  it('inserts a report and metrics in one transaction', async () => {
-    mockTransaction.mockResolvedValue(undefined);
+  it('creates a report with metrics via the API', async () => {
+    mockPost.mockResolvedValue({ reportId: 'generated-id' });
 
     const result = await addReport(reportInput);
 
     expect(result.error).toBeNull();
+    expect(result.data?.id).toBe('generated-id');
     expect(result.data?.orderNumber).toBe('ORD-1');
-    expect(mockTransaction).toHaveBeenCalledOnce();
-    const statements = mockTransaction.mock.calls[0][0] as { sql: string; params: unknown[] }[];
-    expect(statements).toHaveLength(2);
-    expect(statements[0].params[4]).not.toContain('<script>');
+    expect(mockPost).toHaveBeenCalledOnce();
+    const body = mockPost.mock.calls[0][1] as { report: { notes: string } };
+    expect(body.report.notes).not.toContain('<script>');
   });
 
   it('does not write invalid reports', async () => {
@@ -92,11 +92,11 @@ describe('blood test database layer', () => {
 
     expect(result.data).toBeNull();
     expect(result.error?.message).toContain('Date is required');
-    expect(mockTransaction).not.toHaveBeenCalled();
+    expect(mockPost).not.toHaveBeenCalled();
   });
 
-  it('returns an error when the report transaction rolls back', async () => {
-    mockTransaction.mockRejectedValue(new Error('constraint failed'));
+  it('returns an error when the API request fails', async () => {
+    mockPost.mockRejectedValue(new Error('constraint failed'));
 
     const result = await addReport(reportInput);
 
@@ -105,42 +105,44 @@ describe('blood test database layer', () => {
   });
 
   it('updates report fields and maps the returned row', async () => {
-    mockExec.mockResolvedValue({ changes: 1 });
-    mockQuery.mockResolvedValue([reportRow]);
+    mockPut.mockResolvedValue({ report: reportRow });
 
     const result = await updateReport('report-1', { orderNumber: 'ORD-2' });
 
     expect(result.error).toBeNull();
     expect(result.data).toMatchObject({ id: 'report-1', orderNumber: 'ORD-1' });
-    expect(mockExec.mock.calls[0][0]).toContain('order_number=?');
+    expect(mockPut.mock.calls[0][0]).toContain('id=report-1');
+    const body = mockPut.mock.calls[0][1] as { orderNumber: string };
+    expect(body.orderNumber).toBe('ORD-2');
   });
 
-  it('upserts existing and new metrics', async () => {
-    mockQuery.mockResolvedValueOnce([{ id: 'metric-1' }]);
-    mockExec.mockResolvedValue({ changes: 1 });
-    expect(
-      (await updateMetric('report-1', 'glucose', reportInput.metrics.glucose)).error
-    ).toBeNull();
-    expect(mockExec.mock.calls[0][0]).toContain('UPDATE blood_test_metrics');
+  it('upserts metrics through the metrics endpoint', async () => {
+    mockPost.mockResolvedValue({ ok: true });
 
-    vi.clearAllMocks();
-    mockQuery.mockResolvedValueOnce([]);
-    expect(
-      (await updateMetric('report-1', 'glucose', reportInput.metrics.glucose)).error
-    ).toBeNull();
-    expect(mockExec.mock.calls[0][0]).toContain('INSERT INTO blood_test_metrics');
+    const result = await updateMetric('report-1', 'glucose', reportInput.metrics.glucose);
+
+    expect(result.error).toBeNull();
+    expect(mockPost).toHaveBeenCalledWith('/api/blood-tests-metrics', {
+      reportId: 'report-1',
+      metricKey: 'glucose',
+      data: reportInput.metrics.glucose,
+    });
   });
 
   it('handles delete failures', async () => {
-    mockExec.mockRejectedValue(new Error('delete failed'));
+    mockDelete.mockRejectedValue(new Error('delete failed'));
 
     const result = await deleteReport('report-1');
 
     expect(result.error?.message).toBe('delete failed');
   });
 
-  it('bulk inserts reports transactionally', async () => {
-    mockTransaction.mockResolvedValue(undefined);
+  it('bulk inserts reports through the bulk endpoint', async () => {
+    const inserted = [
+      { id: 'r1', report_date: '2024-03-15', order_number: null, ordered_by: null, notes: null },
+      { id: 'r2', report_date: '2024-03-16', order_number: null, ordered_by: null, notes: null },
+    ];
+    mockPost.mockResolvedValue({ reports: inserted });
 
     const result = await bulkInsertReports([
       { date: '2024-03-15', metrics: reportInput.metrics },
@@ -149,6 +151,9 @@ describe('blood test database layer', () => {
 
     expect(result.error).toBeNull();
     expect(result.data).toHaveLength(2);
-    expect(mockTransaction).toHaveBeenCalledTimes(2);
+    expect(mockPost).toHaveBeenCalledWith(
+      '/api/blood-tests-bulk',
+      expect.objectContaining({ reports: expect.any(Array) })
+    );
   });
 });

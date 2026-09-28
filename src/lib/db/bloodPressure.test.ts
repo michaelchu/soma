@@ -2,16 +2,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getReadings, addSession, deleteSession, updateSession } from './bloodPressure';
 import type { BPSessionInput } from '@/types/bloodPressure';
 
-vi.stubGlobal('crypto', { randomUUID: () => 'mock-session-uuid' });
+const mockGet = vi.fn();
+const mockPost = vi.fn();
+const mockPut = vi.fn();
+const mockDelete = vi.fn();
 
-const mockQuery = vi.fn();
-const mockExec = vi.fn();
-const mockTransaction = vi.fn();
-
-vi.mock('../sqlite', () => ({
-  querySQL: (...args: unknown[]) => mockQuery(...args),
-  execSQL: (...args: unknown[]) => mockExec(...args),
-  transactionSQL: (...args: unknown[]) => mockTransaction(...args),
+vi.mock('../api', () => ({
+  apiGet: (...args: unknown[]) => mockGet(...args),
+  apiPost: (...args: unknown[]) => mockPost(...args),
+  apiPut: (...args: unknown[]) => mockPut(...args),
+  apiDelete: (...args: unknown[]) => mockDelete(...args),
 }));
 
 describe('bloodPressure database layer', () => {
@@ -47,10 +47,11 @@ describe('bloodPressure database layer', () => {
         { ...mockReadingRow, id: 'r1', systolic: 120, diastolic: 80, pulse: 70 },
         { ...mockReadingRow, id: 'r2', systolic: 130, diastolic: 90, pulse: 80 },
       ];
-      mockQuery.mockResolvedValue(mockReadings);
+      mockGet.mockResolvedValue({ rows: mockReadings });
 
       const result = await getReadings();
 
+      expect(mockGet).toHaveBeenCalledWith('/api/blood-pressure');
       expect(result.data).toHaveLength(1);
       expect(result.data![0].systolic).toBe(125); // Average
       expect(result.data![0].diastolic).toBe(85);
@@ -64,7 +65,7 @@ describe('bloodPressure database layer', () => {
         { ...mockReadingRow, id: 'r2', cuff_location: 'right_arm' },
         { ...mockReadingRow, id: 'r3', cuff_location: null },
       ];
-      mockQuery.mockResolvedValue(mockReadings);
+      mockGet.mockResolvedValue({ rows: mockReadings });
 
       const result = await getReadings();
       const readings = result.data![0].readings;
@@ -87,8 +88,7 @@ describe('bloodPressure database layer', () => {
           diastolic: 78,
         },
       ];
-      mockTransaction.mockResolvedValue(undefined);
-      mockQuery.mockResolvedValue(insertedRows);
+      mockPost.mockResolvedValue({ sessionId: 'mock-session-uuid', rows: insertedRows });
 
       const result = await addSession(mockSessionInput);
 
@@ -99,6 +99,7 @@ describe('bloodPressure database layer', () => {
     it('validates input before adding', async () => {
       const result = await addSession({ date: '', timeOfDay: 'morning', readings: [] });
       expect(result.error!.message).toContain('Date is required');
+      expect(mockPost).not.toHaveBeenCalled();
     });
 
     it('validates readings', async () => {
@@ -108,11 +109,14 @@ describe('bloodPressure database layer', () => {
         readings: [{ systolic: 50, diastolic: 80 }],
       });
       expect(result.error).toBeDefined();
+      expect(mockPost).not.toHaveBeenCalled();
     });
 
-    it('sanitizes notes and maps arm to cuff_location', async () => {
-      mockTransaction.mockResolvedValue(undefined);
-      mockQuery.mockResolvedValue([{ ...mockReadingRow, session_id: 'mock-session-uuid' }]);
+    it('sanitizes notes and sends arm for server-side cuff mapping', async () => {
+      mockPost.mockResolvedValue({
+        sessionId: 'mock-session-uuid',
+        rows: [{ ...mockReadingRow, session_id: 'mock-session-uuid' }],
+      });
 
       await addSession({
         date: '2024-03-15',
@@ -121,47 +125,51 @@ describe('bloodPressure database layer', () => {
         notes: '<script>xss</script>',
       });
 
-      // Check the transactional insert has sanitized notes and correct cuff location.
-      const firstInsertParams = mockTransaction.mock.calls[0][0][0].params as unknown[];
-      expect(firstInsertParams[7]).not.toContain('<script>'); // notes param
-      expect(firstInsertParams[8]).toBe('left_arm'); // cuff_location param
+      const body = mockPost.mock.calls[0][1] as {
+        notes: string;
+        session: { readings: Array<{ arm: string | null }> };
+      };
+      expect(body.notes).not.toContain('<script>');
+      expect(body.session.readings[0].arm).toBe('L');
     });
 
-    it('returns an error when the session transaction fails', async () => {
-      mockTransaction.mockRejectedValue(new Error('transaction failed'));
+    it('returns an error when the request fails', async () => {
+      mockPost.mockRejectedValue(new Error('request failed'));
 
       const result = await addSession(mockSessionInput);
 
       expect(result.data).toBeNull();
-      expect(result.error?.message).toBe('transaction failed');
-      expect(mockQuery).not.toHaveBeenCalled();
+      expect(result.error?.message).toBe('request failed');
     });
   });
 
   describe('deleteSession', () => {
     it('deletes session', async () => {
-      mockExec.mockResolvedValue({ changes: 1, lastId: 0 });
+      mockDelete.mockResolvedValue({ ok: true });
 
       const result = await deleteSession('session-1');
 
+      expect(mockDelete).toHaveBeenCalledWith('/api/blood-pressure?sessionId=session-1');
       expect(result.error).toBeNull();
     });
   });
 
   describe('updateSession', () => {
     it('replaces readings and recalculates session averages', async () => {
-      mockTransaction.mockResolvedValue(undefined);
-      mockQuery.mockResolvedValue([
-        { ...mockReadingRow, systolic: 120, diastolic: 80, pulse: 70 },
-        {
-          ...mockReadingRow,
-          id: 'reading-2',
-          systolic: 130,
-          diastolic: 90,
-          pulse: 80,
-          cuff_location: 'right_arm',
-        },
-      ]);
+      mockPut.mockResolvedValue({
+        sessionId: 'session-1',
+        rows: [
+          { ...mockReadingRow, systolic: 120, diastolic: 80, pulse: 70 },
+          {
+            ...mockReadingRow,
+            id: 'reading-2',
+            systolic: 130,
+            diastolic: 90,
+            pulse: 80,
+            cuff_location: 'right_arm',
+          },
+        ],
+      });
 
       const result = await updateSession('session-1', mockSessionInput);
 
@@ -174,17 +182,16 @@ describe('bloodPressure database layer', () => {
         readingCount: 2,
       });
       expect(result.data?.readings[1].arm).toBe('R');
-      expect(mockTransaction.mock.calls[0][0][0].sql).toContain('DELETE FROM');
+      expect(mockPut.mock.calls[0][0]).toContain('sessionId=session-1');
     });
 
-    it('returns the transaction error without querying replacement readings', async () => {
-      mockTransaction.mockRejectedValue(new Error('replace failed'));
+    it('returns the request error', async () => {
+      mockPut.mockRejectedValue(new Error('replace failed'));
 
       const result = await updateSession('session-1', mockSessionInput);
 
       expect(result.data).toBeNull();
       expect(result.error?.message).toBe('replace failed');
-      expect(mockQuery).not.toHaveBeenCalled();
     });
   });
 });
