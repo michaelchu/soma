@@ -1,11 +1,11 @@
-import { querySQL, execSQL, transactionSQL } from '../sqlite';
+import { apiGet, apiPost, apiPut, apiDelete } from '../api';
 import { validateBloodTestReport, sanitizeString } from '../validation';
 import { logError } from '../logger';
 import type { BloodTestReport, BloodTestReportInput, MetricReference, MetricValue } from '@/types';
 
 /**
  * Blood Tests data service
- * CRUD operations for blood test reports and metrics (local SQLite)
+ * CRUD operations for blood test reports and metrics (server API backed by Postgres)
  */
 
 type Reference = MetricReference;
@@ -48,6 +48,20 @@ function buildReferenceObject(metric: MetricRow): Reference {
   return ref;
 }
 
+function rowToReportHeader(row: ReportRow): {
+  id: string;
+  date: string;
+  orderNumber: string;
+  orderedBy: string;
+} {
+  return {
+    id: row.id,
+    date: row.report_date,
+    orderNumber: row.order_number || '',
+    orderedBy: row.ordered_by || '',
+  };
+}
+
 /**
  * Get all blood test reports with their metrics
  */
@@ -56,19 +70,17 @@ export async function getReports(): Promise<{
   error: Error | null;
 }> {
   try {
-    const reports = await querySQL<ReportRow>(
-      'SELECT * FROM blood_test_reports ORDER BY report_date DESC'
+    const { reports, metrics } = await apiGet<{ reports: ReportRow[]; metrics: MetricRow[] }>(
+      '/api/blood-tests'
     );
 
     if (reports.length === 0) {
       return { data: [], error: null };
     }
 
-    const allMetrics = await querySQL<MetricRow>('SELECT * FROM blood_test_metrics');
-
     // Group metrics by report_id
     const metricsByReport = new Map<string, MetricRow[]>();
-    for (const metric of allMetrics) {
+    for (const metric of metrics) {
       if (!metricsByReport.has(metric.report_id)) {
         metricsByReport.set(metric.report_id, []);
       }
@@ -76,9 +88,9 @@ export async function getReports(): Promise<{
     }
 
     const transformedReports: BloodTestReport[] = reports.map((report) => {
-      const metrics: Record<string, MetricData> = {};
+      const reportMetrics: Record<string, MetricData> = {};
       for (const metric of metricsByReport.get(report.id) || []) {
-        metrics[metric.metric_key] = {
+        reportMetrics[metric.metric_key] = {
           value: metric.value,
           unit: metric.unit,
           reference: buildReferenceObject(metric),
@@ -86,11 +98,8 @@ export async function getReports(): Promise<{
       }
 
       return {
-        id: report.id,
-        date: report.report_date,
-        orderNumber: report.order_number || '',
-        orderedBy: report.ordered_by || '',
-        metrics,
+        ...rowToReportHeader(report),
+        metrics: reportMetrics,
       };
     });
 
@@ -120,45 +129,15 @@ export async function addReport(report: ReportInput): Promise<{
     const sanitizedOrderedBy = report.orderedBy ? sanitizeString(report.orderedBy, 200) : null;
     const sanitizedNotes = report.notes ? sanitizeString(report.notes) : null;
 
-    const reportId = crypto.randomUUID();
-    const now = new Date().toISOString();
-
-    const statements: { sql: string; params: unknown[] }[] = [
-      {
-        sql: `INSERT INTO blood_test_reports (id, report_date, order_number, ordered_by, notes, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        params: [
-          reportId,
-          report.date,
-          sanitizedOrderNumber,
-          sanitizedOrderedBy,
-          sanitizedNotes,
-          now,
-          now,
-        ],
+    const { reportId } = await apiPost<{ reportId: string }>('/api/blood-tests', {
+      report: {
+        date: report.date,
+        orderNumber: sanitizedOrderNumber,
+        orderedBy: sanitizedOrderedBy,
+        notes: sanitizedNotes,
+        metrics: report.metrics,
       },
-    ];
-
-    if (report.metrics && Object.keys(report.metrics).length > 0) {
-      for (const [key, data] of Object.entries(report.metrics)) {
-        statements.push({
-          sql: `INSERT INTO blood_test_metrics (id, report_id, metric_key, value, unit, reference_min, reference_max, reference_raw, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          params: [
-            crypto.randomUUID(),
-            reportId,
-            key,
-            data.value,
-            data.unit || '',
-            data.reference?.min ?? null,
-            data.reference?.max ?? null,
-            data.reference?.raw || null,
-            now,
-          ],
-        });
-      }
-    }
-    await transactionSQL(statements);
+    });
 
     return {
       data: {
@@ -184,43 +163,19 @@ export async function updateReport(
   updates: ReportUpdates
 ): Promise<{ data: Partial<BloodTestReport> | null; error: Error | null }> {
   try {
-    const setClauses: string[] = [];
-    const params: unknown[] = [];
+    const body: Record<string, unknown> = {};
+    if (updates.date !== undefined) body.date = updates.date;
+    if (updates.orderNumber !== undefined)
+      body.orderNumber = sanitizeString(updates.orderNumber, 100);
+    if (updates.orderedBy !== undefined) body.orderedBy = sanitizeString(updates.orderedBy, 200);
+    if (updates.notes !== undefined) body.notes = sanitizeString(updates.notes);
 
-    if (updates.date !== undefined) {
-      setClauses.push('report_date=?');
-      params.push(updates.date);
-    }
-    if (updates.orderNumber !== undefined) {
-      setClauses.push('order_number=?');
-      params.push(sanitizeString(updates.orderNumber, 100));
-    }
-    if (updates.orderedBy !== undefined) {
-      setClauses.push('ordered_by=?');
-      params.push(sanitizeString(updates.orderedBy, 200));
-    }
-    if (updates.notes !== undefined) {
-      setClauses.push('notes=?');
-      params.push(sanitizeString(updates.notes));
-    }
+    const { report } = await apiPut<{ report: ReportRow }>(
+      `/api/blood-tests?id=${encodeURIComponent(id)}`,
+      body
+    );
 
-    setClauses.push("updated_at=datetime('now')");
-    params.push(id);
-
-    await execSQL(`UPDATE blood_test_reports SET ${setClauses.join(', ')} WHERE id=?`, params);
-
-    const rows = await querySQL<ReportRow>('SELECT * FROM blood_test_reports WHERE id = ?', [id]);
-    const report = rows[0];
-
-    return {
-      data: {
-        id: report.id,
-        date: report.report_date,
-        orderNumber: report.order_number || '',
-        orderedBy: report.ordered_by || '',
-      },
-      error: null,
-    };
+    return { data: rowToReportHeader(report), error: null };
   } catch (err) {
     logError('bloodTests.updateReport', err);
     return { data: null, error: err instanceof Error ? err : new Error(String(err)) };
@@ -232,7 +187,7 @@ export async function updateReport(
  */
 export async function deleteReport(id: string): Promise<{ error: Error | null }> {
   try {
-    await execSQL('DELETE FROM blood_test_reports WHERE id = ?', [id]);
+    await apiDelete(`/api/blood-tests?id=${encodeURIComponent(id)}`);
     return { error: null };
   } catch (err) {
     logError('bloodTests.deleteReport', err);
@@ -249,44 +204,7 @@ export async function updateMetric(
   data: MetricData
 ): Promise<{ error: Error | null }> {
   try {
-    // Check if metric exists
-    const existing = await querySQL<MetricRow>(
-      'SELECT id FROM blood_test_metrics WHERE report_id = ? AND metric_key = ?',
-      [reportId, metricKey]
-    );
-
-    if (existing.length > 0) {
-      await execSQL(
-        `UPDATE blood_test_metrics SET value=?, unit=?, reference_min=?, reference_max=?, reference_raw=?
-         WHERE report_id=? AND metric_key=?`,
-        [
-          data.value,
-          data.unit || '',
-          data.reference?.min ?? null,
-          data.reference?.max ?? null,
-          data.reference?.raw || null,
-          reportId,
-          metricKey,
-        ]
-      );
-    } else {
-      const metricId = crypto.randomUUID();
-      await execSQL(
-        `INSERT INTO blood_test_metrics (id, report_id, metric_key, value, unit, reference_min, reference_max, reference_raw, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
-        [
-          metricId,
-          reportId,
-          metricKey,
-          data.value,
-          data.unit || '',
-          data.reference?.min ?? null,
-          data.reference?.max ?? null,
-          data.reference?.raw || null,
-        ]
-      );
-    }
-
+    await apiPost('/api/blood-tests-metrics', { reportId, metricKey, data });
     return { error: null };
   } catch (err) {
     logError('bloodTests.updateMetric', err);
@@ -308,58 +226,15 @@ export async function bulkInsertReports(
   reports: BulkReportInput[]
 ): Promise<{ data: ReportRow[] | null; error: Error | null }> {
   try {
-    const results: ReportRow[] = [];
-
-    for (const report of reports) {
-      const reportId = crypto.randomUUID();
-      const now = new Date().toISOString();
-
-      const statements: { sql: string; params: unknown[] }[] = [
-        {
-          sql: `INSERT INTO blood_test_reports (id, report_date, order_number, ordered_by, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-          params: [
-            reportId,
-            report.date,
-            report.orderNumber || null,
-            report.orderedBy || null,
-            now,
-            now,
-          ],
-        },
-      ];
-
-      if (report.metrics && Object.keys(report.metrics).length > 0) {
-        for (const [key, data] of Object.entries(report.metrics)) {
-          statements.push({
-            sql: `INSERT INTO blood_test_metrics (id, report_id, metric_key, value, unit, reference_min, reference_max, reference_raw, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            params: [
-              crypto.randomUUID(),
-              reportId,
-              key,
-              data.value,
-              data.unit || '',
-              data.reference?.min ?? null,
-              data.reference?.max ?? null,
-              data.reference?.raw || null,
-              now,
-            ],
-          });
-        }
-      }
-      await transactionSQL(statements);
-
-      results.push({
-        id: reportId,
-        report_date: report.date,
-        order_number: report.orderNumber || null,
-        ordered_by: report.orderedBy || null,
-        notes: null,
-      });
-    }
-
-    return { data: results, error: null };
+    const { reports: inserted } = await apiPost<{ reports: ReportRow[] }>('/api/blood-tests-bulk', {
+      reports: reports.map((report) => ({
+        date: report.date,
+        orderNumber: report.orderNumber || null,
+        orderedBy: report.orderedBy || null,
+        metrics: report.metrics,
+      })),
+    });
+    return { data: inserted, error: null };
   } catch (err) {
     logError('bloodTests.bulkInsertReports', err);
     return { data: null, error: err instanceof Error ? err : new Error(String(err)) };

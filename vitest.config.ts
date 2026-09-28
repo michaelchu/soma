@@ -17,14 +17,12 @@ export default defineConfig({
       // targets, so they are intentionally outside this unit-coverage budget.
       include: [
         'src/hooks/useDataManager.ts',
+        'src/lib/api.ts',
         'src/lib/dateUtils.ts',
         'src/lib/db/**/*.ts',
         'src/lib/exportUtils.ts',
         'src/lib/googleDrive.ts',
         'src/lib/secureStorage.ts',
-        'src/lib/sqlite-schema.ts',
-        'src/lib/sqlite-worker.ts',
-        'src/lib/sqlite.ts',
         'src/lib/statsUtils.ts',
         'src/lib/validation.ts',
         'src/pages/activity/utils/activityHelpers.ts',
